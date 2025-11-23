@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useEffect, useMemo, useState } from "react";
 import { StopTheWorldService } from "../../../domains/conversation/stw-service";
 import type { ConversationSession, ConversationBubble } from "../../../domains/conversation/models";

@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState } from "react";
 import { StudioForm } from "../../../../components/scenario/StudioForm";
 import { seedScenarios } from "../../../../services/persistence/seeds/scenarios";

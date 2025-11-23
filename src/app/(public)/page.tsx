@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState } from "react";
 import { seedScenarios } from "../../services/persistence/seeds/scenarios";
 import { Button } from "../../components/shared/Button";

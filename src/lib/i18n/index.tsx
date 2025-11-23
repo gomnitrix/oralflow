@@ -1,3 +1,5 @@
+'use client';
+
 import React, { createContext, useContext, useMemo } from "react";
 import { en } from "./en";
 import { zh } from "./zh";

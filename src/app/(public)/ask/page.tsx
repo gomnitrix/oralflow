@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState } from "react";
 import { ExpressionPreview } from "../../../components/ask/ExpressionPreview";
 import { AskService } from "../../../domains/notes/ask-service";
