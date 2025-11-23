@@ -15,7 +15,7 @@ export const ScenarioLaunchpad: React.FC<ScenarioLaunchpadProps> = ({ scenarioId
       <p className="text-sm font-semibold">Launchpad</p>
       <div className="flex gap-2 flex-wrap">
         {links.map((link) => (
-          <Button key={link.href} variant="secondary" as="a" href={link.href}>
+          <Button key={link.href} variant="secondary" href={link.href}>
             {link.label}
           </Button>
         ))}

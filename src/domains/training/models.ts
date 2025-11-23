@@ -1,5 +1,5 @@
 export {};
-export type ISODateString = string;
+type ISODateString = string;
 export type ReviewStatus = "pending" | "completed";
 export type TrainingMode = "review" | "adHoc";
 

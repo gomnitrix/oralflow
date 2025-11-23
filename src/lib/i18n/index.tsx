@@ -5,7 +5,11 @@ import { en } from "./en";
 import { zh } from "./zh";
 
 export type Locale = "en" | "zh";
-type Messages = typeof en;
+type Messages = {
+  [Section in keyof typeof en]: {
+    [Key in keyof (typeof en)[Section]]: string;
+  };
+};
 
 interface I18nContextValue {
   locale: Locale;

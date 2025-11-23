@@ -1,5 +1,5 @@
 export {};
-export type ISODateString = string;
+type ISODateString = string;
 export type NotebookSource = "stw" | "zen" | "ask" | "training" | "manual";
 export type ExpressionTone = "formal" | "neutral" | "casual" | "other";
 export type ExpressionOrigin =

@@ -1,7 +1,7 @@
 export {};
 export type ScenarioSourceType = "manual" | "ai" | "import";
 export type ScenarioPreferredMode = "stw" | "zen" | null;
-export type ISODateString = string;
+type ISODateString = string;
 
 export interface ScenarioTemplate {
   id: string;
