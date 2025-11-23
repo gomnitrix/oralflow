@@ -10,9 +10,9 @@ export const scenarioTemplateSchema = z.object({
   mainGoal: z.string().min(1),
   subGoals: z.array(z.string()).default([]),
   sourceType: z.enum(["manual", "ai", "import"]),
-  sourceText: z.string().nullable().optional(),
-  lastPracticedAt: z.string().nullable().optional(),
-  preferredMode: z.enum(["stw", "zen"]).nullable().optional(),
+  sourceText: z.string().nullable().default(null),
+  lastPracticedAt: z.string().nullable().default(null),
+  preferredMode: z.enum(["stw", "zen"]).nullable().default(null),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
 });
