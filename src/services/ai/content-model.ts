@@ -41,7 +41,7 @@ export const generateScenario = async (
   });
 
   const scenario = createScenarioTemplate({
-    title: input.draft?.title ?? completion.message.slice(0, 60) || "Practice Scenario",
+    title: input.draft?.title ?? (completion.message.slice(0, 60) || "Practice Scenario"),
     emoji: input.draft?.emoji ?? "🗣️",
     description: input.draft?.description ?? "Improve speaking confidence in a guided role-play.",
     learnerRole: input.draft?.learnerRole ?? "Learner",
