@@ -13,8 +13,8 @@ export const scenarioTemplateSchema = z.object({
   sourceText: z.string().nullable().default(null),
   lastPracticedAt: z.string().nullable().default(null),
   preferredMode: z.enum(["stw", "zen"]).nullable().default(null),
-  createdAt: z.string().optional(),
-  updatedAt: z.string().optional(),
+  createdAt: z.string().default(() => new Date().toISOString()),
+  updatedAt: z.string().default(() => new Date().toISOString()),
 });
 
 export type ScenarioTemplateInput = z.infer<typeof scenarioTemplateSchema>;
