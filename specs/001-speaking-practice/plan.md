@@ -1,0 +1,164 @@
+# Implementation Plan: Oralflow Speaking Practice Loop
+
+**Branch**: `001-speaking-practice` | **Date**: 2025-11-23 | **Spec**: `/workspaces/oralflow/specs/001-speaking-practice/spec.md`  
+**Input**: Feature specification from `/specs/001-speaking-practice/spec.md` and architecture description for a Next.js + TypeScript monolith.
+
+## Summary
+
+Build a monolithic Next.js (App Router) application in TypeScript that delivers two conversation modes (Stop-the-World coaching and Zen real-time voice), a Scenario Studio + Library, a universal Notebook with SRS-driven Training, and an expression discovery Ask page, all orchestrated around the Practice → Evaluate → Extract → Save → Review → Reuse loop.  
+The implementation centers on domain-focused modules (`conversation`, `copilot`, `evaluation`, `training`, `scenario`, `notes`) with a unified AI service layer, Node-based server actions/API routes for non-real-time flows, Realtime APIs for Zen, normalized local data models, and a Tailwind-driven component library that enforces consistent, responsive UX across all flows.
+
+## Technical Context
+
+**Language/Version**: TypeScript (strict) on Next.js (App Router) with Node.js 20+ runtime  
+**Primary Dependencies**: Next.js (React 18), Tailwind CSS, OpenAI/Google Realtime SDKs (behind an abstracted AI service), testing stack (Jest/Testing Library for unit/integration, Playwright or Cypress for E2E)  
+**Storage**: Local Node-based persistence for MVP (e.g., file- or lightweight embedded DB-backed repositories) with normalized entities for scenarios, sessions, notebook items, and SRS metadata  
+**Testing**: Unit tests on domain services, integration tests on API routes/server actions, and end-to-end tests that cover core loops (StW coaching, Zen session + report, SRS review, Ask → save → train)  
+**Target Platform**: Web app targeting modern desktop/tablet/mobile browsers, deployed as a containerized Next.js service  
+**Project Type**: Web monolith with domain modules (conversation, copilot, evaluation, training/SRS, scenario builder, notes) and shared UI + AI layers  
+**Performance Goals**: Snappy perceived latency for evaluations (<1–2s for StW evaluations and Ask responses), smooth Zen streaming (minimal jitter, no UI blocking), and daily review sessions typically completable within ~10 minutes  
+**Constraints**: Strict TypeScript and linting, no blocking UI during AI/evaluation operations, responsive layouts, environment-injected API keys, and architecture that can migrate from single-user local storage to multi-user backends without large rewrites  
+**Scale/Scope**: Initial single-user MVP with room to grow into multi-user SaaS; scope limited to one cohesive speaking-coaching loop (StW + Zen + Notebook/SRS + Ask + Scenario tools) rather than broader curriculum management.
+
+## Constitution Check
+
+*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
+
+- **Type Safety & Code Quality**: Plan uses strict TypeScript everywhere (Next.js app, server actions, AI service layer, domain modules) and enforces ESLint/Prettier; no dynamic `any`-heavy paths planned.
+- **Separation of Concerns**: UI, domain logic, and data persistence are split into domain modules with React components delegating to typed hooks/services; AI calls, evaluation, and SRS logic live in dedicated service modules.
+- **Testing Standards**: Each core loop (StW, Zen, SRS training/review, Scenario Studio, Ask/Notebook) will have unit tests for logic, integration tests for data flow, and at least one E2E path; CI runs type-check, lint, and tests on every PR.
+- **UX Consistency & Localization**: Shared design system components (layout, typography, controls, bubble components, copilot panels) and i18n primitives support English and Chinese; StW and Zen are deliberately differentiated but pattern-consistent.
+- **Performance & Realtime**: Non-real-time flows (evaluation, Ask, SRS) use asynchronous server actions/APIs; Zen uses Realtime APIs with streaming UI; no blocking UI on network calls.
+- **Security & Data Responsibility**: Only non-authenticated, single-user local data for MVP; recordings/notes/history stored via Node backend with clear formats; all external tokens provided through environment variables.
+
+**Gate Result (Pre-Design)**: PASS – No constitution violations identified; complexity is justified by feature scope, and no additional projects or hidden side-effect patterns are introduced.
+
+## Project Structure
+
+### Documentation (this feature)
+
+```text
+specs/001-speaking-practice/
+├── spec.md              # Feature specification (/speckit.specify output)
+├── plan.md              # This file (/speckit.plan output)
+├── research.md          # Phase 0 research and decisions
+├── data-model.md        # Phase 1 entity and state design
+├── quickstart.md        # Phase 1 developer + QA scenarios
+├── contracts/           # Phase 1 API/Realtime contracts
+└── tasks.md             # Phase 2 tasks (/speckit.tasks output)
+```
+
+### Source Code (repository root)
+
+```text
+UI-sketch/                      # Static HTML prototypes (reference only)
+
+src/
+├── app/                        # Next.js App Router entrypoints
+│   ├── (public)/
+│   │   ├── page.tsx            # Home/dashboard (StW/Zen/Ask/Training entry)
+│   │   ├── stw/
+│   │   │   └── page.tsx        # Stop-the-World mode shell
+│   │   ├── zen/
+│   │   │   └── page.tsx        # Zen mode shell
+│   │   ├── scenarios/
+│   │   │   ├── page.tsx        # Scenario Library
+│   │   │   └── create/
+│   │   │       └── page.tsx    # Scenario Studio
+│   │   ├── notebook/
+│   │   │   └── page.tsx        # Notebook list + detail
+│   │   ├── training/
+│   │   │   └── page.tsx        # SRS review + guided training
+│   │   └── ask/
+│   │       └── page.tsx        # Expression discovery page
+│   ├── api/
+│   │   ├── conversation/
+│   │   │   └── stw-evaluate/route.ts      # StW evaluation endpoint (pronunciation/grammar/naturalness)
+│   │   ├── scenarios/
+│   │   │   ├── generate/route.ts         # AI scenario generation/import normalization
+│   │   │   └── crud/route.ts             # Scenario CRUD operations
+│   │   ├── notes/
+│   │   │   └── items/route.ts            # Notebook CRUD + deduplication
+│   │   ├── training/
+│   │   │   └── schedule/route.ts         # SRS queue generation and persistence
+│   │   ├── ask/route.ts                  # “How do I express X?” suggestions + extraction
+│   │   └── reports/zen/route.ts          # Zen session evaluation report generation
+│   └── realtime/
+│       └── zen/route.ts                  # Realtime websocket/stream handler for Zen mode
+│
+├── domains/
+│   ├── conversation/                     # StW + Zen domain logic
+│   │   ├── models.ts                     # ConversationSession, ConversationBubble, state machine
+│   │   ├── stw-service.ts                # StW orchestration, evaluation flow
+│   │   ├── zen-service.ts                # Zen orchestration hooks for realtime
+│   │   └── mappers.ts                    # Mapping between UI events, entities, and contracts
+│   ├── copilot/
+│   │   ├── inspiration-service.ts        # Inspiration Burst logic
+│   │   ├── distill-service.ts            # Distill logic and expression extraction
+│   │   └── notebook-gateway.ts           # Saving suggestions into Notebook
+│   ├── evaluation/
+│   │   ├── pronunciation-service.ts      # Pronunciation analysis abstraction
+│   │   ├── grammar-service.ts            # Grammar/naturalness evaluation
+│   │   └── report-builder.ts             # Session Evaluation Report composition
+│   ├── training/
+│   │   ├── srs-engine.ts                 # Anki-like scheduling core
+│   │   ├── session-builder.ts            # Guided session construction (exercise mix)
+│   │   └── rating-service.ts             # Again/Hard/Good/Easy handling
+│   ├── scenario/
+│   │   ├── models.ts                     # ScenarioTemplate, goals, roles
+│   │   ├── studio-service.ts             # Manual/AI/Import workflows + normalization
+│   │   └── library-service.ts            # Search/filter, last-practiced updates
+│   └── notes/
+│       ├── models.ts                     # NotebookItem, ReviewTask, ExpressionSuggestion
+│       ├── notebook-service.ts           # CRUD + normalization + dedupe
+│       └── ask-service.ts                # Expression discovery and extraction from text
+│
+├── services/
+│   ├── ai/
+│   │   ├── client.ts                     # Unified AI client (LLM, Realtime, TTS, ASR)
+│   │   ├── conversation-model.ts         # Chat/role-play prompts
+│   │   ├── evaluation-model.ts           # Pronunciation/grammar/naturalness prompts
+│   │   └── content-model.ts              # Scenario + expression generation
+│   └── persistence/
+│       ├── repositories.ts               # Repositories for scenarios, sessions, notebook items, review tasks
+│       └── storage-adapter.ts            # Pluggable adapter (local MVP → future DB)
+│
+├── components/
+│   ├── layout/
+│   ├── navigation/
+│   ├── conversation/                     # Bubble list, StW controls, Zen HUD
+│   ├── copilot/                          # Right-side copilot panel, tabs, cards
+│   ├── scenario/                         # Scenario cards, launchpad modal, editors
+│   ├── notebook/                         # Notebook list/detail cards
+│   ├── training/                         # Exercise cards, rating controls
+│   └── shared/                           # Buttons, inputs, typography, badges, tags
+│
+├── lib/
+│   ├── i18n/                             # English/Chinese message catalogs + helpers
+│   ├── validation/                       # Zod-style schemas for requests/entities
+│   ├── audio/                            # Utilities for recording, playback hooks
+│   └── utils/                            # Generic helpers (dates, formatting, ids)
+│
+└── tests/
+    ├── unit/
+    │   ├── domains/
+    │   └── services/
+    ├── integration/
+    │   └── api/
+    └── e2e/
+        ├── stw-flow.spec.ts
+        ├── zen-flow.spec.ts
+        ├── training-review-flow.spec.ts
+        └── ask-notebook-flow.spec.ts
+```
+
+**Structure Decision**: Single Next.js monolith using the App Router, with domain-focused folders under `src/domains`, a unified AI and persistence service layer under `src/services`, and feature routes under `src/app`. UI-sketch HTML files are treated as non-executable design references only; all production UI must use shared components and Tailwind-based design tokens to keep interaction patterns consistent across StW, Zen, Scenario, Notebook, Training, and Ask pages.
+
+## Complexity Tracking
+
+> **Fill ONLY if Constitution Check has violations that must be justified**
+
+| Violation | Why Needed | Simpler Alternative Rejected Because |
+|-----------|------------|-------------------------------------|
+| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
+| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |

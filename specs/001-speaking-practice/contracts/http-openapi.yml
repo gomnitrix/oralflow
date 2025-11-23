@@ -1,0 +1,278 @@
+openapi: 3.0.3
+info:
+  title: Oralflow Speaking Practice API
+  version: 0.1.0
+  description: HTTP contracts for Stop-the-World evaluation, scenarios, notebook, training, Ask page, and reports.
+paths:
+  /api/conversation/stw-evaluate:
+    post:
+      summary: Evaluate a Stop-the-World user utterance.
+      operationId: evaluateStwUtterance
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                sessionId:
+                  type: string
+                bubbleId:
+                  type: string
+                text:
+                  type: string
+                audioUrl:
+                  type: string
+                  nullable: true
+              required:
+                - sessionId
+                - bubbleId
+                - text
+      responses:
+        "200":
+          description: Evaluation details for the utterance.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  evaluationId:
+                    type: string
+                  pronunciationIssues:
+                    type: array
+                    items:
+                      type: string
+                  grammarIssues:
+                    type: array
+                    items:
+                      type: string
+                  naturalnessNotes:
+                    type: array
+                    items:
+                      type: string
+                  nativeLikeSuggestion:
+                    type: string
+                  referenceAudioUrl:
+                    type: string
+                    nullable: true
+  /api/scenarios/generate:
+    post:
+      summary: Generate or normalize a scenario from keyword or imported text.
+      operationId: generateScenario
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                mode:
+                  type: string
+                  enum: [manual, ai, import]
+                keyword:
+                  type: string
+                  nullable: true
+                sourceText:
+                  type: string
+                  nullable: true
+                draft:
+                  type: object
+                  nullable: true
+              required:
+                - mode
+      responses:
+        "200":
+          description: Normalized scenario card.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  scenario:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      title:
+                        type: string
+                      emoji:
+                        type: string
+                      description:
+                        type: string
+                      learnerRole:
+                        type: string
+                      aiRole:
+                        type: string
+                      mainGoal:
+                        type: string
+                      subGoals:
+                        type: array
+                        items:
+                          type: string
+  /api/scenarios/crud:
+    get:
+      summary: List scenarios with optional filters.
+      operationId: listScenarios
+      parameters:
+        - in: query
+          name: query
+          schema:
+            type: string
+          required: false
+        - in: query
+          name: mode
+          schema:
+            type: string
+            enum: [stw, zen]
+          required: false
+      responses:
+        "200":
+          description: List of scenarios.
+    post:
+      summary: Create or update a scenario.
+      operationId: upsertScenario
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScenarioTemplate"
+      responses:
+        "200":
+          description: Saved scenario.
+    delete:
+      summary: Delete a scenario.
+      operationId: deleteScenario
+      parameters:
+        - in: query
+          name: id
+          schema:
+            type: string
+          required: true
+      responses:
+        "204":
+          description: Scenario deleted.
+  /api/notes/items:
+    get:
+      summary: List notebook items.
+      operationId: listNotebookItems
+      responses:
+        "200":
+          description: Notebook items.
+    post:
+      summary: Create or update a notebook item.
+      operationId: upsertNotebookItem
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NotebookItem"
+      responses:
+        "200":
+          description: Saved item.
+  /api/training/schedule:
+    post:
+      summary: Generate or update the SRS review queue.
+      operationId: generateSchedule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                mode:
+                  type: string
+                  enum: [review, adHoc]
+                sourceText:
+                  type: string
+                  nullable: true
+      responses:
+        "200":
+          description: Scheduled review tasks.
+  /api/ask:
+    post:
+      summary: Expression discovery for “How do I express X?”.
+      operationId: askExpression
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                prompt:
+                  type: string
+              required:
+                - prompt
+      responses:
+        "200":
+          description: Tone variants and extracted expressions.
+  /api/reports/zen:
+    post:
+      summary: Generate a Zen session evaluation report.
+      operationId: generateZenReport
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                sessionId:
+                  type: string
+              required:
+                - sessionId
+      responses:
+        "200":
+          description: Evaluation report with extracted expressions.
+
+components:
+  schemas:
+    ScenarioTemplate:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        emoji:
+          type: string
+        description:
+          type: string
+        learnerRole:
+          type: string
+        aiRole:
+          type: string
+        mainGoal:
+          type: string
+        subGoals:
+          type: array
+          items:
+            type: string
+    NotebookItem:
+      type: object
+      properties:
+        id:
+          type: string
+        phrase:
+          type: string
+        meaning:
+          type: string
+        usageNotes:
+          type: string
+        variants:
+          type: array
+          items:
+            type: string
+        exampleSentences:
+          type: array
+          items:
+            type: string
+        contextSentence:
+          type: string
+        ipa:
+          type: string
+        spokenNotes:
+          type: string

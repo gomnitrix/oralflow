@@ -1,50 +1,39 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+# Oralflow Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Code Quality
+- All application code is written in TypeScript with strict type safety and lint-enforced conventions (ESLint + Prettier).
+- Maintain a clean, modular architecture that separates UI, business logic, and data access layers with no hidden side effects.
+- Source remains readable, self-describing, and well-documented so that intent is always obvious to new contributors.
+- Sensitive configuration (tokens, API keys, secrets) must come from environment variables; never hard-code them.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### II. Testing Standards
+- Every core feature is protected by automated tests that match the layer: unit for logic, integration for flows, end-to-end for journeys.
+- Critical language-learning loops (conversation, evaluation, spaced repetition) require explicit regression coverage.
+- GitHub Actions must run linting, type checks, and the entire test suite on each pull request.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### III. User Experience Consistency
+- UX must remain intuitive for beginner-to-intermediate language learners and preserve flow-state immersion.
+- Components follow consistent interaction paradigms, remain responsive across desktop/tablet/mobile, and avoid cognitive load spikes.
+- Conversational coaching surfaces stay safe, supportive, and localization-ready for English and Chinese with a path to more locales.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### IV. Performance Requirements
+- Optimize for perceived responsiveness without sacrificing clarity; no blocking UI or jittery streaming in real-time modes.
+- Non-real-time evaluation flows must stay fast and predictable, and the architecture must scale without rewrites.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### V. Security and Data Responsibility
+- Protect user-generated recordings, notes, and history with secure storage practices and explicit, documented purpose.
+- Never persist sensitive data unless required, and always document why it is retained and how it is protected.
+- Provide sensitive tokens exclusively via environment variables; never commit or hard-code them in the repository.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
-
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
-
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
-
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+## Developer Experience
+- Maintain a predictable folder structure, explicit naming, and descriptive comments only where logic is non-obvious.
+- Prefer clarity over cleverness; avoid implicit behavior and make side effects explicit.
+- Keep onboarding friction low through consistent patterns, reusable modules, and documentation that explains rationale plus integration notes.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
+- This constitution supersedes other practices when conflicts arise; exceptions require documented justification and approval.
+- Pull requests must confirm compliance with these principles, and deviations need a migration plan plus timeline.
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
-
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 1.0.0 | **Ratified**: 2025-11-23 | **Last Amended**: 2025-11-23

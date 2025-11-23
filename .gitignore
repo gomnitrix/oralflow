@@ -1,0 +1,38 @@
+# Node/Next.js artifacts
+node_modules/
+.next/
+out/
+dist/
+build/
+playwright-report/
+test-results/
+
+# Logs and diagnostics
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment and local data
+.env
+.env.*
+.vercel/
+coverage/
+.eslintcache
+
+# Editor and OS cruft
+.DS_Store
+Thumbs.db
+*.tmp
+*.swp
+.idea/
+.vscode/
+
+# Tooling state
+.specify/
+.codex/
+.gemini/
+
+
+UI-sketch/

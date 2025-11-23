@@ -1,0 +1,51 @@
+export {};
+export type ISODateString = string;
+export type ReviewStatus = "pending" | "completed";
+export type TrainingMode = "review" | "adHoc";
+
+export interface ReviewTask {
+  id: string;
+  notebookItemId: string;
+  dueAt: ISODateString;
+  lastReviewedAt: ISODateString | null;
+  intervalDays: number;
+  easeFactor: number;
+  repetitionCount: number;
+  status: ReviewStatus;
+}
+
+export interface TrainingSession {
+  id: string;
+  startedAt: ISODateString;
+  endedAt: ISODateString | null;
+  taskIds: string[];
+  mode: TrainingMode;
+}
+
+const nowIso = (): ISODateString => new Date().toISOString();
+const generateId = (): string =>
+  globalThis.crypto?.randomUUID?.() ?? `id_${Math.random().toString(36).slice(2, 10)}`;
+
+export const createReviewTask = (
+  input: Omit<ReviewTask, "id" | "status"> & Partial<Pick<ReviewTask, "id" | "status">>
+): ReviewTask => ({
+  id: input.id ?? generateId(),
+  notebookItemId: input.notebookItemId,
+  dueAt: input.dueAt ?? nowIso(),
+  lastReviewedAt: input.lastReviewedAt ?? null,
+  intervalDays: input.intervalDays ?? 1,
+  easeFactor: input.easeFactor ?? 2.5,
+  repetitionCount: input.repetitionCount ?? 0,
+  status: input.status ?? "pending",
+});
+
+export const createTrainingSession = (
+  input: Omit<TrainingSession, "id" | "startedAt"> &
+    Partial<Pick<TrainingSession, "id" | "startedAt">>
+): TrainingSession => ({
+  id: input.id ?? generateId(),
+  startedAt: input.startedAt ?? nowIso(),
+  endedAt: input.endedAt ?? null,
+  taskIds: input.taskIds ?? [],
+  mode: input.mode,
+});

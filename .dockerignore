@@ -1,0 +1,29 @@
+# Dependencies and builds
+node_modules/
+.next/
+out/
+dist/
+build/
+
+# Source control
+.git/
+.gitignore
+
+# Docker and logs
+Dockerfile
+Dockerfile.*
+.dockerignore
+*.log*
+
+# Environment and coverage
+.env
+.env.*
+coverage/
+
+# OS/editor cruft
+.DS_Store
+Thumbs.db
+*.tmp
+*.swp
+.idea/
+.vscode/
