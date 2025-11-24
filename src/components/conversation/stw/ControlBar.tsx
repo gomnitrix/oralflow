@@ -21,7 +21,7 @@ export const ControlBar: React.FC<ControlBarProps> = ({
     disabled = false,
 }) => {
     return (
-        <div className="fixed bottom-0 left-0 right-0 lg:right-[40%] p-8 flex justify-center items-center z-10 pointer-events-none">
+        <div className="w-full p-8 flex justify-center items-center z-10 pointer-events-none">
             <div className="pointer-events-auto bg-white/90 backdrop-blur-md shadow-2xl shadow-black/5 border border-custom-border/50 rounded-full px-8 py-4 flex items-center gap-8 transition-all hover:shadow-xl hover:scale-[1.02]">
                 {status === "idle" && (
                     <button

@@ -66,24 +66,24 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({ mode = "standard", s
 
       {/* Tabs */}
       <div className="px-6 py-4">
-        <div className="flex p-1 bg-white rounded-full border border-custom-border shadow-sm">
+        <div className="grid grid-cols-2 gap-2 p-1 bg-gray-100 rounded-full">
           <button
             onClick={() => setActiveTab("distill")}
-            className={`flex-1 py-2 px-4 rounded-full text-sm font-bold transition-all ${activeTab === "distill"
-              ? "bg-custom-text-dark text-white shadow-md"
-              : "text-custom-text-dark/60 hover:bg-gray-50"
+            className={`py-2 px-4 rounded-full text-sm font-bold transition-all ${activeTab === "distill"
+              ? "bg-white text-custom-text-dark shadow-sm"
+              : "text-custom-text-dark/60 hover:text-custom-text-dark"
               }`}
           >
-            Distill (H)
+            Distill
           </button>
           <button
             onClick={() => setActiveTab("inspiration")}
-            className={`flex-1 py-2 px-4 rounded-full text-sm font-bold transition-all ${activeTab === "inspiration"
-              ? "bg-custom-text-dark text-white shadow-md"
-              : "text-custom-text-dark/60 hover:bg-gray-50"
+            className={`py-2 px-4 rounded-full text-sm font-bold transition-all ${activeTab === "inspiration"
+              ? "bg-white text-custom-text-dark shadow-sm"
+              : "text-custom-text-dark/60 hover:text-custom-text-dark"
               }`}
           >
-            Inspiration (L)
+            Inspiration Burst
           </button>
         </div>
       </div>

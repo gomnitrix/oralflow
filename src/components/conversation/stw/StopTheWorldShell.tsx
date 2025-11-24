@@ -118,11 +118,11 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({ scenarioTi
   const activeBubble = session.bubbles[activeIndex];
 
   return (
-    <div className="flex flex-col lg:flex-row h-[calc(100vh-4rem)] overflow-hidden bg-custom-bg">
-      {/* Left Column: Dialogue Arena */}
-      <div className="flex-1 flex flex-col relative border-r border-custom-border bg-white lg:max-w-[60%]">
+    <div className="grid grid-cols-10 h-[calc(100vh-4rem)] overflow-hidden bg-custom-bg">
+      {/* Left Column: Dialogue Arena (60%) */}
+      <div className="col-span-10 lg:col-span-6 flex flex-col relative border-r border-custom-border bg-gray-50/50">
         {/* Header */}
-        <header className="p-6 border-b border-custom-border bg-white z-10 shadow-sm flex items-center justify-between">
+        <header className="p-6 bg-transparent z-10 flex items-center justify-between">
           <h1 className="text-xl font-black text-custom-text-dark tracking-tight">{scenarioTitle}</h1>
 
           {mainGoal && (
@@ -153,7 +153,7 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({ scenarioTi
         </header>
 
         {/* Transcript */}
-        <div className="flex-1 overflow-y-auto p-6 pb-32 scroll-smooth bg-gray-50/50">
+        <div className="flex-1 overflow-y-auto p-6 pb-32 scroll-smooth">
           <TranscriptList
             bubbles={bubblesWithActive as ConversationBubble[]}
             onBubbleClick={(id) => {
@@ -179,7 +179,7 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({ scenarioTi
         )}
 
         {/* Control Bar */}
-        <div className="absolute bottom-0 left-0 right-0">
+        <div className="absolute bottom-0 left-0 right-0 flex justify-center pointer-events-none">
           <ControlBar
             status={recordingStatus}
             onRecord={handleRecord}
@@ -190,8 +190,8 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({ scenarioTi
         </div>
       </div>
 
-      {/* Right Column: Copilot Coach */}
-      <div className="flex-1 bg-custom-bg flex flex-col h-full overflow-hidden border-l border-custom-border shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.05)] z-20">
+      {/* Right Column: Copilot Coach (40%) */}
+      <div className="hidden lg:flex col-span-4 bg-white flex-col h-full overflow-hidden z-20">
         <CopilotPanel
           mode={recordingStatus === "review" ? "assessment" : "standard"}
           selectedBubble={activeBubble}
