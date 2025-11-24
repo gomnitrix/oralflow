@@ -17,10 +17,10 @@ export default async function TrainingPage() {
   };
 
   return (
-    <main className="min-h-screen bg-surface text-white p-6 space-y-4">
+    <main className="min-h-screen bg-custom-bg text-custom-text-dark p-6 space-y-4">
       <header>
         <h1 className="text-2xl font-semibold">Training</h1>
-        <p className="text-white/70">Review and practice your saved items.</p>
+        <p className="text-custom-text-dark/70">Review and practice your saved items.</p>
       </header>
 
       <ReviewSession tasks={tasks} onRate={handleRate} />
