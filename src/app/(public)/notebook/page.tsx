@@ -10,31 +10,31 @@ export default async function NotebookPage() {
   const items = await notebookService.list();
 
   return (
-    <main className="min-h-screen bg-surface text-white p-6 space-y-4">
+    <main className="p-8 lg:p-12 space-y-8">
       <header className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Notebook</h1>
-          <p className="text-white/70">Your saved expressions and notes.</p>
+          <h1 className="text-custom-text-dark text-4xl font-black leading-tight tracking-tighter">Notebook</h1>
+          <p className="text-custom-text-dark/60 text-base font-normal leading-normal">Your saved expressions and notes.</p>
         </div>
       </header>
 
       {items.length === 0 ? (
-        <div className="rounded-2xl bg-surface-card p-4 text-white shadow-card">
-          <p className="text-sm font-semibold">No notebook items yet</p>
-          <p className="text-xs text-white/70">
+        <div className="rounded-2xl bg-white p-8 border border-custom-border shadow-sm text-center">
+          <p className="text-lg font-bold text-custom-text-dark">No notebook items yet</p>
+          <p className="text-custom-text-dark/60 mt-1">
             Save from StW, Zen, or Ask to see them here.
           </p>
-          <div className="flex gap-2 mt-2">
-            <a className="text-accent text-sm underline" href="/ask">
+          <div className="flex justify-center gap-4 mt-4">
+            <a className="text-custom-primary font-bold hover:underline" href="/ask">
               Try Ask
             </a>
-            <a className="text-accent text-sm underline" href="/scenarios/create">
+            <a className="text-custom-primary font-bold hover:underline" href="/scenarios/create">
               Scenario Studio
             </a>
           </div>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {items.map((item) => (
             <NotebookCard key={item.id} item={item} />
           ))}

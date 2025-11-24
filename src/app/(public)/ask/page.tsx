@@ -27,31 +27,32 @@ export default function AskPage() {
   };
 
   return (
-    <main className="min-h-screen bg-surface text-white p-6 space-y-4">
+    <main className="p-8 lg:p-12 space-y-8">
       <header>
-        <h1 className="text-2xl font-semibold">Ask</h1>
-        <p className="text-white/70">Ask for expressions and save what you like.</p>
+        <h1 className="text-custom-text-dark text-4xl font-black leading-tight tracking-tighter">Ask</h1>
+        <p className="text-custom-text-dark/60 text-base font-normal leading-normal">Ask for expressions and save what you like.</p>
       </header>
 
-      <form onSubmit={submit} className="space-y-3">
+      <form onSubmit={submit} className="space-y-4">
         <textarea
-          className="w-full rounded-lg bg-surface-card p-3 text-white"
+          className="w-full rounded-lg bg-white border border-custom-border p-4 text-custom-text-dark placeholder:text-custom-text-dark/40 focus:ring-2 focus:ring-custom-primary focus:border-transparent outline-none transition-all"
           placeholder="How do I decline politely?"
+          rows={4}
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
         />
         <button
           type="submit"
-          className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+          className="rounded-full bg-custom-primary px-6 py-3 text-sm font-bold text-white hover:bg-custom-primary/90 transition-colors"
         >
           Ask
         </button>
       </form>
 
       {suggestions.length === 0 ? (
-        <p className="text-sm text-white/70">Suggestions will appear here.</p>
+        <p className="text-custom-text-dark/60 text-sm">Suggestions will appear here.</p>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {suggestions.map((suggestion) => (
             <ExpressionPreview key={suggestion.id} suggestion={suggestion} onSave={save} />
           ))}

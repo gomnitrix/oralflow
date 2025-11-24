@@ -11,8 +11,8 @@ export const ScenarioLaunchpad: React.FC<ScenarioLaunchpadProps> = ({ scenarioId
   const links = buildLaunchpadLinks(scenarioId);
 
   return (
-    <div className={`rounded-xl bg-surface-subtle p-3 text-white ${compact ? "space-y-2" : "space-y-3"}`}>
-      <p className="text-sm font-semibold">Launchpad</p>
+    <div className={`rounded-xl bg-custom-bg border border-custom-border p-4 text-custom-text-dark ${compact ? "space-y-2" : "space-y-3"}`}>
+      <p className="text-xs font-bold uppercase tracking-wider text-custom-text-dark/50">Launchpad</p>
       <div className="flex gap-2 flex-wrap">
         {links.map((link) => (
           <Button key={link.href} variant="secondary" href={link.href}>

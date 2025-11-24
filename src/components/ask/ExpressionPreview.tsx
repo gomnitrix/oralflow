@@ -8,15 +8,15 @@ export interface ExpressionPreviewProps {
 }
 
 export const ExpressionPreview: React.FC<ExpressionPreviewProps> = ({ suggestion, onSave }) => (
-  <div className="rounded-2xl bg-surface-card p-4 text-white shadow-card space-y-2">
+  <div className="rounded-2xl bg-white border border-custom-border p-6 shadow-sm text-custom-text-dark space-y-3 hover:shadow-md transition-shadow">
     <div className="flex items-center justify-between">
       <div>
-        <p className="text-lg font-semibold">{suggestion.text}</p>
-        <p className="text-sm text-white/70">{suggestion.meaning}</p>
+        <p className="text-lg font-bold">{suggestion.text}</p>
+        <p className="text-sm text-custom-text-dark/70 font-medium">{suggestion.meaning}</p>
       </div>
-      <span className="text-xs uppercase text-white/50">{suggestion.tone}</span>
+      <span className="text-xs uppercase text-custom-text-dark/50 font-bold tracking-wider bg-custom-bg px-2 py-1 rounded">{suggestion.tone}</span>
     </div>
-    <p className="text-sm text-white/80">{suggestion.usageNotes}</p>
+    <p className="text-sm text-custom-text-dark/80 leading-relaxed">{suggestion.usageNotes}</p>
     <Button variant="secondary" onClick={() => onSave?.(suggestion)}>
       Save to Notebook
     </Button>
