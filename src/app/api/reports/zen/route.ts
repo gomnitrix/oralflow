@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { createInMemoryRepositories } from "../../../../services/persistence/repositories";
+import { createServerRepositories } from "../../../../services/persistence/server-repositories";
 import { buildSessionReport } from "../../../../domains/evaluation/report-builder";
 
-const repositories = createInMemoryRepositories();
+const repositories = createServerRepositories();
 
 export async function POST(request: Request) {
   try {

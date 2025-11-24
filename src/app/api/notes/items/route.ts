@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { notebookItemSchema } from "../../../../lib/validation/notes";
-import { createInMemoryRepositories, NotebookRepository } from "../../../../services/persistence/repositories";
+import { NotebookRepository } from "../../../../services/persistence/repositories";
 import { NotebookService } from "../../../../domains/notes/notebook-service";
 import { createNotebookItem } from "../../../../domains/notes/models";
+import { createServerRepositories } from "../../../../services/persistence/server-repositories";
 
-const repositories = createInMemoryRepositories();
+const repositories = createServerRepositories();
 const notebookRepo: NotebookRepository = repositories.notebook;
 const notebookService = new NotebookService({ repository: notebookRepo });
 

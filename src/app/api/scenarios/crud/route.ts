@@ -4,10 +4,10 @@ import {
   scenarioDeleteSchema,
   scenarioTemplateSchema,
 } from "../../../../lib/validation/scenario";
-import { createInMemoryRepositories } from "../../../../services/persistence/repositories";
+import { createServerRepositories } from "../../../../services/persistence/server-repositories";
 import { ScenarioLibraryService } from "../../../../domains/scenario/library-service";
 
-const repositories = createInMemoryRepositories();
+const repositories = createServerRepositories();
 const library = new ScenarioLibraryService({ repository: repositories.scenarios });
 
 export async function GET(request: Request) {

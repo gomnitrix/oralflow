@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { trainingScheduleSchema } from "../../../../lib/validation/notes";
-import { createInMemoryRepositories } from "../../../../services/persistence/repositories";
+import { createServerRepositories } from "../../../../services/persistence/server-repositories";
 import { buildTrainingSession } from "../../../../domains/training/session-builder";
 import { createReviewTask } from "../../../../domains/training/models";
 
-const repositories = createInMemoryRepositories();
+const repositories = createServerRepositories();
 
 export async function POST(request: Request) {
   try {

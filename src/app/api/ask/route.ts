@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { createInMemoryRepositories } from "../../../services/persistence/repositories";
+import { createServerRepositories } from "../../../services/persistence/server-repositories";
 import { NotebookService } from "../../../domains/notes/notebook-service";
 import { AskService } from "../../../domains/notes/ask-service";
 import { AIClient } from "../../../services/ai/client";
 
-const repositories = createInMemoryRepositories();
+const repositories = createServerRepositories();
 const notebookService = new NotebookService({ repository: repositories.notebook });
 const askService = new AskService({ aiClient: new AIClient(), notebook: notebookService });
 

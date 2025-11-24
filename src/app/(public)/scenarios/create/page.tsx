@@ -35,6 +35,7 @@ export default function ScenarioCreatePage() {
 
   // Modal State for "Start Practice"
   const [showModeSelection, setShowModeSelection] = useState(false);
+  const [activeTab, setActiveTab] = useState<"manual" | "ai" | "import">("manual");
 
   const handleFormChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -77,17 +78,38 @@ export default function ScenarioCreatePage() {
 
   const handleEdit = () => {
     if (generatedScenario) {
-      // Populate form with generated data (simplified for now)
-      // In a real app, we might want to parse the description back or keep separate state
-      // For now, we just keep the form as is, assuming the user wants to tweak inputs
+      // Switch to Manual Draft
+      setActiveTab("manual");
+      setFormData(prev => ({
+        ...prev,
+        mode: "manual",
+        background: generatedScenario.title || "",
+        userRole: generatedScenario.learnerRole || "",
+        agentRole: generatedScenario.aiRole || "",
+        goal: generatedScenario.mainGoal || "",
+      }));
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
-  const handleSave = () => {
-    // Mock Save
-    console.log("Saving scenario:", generatedScenario);
-    router.push("/scenarios");
+  const handleSave = async () => {
+    if (!generatedScenario) return;
+
+    try {
+      const response = await fetch("/api/scenarios/crud", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(generatedScenario),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to save scenario");
+      }
+
+      router.push("/scenarios");
+    } catch (error) {
+      console.error("Save error:", error);
+    }
   };
 
   const handleStartPractice = () => {
@@ -121,6 +143,8 @@ export default function ScenarioCreatePage() {
               onChange={handleFormChange}
               onGenerate={handleGenerate}
               isGenerating={isGenerating}
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
             />
           </div>
 

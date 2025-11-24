@@ -13,6 +13,8 @@ interface StudioEditorProps {
     onChange: (field: string, value: string) => void;
     onGenerate: () => void;
     isGenerating: boolean;
+    activeTab: "manual" | "ai" | "import";
+    onTabChange: (tab: "manual" | "ai" | "import") => void;
 }
 
 export const StudioEditor: React.FC<StudioEditorProps> = ({
@@ -20,11 +22,13 @@ export const StudioEditor: React.FC<StudioEditorProps> = ({
     onChange,
     onGenerate,
     isGenerating,
+    activeTab,
+    onTabChange,
 }) => {
-    const [activeTab, setActiveTab] = React.useState<"manual" | "ai" | "import">("manual");
+    // const [activeTab, setActiveTab] = React.useState<"manual" | "ai" | "import">("manual"); // Lifted up
 
     const handleTabChange = (tab: "manual" | "ai" | "import") => {
-        setActiveTab(tab);
+        onTabChange(tab);
         onChange("mode", tab); // Notify parent of mode change
     };
 

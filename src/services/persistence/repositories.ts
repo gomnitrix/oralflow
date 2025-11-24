@@ -22,7 +22,7 @@ const COLLECTIONS = {
 const clone = <T>(value: T): T => structuredClone(value);
 
 class GenericRepository<T extends EntityWithId> {
-  constructor(protected readonly adapter: StorageAdapter, private readonly collection: string) {}
+  constructor(protected readonly adapter: StorageAdapter, private readonly collection: string) { }
 
   async list(): Promise<T[]> {
     const records = await this.adapter.readCollection<T>(this.collection);

@@ -32,6 +32,7 @@ export const buildScenarioPrompt = (input: ScenarioGenerationInput): string => {
     "subGoals": ["string", "string", "string"],
     "preferredMode": "zen" | "stw"
   }
+  IMPORTANT: The content of the JSON (values) MUST be in English, regardless of the input language.
   `;
 
   if (input.mode === "manual" && input.draft) {
