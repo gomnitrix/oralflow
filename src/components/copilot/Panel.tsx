@@ -109,7 +109,7 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({ mode = "standard", s
                     </button>
                   </div>
                   <p className="text-sm text-custom-text-dark/60 italic">
-                    Click "Distill" to extract vocabulary from this bubble.
+                    Click &quot;Distill&quot; to extract vocabulary from this bubble.
                   </p>
                 </div>
               </>
@@ -139,7 +139,7 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({ mode = "standard", s
             <div className="bg-gradient-to-br from-indigo-50 to-purple-50 p-6 rounded-3xl border border-indigo-100/50">
               <p className="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-2">Quick Tip</p>
               <p className="text-sm text-indigo-900/80 font-medium">
-                Try using "Je voudrais..." instead of "Je veux..." to sound more polite.
+                Try using &quot;Je voudrais...&quot; instead of &quot;Je veux...&quot; to sound more polite.
               </p>
             </div>
           </div>
