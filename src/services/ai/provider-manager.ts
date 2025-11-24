@@ -57,7 +57,7 @@ export class ProviderManager {
                 isActive: !!process.env.OPENROUTER_API_KEY,
                 baseUrl: process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1',
                 apiKey: process.env.OPENROUTER_API_KEY,
-                capabilities: ['language', 'embedding', 'speech_to_speech'],
+                capabilities: ['language', 'embedding', 'tts', 'stt', 'speech_to_speech'],
                 isFirstParty: false
             }
         ];

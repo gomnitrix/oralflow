@@ -51,9 +51,10 @@ export const ModelCapabilityConfig: React.FC<Props> = ({ title, description, cat
                 </div>
                 <button
                     onClick={() => setIsAdding(true)}
-                    className="bg-blue-600 text-white px-3 py-1.5 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors flex items-center gap-1"
+                    className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors whitespace-nowrap"
                 >
-                    <span>+</span> Add Model
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                    Add Model
                 </button>
             </div>
 
