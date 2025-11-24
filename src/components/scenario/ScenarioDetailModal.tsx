@@ -58,18 +58,22 @@ export const ScenarioDetailModal: React.FC<ScenarioDetailModalProps> = ({
                             <div>
                                 <h4 className="font-bold text-custom-text-dark pb-2">Dialogue Goals</h4>
                                 <ul className="flex flex-col gap-2">
-                                    <li className="flex items-center gap-2 text-custom-text-dark/80">
-                                        <span className="material-symbols-outlined text-custom-primary text-lg">check_circle</span>
-                                        Greet the {scenario.aiRole.toLowerCase()}.
-                                    </li>
-                                    <li className="flex items-center gap-2 text-custom-text-dark/80">
-                                        <span className="material-symbols-outlined text-custom-primary text-lg">check_circle</span>
-                                        Practice conversation flow.
-                                    </li>
-                                    <li className="flex items-center gap-2 text-custom-text-dark/80">
-                                        <span className="material-symbols-outlined text-custom-primary text-lg">check_circle</span>
-                                        Use polite expressions.
-                                    </li>
+                                    {scenario.mainGoal && (
+                                        <li className="flex items-start gap-2 text-custom-text-dark/80 font-medium">
+                                            <span className="material-symbols-outlined text-custom-primary text-lg shrink-0 mt-0.5">flag</span>
+                                            {scenario.mainGoal}
+                                        </li>
+                                    )}
+                                    {scenario.subGoals && scenario.subGoals.length > 0 ? (
+                                        scenario.subGoals.map((goal, idx) => (
+                                            <li key={idx} className="flex items-start gap-2 text-custom-text-dark/80">
+                                                <span className="material-symbols-outlined text-custom-primary text-lg shrink-0 mt-0.5">check_circle</span>
+                                                {goal}
+                                            </li>
+                                        ))
+                                    ) : (
+                                        <li className="text-custom-text-dark/60 italic">No specific goals listed.</li>
+                                    )}
                                 </ul>
                             </div>
                         </div>

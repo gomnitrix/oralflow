@@ -12,6 +12,7 @@ interface ScenarioLibraryClientProps {
 
 export function ScenarioLibraryClient({ initialScenarios }: ScenarioLibraryClientProps) {
     const router = useRouter();
+    const [scenarios, setScenarios] = useState<ScenarioTemplate[]>(initialScenarios);
     const [selectedScenario, setSelectedScenario] = useState<ScenarioTemplate | null>(null);
 
     const handleStartStw = () => {
@@ -26,6 +27,24 @@ export function ScenarioLibraryClient({ initialScenarios }: ScenarioLibraryClien
         }
     };
 
+    const handleDelete = async (e: React.MouseEvent, id: string) => {
+        e.stopPropagation(); // Prevent opening the modal
+        if (!confirm("Are you sure you want to delete this scenario?")) return;
+
+        try {
+            const response = await fetch(`/api/scenarios/crud?id=${id}`, {
+                method: "DELETE",
+            });
+
+            if (!response.ok) throw new Error("Failed to delete");
+
+            setScenarios((prev) => prev.filter((s) => s.id !== id));
+        } catch (error) {
+            console.error("Delete failed:", error);
+            alert("Failed to delete scenario.");
+        }
+    };
+
     return (
         <main className="p-8 lg:p-12 space-y-8">
             <header className="flex flex-wrap items-center justify-between gap-4">
@@ -36,11 +55,12 @@ export function ScenarioLibraryClient({ initialScenarios }: ScenarioLibraryClien
             </header>
 
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {initialScenarios.map((scenario) => (
+                {scenarios.map((scenario) => (
                     <ScenarioCard
                         key={scenario.id}
                         scenario={scenario}
                         onClick={() => setSelectedScenario(scenario)}
+                        onDelete={(e) => handleDelete(e, scenario.id)}
                     />
                 ))}
             </div>

@@ -33,6 +33,9 @@ export const buildScenarioPrompt = (input: ScenarioGenerationInput): string => {
     "preferredMode": "zen" | "stw"
   }
   IMPORTANT: The content of the JSON (values) MUST be in English, regardless of the input language.
+  ROLE DESCRIPTIONS:
+  - "learnerRole" and "aiRole" must be CONCISE, OBJECTIVE, CONCISE. (e.g., "A traveler lost in the city", "A helpful shop assistant").
+  - Keep role descriptions short (under 10 words if possible).
   `;
 
   if (input.mode === "manual" && input.draft) {
