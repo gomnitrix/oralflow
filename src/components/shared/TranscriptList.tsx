@@ -6,7 +6,7 @@ export interface TranscriptListProps {
   onBubbleClick?: (id: string) => void;
 }
 
-const AI_AVATAR_URL = "https://lh3.googleusercontent.com/aida-public/AB6AXuD4CfzJp6sNdKOiN4Yk4M0cdWEcXPn7muzBRI7KSv0gE8twYhIZj8UtrhVmsXmJIXUueMAe1w3RB6PEbCokefclM5b8DgXWkxXcmh2GdeMRtaAJk1mcY1yW9luFvkSREfneBam7GPZk_SdYRX67ZFlIP8GyhtN5up5d1zM_zJ1SFuKBwoArgSwF1oEqOpl7ns11pT-DLMpDCq8_nsIWop5MvEovZddCPW7fjj5PSM-nCgmUjkuwOHpgnon2jsBXmoacK90CpaVlZ44";
+const AI_AVATAR_URL = "https://lh3.googleusercontent.com/aida-public/AB6AXuDKwpxleXsknFFucb_wNgxEnE3VXJ52Mv1-DrdF9VZI6Z76ngJm5DLDw4eBnD881E7M38dSacAKr76YZuBVhIKXwVomUeld1clqBoJikOknBiO88ButxebP7dWKLUlu9-szSq0S97Mn7TPLGDW9rp3gecAvCwnXLaO2Z6pZ6XFywRZiQrn8_zExjFYmHGWj94Oge-mzbEEaTEqqeywVGZCwrNFaZ2AWJLdr854orewqLDhQ4keLe-1lfXPTyMak8QoaTUWdYy-GPf0";
 const USER_AVATAR_URL = "https://lh3.googleusercontent.com/aida-public/AB6AXuDKwpxleXsknFFucb_wNgxEnE3VXJ52Mv1-DrdF9VZI6Z76ngJm5DLDw4eBnD881E7M38dSacAKr76YZuBVhIKXwVomUeld1clqBoJikOknBiO88ButxebP7dWKLUlu9-szSq0S97Mn7TPLGDW9rp3gecAvCwnXLaO2Z6pZ6XFywRZiQrn8_zExjFYmHGWj94Oge-mzbEEaTEqqeywVGZCwrNFaZ2AWJLdr854orewqLDhQ4keLe-1lfXPTyMak8QoaTUWdYy-GPf0";
 
 export const TranscriptList: React.FC<TranscriptListProps> = ({ bubbles, onBubbleClick }) => {
@@ -31,7 +31,7 @@ export const TranscriptList: React.FC<TranscriptListProps> = ({ bubbles, onBubbl
             {!isUser && (
               <div
                 className="w-10 h-10 rounded-full bg-cover bg-center shrink-0 shadow-sm"
-                style={{ backgroundImage: `url(${AI_AVATAR_URL})` }}
+                style={{ backgroundImage: `url(${AI_AVATAR_URL})`, filter: 'hue-rotate(200deg) saturate(0.8)' }}
               />
             )}
 

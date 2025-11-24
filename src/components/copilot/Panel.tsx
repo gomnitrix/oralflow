@@ -56,12 +56,12 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({ mode = "standard", s
   // If in assessment mode (user recorded but hasn't sent), override content
   if (mode === "assessment") {
     return (
-      <div className="flex flex-col h-full bg-custom-bg border-l border-custom-border">
+      <div className="flex flex-col h-full bg-white border-l border-custom-border">
         <div className="p-6 pb-4 border-b border-custom-border/50">
           <h2 className="text-xl font-black text-custom-text-dark tracking-tight">Copilot Coach</h2>
         </div>
         <div className="flex-1 p-6 overflow-y-auto">
-          <div className="bg-white p-6 rounded-3xl shadow-sm border border-custom-border border-l-4 border-l-custom-primary animate-in fade-in slide-in-from-right-4">
+          <div className="bg-[#f8f6f6] p-6 rounded-3xl shadow-sm border border-custom-border border-l-4 border-l-custom-primary animate-in fade-in slide-in-from-right-4">
             <p className="text-xs font-bold text-custom-primary uppercase tracking-wider mb-3">Pre-send Evaluation</p>
             <p className="text-custom-text-dark font-medium mb-6 text-lg">Your response is ready to send.</p>
 
@@ -92,7 +92,7 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({ mode = "standard", s
   }
 
   return (
-    <div className="flex flex-col h-full bg-custom-bg border-l border-custom-border">
+    <div className="flex flex-col h-full bg-white border-l border-custom-border">
       {/* Header / Title */}
       <div className="p-6 pb-4 border-b border-custom-border/50">
         <h2 className="text-xl font-black text-custom-text-dark tracking-tight">Copilot Coach</h2>
@@ -123,19 +123,19 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({ mode = "standard", s
       </div>
 
       {/* Content Area */}
-      <div className="flex-1 p-6 overflow-y-auto">
+      <div className="flex-1 p-6 overflow-y-auto" key={selectedBubble?.id}>
         {currentContext.activeTab === "distill" && (
           <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
             {selectedBubble ? (
               <>
-                <div className="bg-white p-6 rounded-3xl shadow-sm border border-custom-border">
+                <div className="bg-[#f8f6f6] p-6 rounded-3xl shadow-sm border border-custom-border">
                   <p className="text-xs font-bold text-custom-text-dark/40 uppercase tracking-wider mb-3">Selected Text</p>
                   <p className="text-custom-text-dark text-lg font-medium leading-relaxed">
                     &quot;{selectedBubble.text}&quot;
                   </p>
                 </div>
 
-                <div className="bg-white p-6 rounded-3xl shadow-sm border border-custom-border">
+                <div className="bg-[#f8f6f6] p-6 rounded-3xl shadow-sm border border-custom-border">
                   <div className="flex items-center justify-between mb-4">
                     <p className="text-sm font-bold text-custom-text-dark">Key Vocabulary</p>
                     <button className="text-xs font-bold text-custom-primary bg-custom-primary/10 px-3 py-1 rounded-full hover:bg-custom-primary/20 transition-colors">
@@ -148,7 +148,7 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({ mode = "standard", s
                 </div>
               </>
             ) : (
-              <div className="bg-white p-6 rounded-3xl shadow-sm border border-custom-border text-center py-12">
+              <div className="bg-[#f8f6f6] p-6 rounded-3xl shadow-sm border border-custom-border text-center py-12">
                 <span className="material-symbols-outlined text-4xl text-custom-text-dark/20 mb-3">touch_app</span>
                 <p className="text-custom-text-dark/60 font-medium">Select a bubble to analyze</p>
               </div>
@@ -158,7 +158,7 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({ mode = "standard", s
 
         {currentContext.activeTab === "inspiration" && (
           <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
-            <div className="bg-white p-6 rounded-3xl shadow-sm border border-custom-border">
+            <div className="bg-[#f8f6f6] p-6 rounded-3xl shadow-sm border border-custom-border">
               <p className="text-sm font-bold text-custom-text-dark mb-3">Need a hint?</p>
               <input
                 type="text"
