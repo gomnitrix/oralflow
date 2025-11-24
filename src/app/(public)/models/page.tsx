@@ -103,13 +103,22 @@ export default function ModelsPage() {
                     availableProviders={activeProviders.filter(p => p.capabilities.includes('language'))}
                 />
                 <ModelCapabilityConfig
+                    title="Real-time Speech Models"
+                    description="Low-latency models for Zen Mode (First-party only)"
+                    category="realtime_speech"
+                    models={settings.models.realtime_speech}
+                    onAddModel={handleAddModel}
+                    onRemoveModel={handleRemoveModel}
+                    availableProviders={activeProviders.filter(p => p.capabilities.includes('realtime_speech'))}
+                />
+                <ModelCapabilityConfig
                     title="Speech-to-Speech"
-                    description="Real-time voice conversation models"
+                    description="Voice conversation models"
                     category="speech_to_speech"
                     models={settings.models.speech_to_speech}
                     onAddModel={handleAddModel}
                     onRemoveModel={handleRemoveModel}
-                    availableProviders={activeProviders.filter(p => p.capabilities.includes('speech_to_speech'))}
+                    availableProviders={activeProviders}
                 />
                 <ModelCapabilityConfig
                     title="Text-to-Speech"

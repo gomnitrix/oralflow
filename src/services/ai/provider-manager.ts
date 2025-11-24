@@ -6,7 +6,7 @@ export interface AIProvider {
     isActive: boolean;
     baseUrl?: string;
     apiKey?: string;
-    capabilities: ('language' | 'embedding' | 'tts' | 'stt' | 'realtime' | 'speech_to_speech')[];
+    capabilities: ('language' | 'embedding' | 'tts' | 'stt' | 'realtime' | 'speech_to_speech' | 'realtime_speech')[];
     isFirstParty: boolean;
 }
 
@@ -31,7 +31,7 @@ export class ProviderManager {
                 name: 'OpenAI',
                 isActive: !!process.env.OPENAI_API_KEY,
                 apiKey: process.env.OPENAI_API_KEY,
-                capabilities: ['language', 'embedding', 'tts', 'stt', 'realtime', 'speech_to_speech'],
+                capabilities: ['language', 'embedding', 'tts', 'stt', 'realtime', 'speech_to_speech', 'realtime_speech'],
                 isFirstParty: true
             },
             {
@@ -39,7 +39,7 @@ export class ProviderManager {
                 name: 'Gemini',
                 isActive: !!process.env.GEMINI_API_KEY,
                 apiKey: process.env.GEMINI_API_KEY,
-                capabilities: ['language', 'embedding', 'realtime', 'speech_to_speech'],
+                capabilities: ['language', 'embedding', 'tts', 'stt', 'realtime', 'speech_to_speech', 'realtime_speech'],
                 isFirstParty: true
             },
             {
@@ -48,7 +48,7 @@ export class ProviderManager {
                 isActive: !!process.env.AIHUBMIX_API_KEY,
                 baseUrl: process.env.AIHUBMIX_BASE_URL || 'https://aihubmix.com/v1',
                 apiKey: process.env.AIHUBMIX_API_KEY,
-                capabilities: ['language', 'embedding', 'tts', 'stt'],
+                capabilities: ['language', 'embedding', 'tts', 'stt', 'speech_to_speech'],
                 isFirstParty: false
             },
             {
@@ -57,7 +57,7 @@ export class ProviderManager {
                 isActive: !!process.env.OPENROUTER_API_KEY,
                 baseUrl: process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1',
                 apiKey: process.env.OPENROUTER_API_KEY,
-                capabilities: ['language', 'embedding'],
+                capabilities: ['language', 'embedding', 'speech_to_speech'],
                 isFirstParty: false
             }
         ];

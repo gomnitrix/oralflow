@@ -53,13 +53,9 @@ export const ProviderStatusList: React.FC = () => {
                         </div>
                         <div className="flex gap-2">
                             {provider.isActive ? (
-                                <div className="flex gap-1 flex-wrap justify-end max-w-[200px]">
-                                    {provider.capabilities.map(cap => (
-                                        <span key={cap} className="text-xs bg-white border border-gray-200 px-1.5 py-0.5 rounded text-gray-600">
-                                            {cap}
-                                        </span>
-                                    ))}
-                                </div>
+                                <span className="text-xs bg-white border border-green-200 px-2 py-1 rounded-full text-green-700 font-medium">
+                                    Configured
+                                </span>
                             ) : (
                                 <span className="text-xs text-gray-400 border border-dashed border-gray-300 px-2 py-1 rounded-full">Not configured</span>
                             )}

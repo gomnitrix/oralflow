@@ -7,7 +7,7 @@ export interface AIModel {
     id: string;
     name: string;
     provider: string;
-    capabilities: ('language' | 'tts' | 'stt' | 'speech_to_speech')[];
+    capabilities: ('language' | 'tts' | 'stt' | 'speech_to_speech' | 'realtime_speech')[];
 }
 
 export interface AISettings {
@@ -16,6 +16,7 @@ export interface AISettings {
         tts: AIModel[];
         stt: AIModel[];
         speech_to_speech: AIModel[];
+        realtime_speech: AIModel[];
     };
     assignments: {
         // Zen Mode
@@ -46,7 +47,8 @@ const DEFAULT_SETTINGS: AISettings = {
         language: [],
         tts: [],
         stt: [],
-        speech_to_speech: []
+        speech_to_speech: [],
+        realtime_speech: []
     },
     assignments: {
         zen_realtime: null,

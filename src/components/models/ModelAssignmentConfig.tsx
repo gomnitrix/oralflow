@@ -63,7 +63,7 @@ export const ModelAssignmentConfig: React.FC<Props> = ({ settings, onUpdateAssig
             <div>
                 <h2 className="text-lg font-semibold mb-4">Zen Mode</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-2">
-                    {renderSelect('zen_realtime', 'Real-time Model', 'Used for Zen mode (First-party providers only)', availableModels.speech_to_speech, false, isFirstParty)}
+                    {renderSelect('zen_realtime', 'Real-time Model', 'Used for Zen mode (First-party providers only)', availableModels.realtime_speech, false)}
                 </div>
             </div>
 
