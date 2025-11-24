@@ -1,114 +1,424 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from "react";
-import { StopTheWorldService } from "../../../domains/conversation/stw-service";
-import type { ConversationSession, ConversationBubble } from "../../../domains/conversation/models";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+import {
+  createConversationBubble,
+  createConversationSession,
+  type ConversationBubble,
+  type ConversationSession,
+} from "../../../domains/conversation/models";
 import { TranscriptList } from "../../shared/TranscriptList";
 import { CopilotPanel } from "../../copilot/Panel";
-import { ControlBar } from "./ControlBar";
+import { ControlBar, type ControlBarStatus } from "./ControlBar";
 
 export interface StopTheWorldShellProps {
+  scenarioId: string;
   scenarioTitle: string;
+  learnerRole?: string;
+  aiRole?: string;
   mainGoal?: string;
   subGoals?: string[];
+  description?: string;
 }
 
-const useStopTheWorld = () => {
-  const service = useMemo(
-    () =>
-      new StopTheWorldService({
-        evaluation: {
-          evaluate: async () => ({ evaluationId: `eval_${Date.now()}` }),
-        },
-      }),
-    []
+const blobToBase64 = async (blob: Blob): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result as string;
+      const [, base64] = result.split(",");
+      resolve(base64 || result);
+    };
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+
+const callAction = async <T,>(payload: Record<string, unknown>): Promise<T> => {
+  const response = await fetch("/api/conversation/stw", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error((data as any)?.error || "Failed to reach conversation service");
+  }
+  return data as T;
+};
+
+const scenarioPayload = (input: StopTheWorldShellProps) => ({
+  scenarioId: input.scenarioId,
+  title: input.scenarioTitle,
+  learnerRole: input.learnerRole ?? null,
+  aiRole: input.aiRole ?? null,
+  mainGoal: input.mainGoal ?? null,
+  subGoals: input.subGoals ?? [],
+  description: input.description ?? null,
+});
+
+const mapHistory = (bubbles: ConversationBubble[]) =>
+  bubbles
+    .filter((bubble) => bubble.state === "sent")
+    .map((bubble) => ({ speaker: bubble.speaker, text: bubble.text }));
+
+export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
+  scenarioId,
+  scenarioTitle,
+  learnerRole,
+  aiRole,
+  mainGoal,
+  subGoals,
+  description,
+}) => {
+  const [session, setSession] = useState<ConversationSession>(() =>
+    createConversationSession({ scenarioId, mode: "stw" })
   );
-  const [session, setSession] = useState<ConversationSession>(service.getSession());
+  const sessionRef = useRef(session);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [recordingStatus, setRecordingStatus] = useState<ControlBarStatus>("idle");
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [isEvaluating, setIsEvaluating] = useState(false);
+  const [isReplying, setIsReplying] = useState(false);
+  const [copilotLoading, setCopilotLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const updateSession = (next: ConversationSession) => {
-    setSession({ ...next });
-    setActiveIndex(next.bubbles.length - 1);
-  };
+  const transcriptEndRef = useRef<HTMLDivElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<BlobPart[]>([]);
 
-  const startConversation = () => updateSession(service.startConversation("Bonjour! Qu'est-ce que je vous sers aujourd'hui?")); // Example initial message
-  const startRecording = () => updateSession(service.startRecording());
-  const stopRecording = () => updateSession(service.finishRecording({ text: "Sample utterance" }));
-  const evaluate = async () => updateSession(await service.evaluate());
-  const send = () => updateSession(service.send());
-  const retry = () => updateSession(service.retry());
+  const scenario = useMemo(
+    () => scenarioPayload({ scenarioId, scenarioTitle, learnerRole, aiRole, mainGoal, subGoals, description }),
+    [aiRole, description, learnerRole, mainGoal, scenarioId, scenarioTitle, subGoals]
+  );
+
+  useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
+
+  const updateSession = useCallback((updater: (prev: ConversationSession) => ConversationSession) => {
+    setSession((prev) => {
+      const next = updater(prev);
+      sessionRef.current = next;
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
-      if (event.key.toLowerCase() === "j") {
-        setActiveIndex((prev) => Math.min(session.bubbles.length - 1, prev + 1));
+      const key = event.key.toLowerCase();
+      if (key === "j") {
+        setActiveIndex((prev) => Math.min(sessionRef.current.bubbles.length - 1, prev + 1));
       }
-      if (event.key.toLowerCase() === "k") {
+      if (key === "k") {
         setActiveIndex((prev) => Math.max(0, prev - 1));
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [session.bubbles.length]);
+  }, []);
 
-  return {
-    session,
-    activeIndex,
-    startConversation,
-    startRecording,
-    stopRecording,
-    evaluate,
-    send,
-    retry,
-    setActiveIndex,
-  };
-};
+  const bootstrapGreeting = useCallback(
+    async (targetSession: ConversationSession) => {
+      try {
+        const data = await callAction<{ reply: string; audioUrl?: string | null }>({
+          action: "start",
+          scenario,
+        });
 
-export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({ scenarioTitle, mainGoal, subGoals }) => {
-  const { session, activeIndex, startConversation, startRecording, stopRecording, evaluate, send, retry, setActiveIndex } =
-    useStopTheWorld();
-  const [recordingStatus, setRecordingStatus] = useState<"idle" | "recording" | "review">("idle");
-  const [error, setError] = useState<string | null>(null);
+        const aiBubble = createConversationBubble({
+          sessionId: targetSession.id,
+          speaker: "ai",
+          text: data.reply,
+          audioUrl: data.audioUrl ?? null,
+          state: "sent",
+        });
 
-  // Auto-scroll to bottom when bubbles change
-  const transcriptEndRef = React.useRef<HTMLDivElement>(null);
+        setSession({ ...targetSession, bubbles: [aiBubble] });
+        setActiveIndex(0);
+      } catch (err) {
+        setError((err as Error).message);
+      }
+    },
+    [scenario]
+  );
+
   useEffect(() => {
-    transcriptEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const freshSession = createConversationSession({ scenarioId, mode: "stw" });
+    setSession(freshSession);
+    setActiveIndex(0);
+    setRecordingStatus("idle");
+    void bootstrapGreeting(freshSession);
+  }, [bootstrapGreeting, scenarioId]);
+
+  useEffect(() => {
+    const endEl = transcriptEndRef.current;
+    if (endEl && typeof endEl.scrollIntoView === "function") {
+      endEl.scrollIntoView({ behavior: "smooth" });
+    }
   }, [session.bubbles.length]);
 
-  const handleRecord = () => {
-    setError(null);
-    startRecording();
-    setRecordingStatus("recording");
-  };
-
-  const handleStop = () => {
-    setError(null);
-    stopRecording();
-    setRecordingStatus("review");
-  };
-
-  const handleSend = () => {
-    setError(null);
-    send();
-    setRecordingStatus("idle");
-  };
-
-  const handleRetry = () => {
-    setError(null);
-    retry();
-    setRecordingStatus("idle");
-    // Ideally, retry should clear the last user bubble and let them record again immediately or go back to idle.
-    // Based on requirements: "Retry: Clear bubble and re-record".
-    // So we might want to auto-start recording or just go to idle. Let's go to idle.
-  };
-
-  // Trigger AI greeting if session is empty
   useEffect(() => {
     if (session.bubbles.length === 0) {
-      startConversation();
+      setActiveIndex(0);
+      return;
     }
-  }, [session.bubbles.length, startConversation]);
+    if (activeIndex > session.bubbles.length - 1) {
+      setActiveIndex(session.bubbles.length - 1);
+    }
+  }, [activeIndex, session.bubbles.length]);
+
+  const latestUserBubble = useCallback(() => {
+    return [...sessionRef.current.bubbles].reverse().find((b) => b.speaker === "user") ?? null;
+  }, []);
+
+  const transcribeAudio = useCallback(
+    async (blob: Blob) => {
+      const base64 = await blobToBase64(blob);
+      const data = await callAction<{ text: string }>({
+        action: "transcribe",
+        sessionId: sessionRef.current.id,
+        audioBase64: base64,
+        mimeType: blob.type,
+        hint: mainGoal || scenarioTitle,
+      });
+      return data.text || "Recorded response";
+    },
+    [mainGoal, scenarioTitle]
+  );
+
+  const evaluateBubble = useCallback(
+    async (bubble: ConversationBubble) => {
+      setIsEvaluating(true);
+      updateSession((prev) => ({
+        ...prev,
+        bubbles: prev.bubbles.map((b) =>
+          b.id === bubble.id ? { ...b, state: "evaluating", updatedAt: new Date().toISOString() } : b
+        ),
+      }));
+
+      try {
+        const response = await fetch("/api/conversation/stw-evaluate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sessionId: sessionRef.current.id,
+            bubbleId: bubble.id,
+            text: bubble.text,
+            audioUrl: bubble.audioUrl,
+          }),
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data?.error || "Failed to evaluate");
+        }
+
+        updateSession((prev) => ({
+          ...prev,
+          bubbles: prev.bubbles.map((b) =>
+            b.id === bubble.id
+              ? {
+                  ...b,
+                  state: "readyToSend",
+                  evaluationId: data.evaluationId,
+                  evaluationSummary: {
+                    pronunciationIssues: data.pronunciationIssues ?? [],
+                    grammarIssues: data.grammarIssues ?? [],
+                    naturalnessNotes: data.naturalnessNotes ?? [],
+                    nativeLikeSuggestion: data.nativeLikeSuggestion ?? "",
+                    referenceAudioUrl: data.referenceAudioUrl ?? b.audioUrl ?? null,
+                  },
+                  updatedAt: new Date().toISOString(),
+                }
+              : b
+          ),
+        }));
+      } catch (err) {
+        setError((err as Error).message);
+        updateSession((prev) => ({
+          ...prev,
+          bubbles: prev.bubbles.map((b) =>
+            b.id === bubble.id ? { ...b, state: "pending", updatedAt: new Date().toISOString() } : b
+          ),
+        }));
+      } finally {
+        setIsEvaluating(false);
+      }
+    },
+    [updateSession]
+  );
+
+  const finalizeRecording = useCallback(
+    async (blob: Blob) => {
+      const recordingBubble = latestUserBubble();
+      if (!recordingBubble) return;
+
+      const audioUrl = URL.createObjectURL(blob);
+      updateSession((prev) => ({
+        ...prev,
+        bubbles: prev.bubbles.map((b) =>
+          b.id === recordingBubble.id
+            ? { ...b, audioUrl, state: "pending", updatedAt: new Date().toISOString() }
+            : b
+        ),
+      }));
+
+      setRecordingStatus("review");
+      setIsTranscribing(true);
+      try {
+        const transcript = await transcribeAudio(blob);
+        updateSession((prev) => ({
+          ...prev,
+          bubbles: prev.bubbles.map((b) =>
+            b.id === recordingBubble.id ? { ...b, text: transcript, state: "pending" } : b
+          ),
+        }));
+        await evaluateBubble({ ...recordingBubble, text: transcript, audioUrl });
+      } catch (err) {
+        setError((err as Error).message);
+      } finally {
+        setIsTranscribing(false);
+      }
+    },
+    [evaluateBubble, latestUserBubble, transcribeAudio, updateSession]
+  );
+
+  const handleRecord = useCallback(async () => {
+    setError(null);
+    if (recordingStatus === "recording") return;
+
+    const lastUser = latestUserBubble();
+    if (lastUser && ["recording", "pending", "evaluating"].includes(lastUser.state)) {
+      setError("Finish the current attempt before starting a new one.");
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      audioChunksRef.current = [];
+
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      recorder.onstop = () => {
+        stream.getTracks().forEach((track) => track.stop());
+        if (!audioChunksRef.current.length) return;
+        const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || "audio/webm" });
+        void finalizeRecording(blob);
+      };
+
+      recorder.start();
+      mediaRecorderRef.current = recorder;
+
+      let newIndex = 0;
+      updateSession((prev) => {
+        const newBubble = createConversationBubble({ sessionId: prev.id, speaker: "user", state: "recording" });
+        const bubbles = [...prev.bubbles, newBubble];
+        newIndex = bubbles.length - 1;
+        return { ...prev, bubbles };
+      });
+      setActiveIndex(newIndex);
+      setRecordingStatus("recording");
+    } catch (err) {
+      setError("Microphone unavailable. Please allow access and try again.");
+    }
+  }, [finalizeRecording, latestUserBubble, recordingStatus, updateSession]);
+
+  const handleStop = useCallback(() => {
+    if (recordingStatus !== "recording") return;
+    mediaRecorderRef.current?.stop();
+  }, [recordingStatus]);
+
+  const handleSend = useCallback(async () => {
+    setError(null);
+    const pending = latestUserBubble();
+    if (!pending || pending.state !== "readyToSend") {
+      setError("Wait for evaluation to finish before sending.");
+      return;
+    }
+
+    setIsReplying(true);
+    try {
+      const history = mapHistory(sessionRef.current.bubbles);
+      const data = await callAction<{ reply: string; audioUrl?: string | null }>({
+        action: "reply",
+        sessionId: sessionRef.current.id,
+        scenario,
+        history,
+        userText: pending.text,
+      });
+
+      let newIndex = 0;
+      updateSession((prev) => {
+        const bubbles = prev.bubbles.map((b): ConversationBubble =>
+          b.id === pending.id ? { ...b, state: "sent", updatedAt: new Date().toISOString() } : b
+        );
+        const aiBubble = createConversationBubble({
+          sessionId: prev.id,
+          speaker: "ai",
+          text: data.reply,
+          audioUrl: data.audioUrl ?? null,
+          state: "sent",
+        });
+        const nextBubbles = [...bubbles, aiBubble];
+        newIndex = nextBubbles.length - 1;
+        return { ...prev, bubbles: nextBubbles };
+      });
+      setActiveIndex(newIndex);
+      setRecordingStatus("idle");
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setIsReplying(false);
+    }
+  }, [latestUserBubble, scenario, updateSession]);
+
+  const handleRetry = useCallback(() => {
+    setRecordingStatus("idle");
+    void handleRecord();
+  }, [handleRecord]);
+
+  const handleCopilot = useCallback(
+    async (type: "distill" | "inspiration", topic?: string) => {
+      const selected = sessionRef.current.bubbles[activeIndex];
+      if (!selected || !selected.text) {
+        setError("Select a bubble with text before using Copilot.");
+        return;
+      }
+
+      setCopilotLoading(true);
+      try {
+        const data = await callAction<{ insight: ConversationBubble["copilotInsights"][number] }>({
+          action: "copilot",
+          sessionId: sessionRef.current.id,
+          bubbleId: selected.id,
+          bubbleText: selected.text,
+          type,
+          topic,
+        });
+
+        updateSession((prev) => ({
+          ...prev,
+          bubbles: prev.bubbles.map((b) =>
+            b.id === selected.id
+              ? { ...b, copilotInsights: [...(b.copilotInsights ?? []), data.insight] }
+              : b
+          ),
+        }));
+      } catch (err) {
+        setError((err as Error).message);
+      } finally {
+        setCopilotLoading(false);
+      }
+    },
+    [activeIndex, updateSession]
+  );
 
   const bubblesWithActive = session.bubbles.map((bubble, index) => ({
     ...bubble,
@@ -116,14 +426,20 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({ scenarioTi
   }));
 
   const activeBubble = session.bubbles[activeIndex];
+  const controlsDisabled = isTranscribing || isEvaluating || isReplying;
+  const copilotMode: "standard" | "assessment" =
+    activeBubble?.speaker === "user" && activeBubble.state !== "sent" ? "assessment" : "standard";
 
   return (
     <div className="grid grid-cols-10 h-screen overflow-hidden bg-[#f8f6f6]">
-      {/* Left Column: Dialogue Arena (60%) */}
       <div className="col-span-10 lg:col-span-6 flex flex-col relative border-r border-custom-border bg-[#f8f6f6]">
-        {/* Header */}
         <header className="p-6 bg-transparent z-10 flex items-center justify-between">
-          <h1 className="text-xl font-black text-custom-text-dark tracking-tight">{scenarioTitle}</h1>
+          <div>
+            <h1 className="text-xl font-black text-custom-text-dark tracking-tight">{scenarioTitle}</h1>
+            <p className="text-sm text-custom-text-dark/60 mt-1">
+              {learnerRole ? `${learnerRole} ↔ ${aiRole ?? "AI Partner"}` : aiRole || "AI Partner"}
+            </p>
+          </div>
 
           {mainGoal && (
             <div className="group relative">
@@ -134,7 +450,6 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({ scenarioTi
                 </p>
               </div>
 
-              {/* Hover Popover for Subgoals */}
               {subGoals && subGoals.length > 0 && (
                 <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl shadow-xl border border-custom-border p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
                   <p className="text-xs font-bold text-custom-text-dark/60 uppercase tracking-wider mb-2">Subgoals</p>
@@ -152,33 +467,23 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({ scenarioTi
           )}
         </header>
 
-        {/* Transcript */}
         <div className="flex-1 overflow-y-auto p-6 pb-32 scroll-smooth">
           <TranscriptList
             bubbles={bubblesWithActive as ConversationBubble[]}
             onBubbleClick={(id) => {
-              // Find index of clicked bubble
-              const idx = session.bubbles.findIndex(b => b.id === id);
-              if (idx !== -1) {
-                // We need to expose setActiveIndex from the hook or handle it differently.
-                // For now, since we can't easily change the hook return without refactoring, 
-                // we might need to assume the hook exposes it or we refactor the hook in this file.
-                // Wait, the hook is defined in this file above. I should update the hook return first.
-                setActiveIndex(idx);
-              }
+              const idx = session.bubbles.findIndex((b) => b.id === id);
+              if (idx !== -1) setActiveIndex(idx);
             }}
           />
           <div ref={transcriptEndRef} />
         </div>
 
-        {/* Error Message */}
         {error && (
           <div className="absolute bottom-24 left-6 right-6 bg-red-50 text-red-500 p-3 rounded-lg text-sm text-center border border-red-100">
             {error}
           </div>
         )}
 
-        {/* Control Bar */}
         <div className="absolute bottom-0 left-0 right-0 flex justify-center pointer-events-none">
           <ControlBar
             status={recordingStatus}
@@ -186,15 +491,18 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({ scenarioTi
             onStop={handleStop}
             onSend={handleSend}
             onRetry={handleRetry}
+            disabled={controlsDisabled}
           />
         </div>
       </div>
 
-      {/* Right Column: Copilot Coach (40%) */}
       <div className="hidden lg:flex col-span-4 bg-[#ffffff] flex-col h-full overflow-hidden z-20">
         <CopilotPanel
-          mode={recordingStatus === "review" && activeBubble?.speaker === "user" ? "assessment" : "standard"}
+          mode={copilotMode}
           selectedBubble={activeBubble}
+          onDistill={() => handleCopilot("distill")}
+          onInspiration={(prompt) => handleCopilot("inspiration", prompt)}
+          loading={copilotLoading}
         />
       </div>
     </div>

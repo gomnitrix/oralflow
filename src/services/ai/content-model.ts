@@ -6,6 +6,7 @@ import {
   type ExpressionTone,
   type ExpressionOrigin,
 } from "../../domains/notes/models";
+import type { AssignmentCapability } from "./settings";
 
 export interface ScenarioGenerationInput {
   mode: "manual" | "ai" | "import";
@@ -110,6 +111,7 @@ export interface ExpressionGenerationInput {
   prompt: string;
   tone?: ExpressionTone;
   origin?: ExpressionOrigin;
+  capability?: AssignmentCapability;
 }
 
 export interface ExpressionGenerationResult {
@@ -121,6 +123,7 @@ export const generateExpressions = async (
   client: AIClient,
   input: ExpressionGenerationInput
 ): Promise<ExpressionGenerationResult> => {
+  const capability: AssignmentCapability = input.capability ?? "ask_ai";
   const completion = await client.completeChat({
     messages: [
       {
@@ -129,7 +132,7 @@ export const generateExpressions = async (
       },
       { role: "user", content: input.prompt },
     ],
-  }, "ask_ai");
+  }, capability);
 
   const suggestion = createExpressionSuggestion({
     text: completion.message || "Sample expression",

@@ -44,6 +44,13 @@ export interface ConversationBubble {
   updatedAt: ISODateString;
   copilotInsights: CopilotInsight[];
   evaluationId: string | null;
+  evaluationSummary?: {
+    pronunciationIssues: string[];
+    grammarIssues: string[];
+    naturalnessNotes: string[];
+    nativeLikeSuggestion: string;
+    referenceAudioUrl: string | null;
+  } | null;
 }
 
 export interface ConversationSession {
@@ -98,6 +105,7 @@ export const createConversationBubble = (
     updatedAt: input.updatedAt ?? timestamp,
     copilotInsights: input.copilotInsights ?? [],
     evaluationId: input.evaluationId ?? null,
+    evaluationSummary: input.evaluationSummary ?? null,
   };
 };
 

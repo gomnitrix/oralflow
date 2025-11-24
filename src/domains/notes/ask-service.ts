@@ -12,7 +12,7 @@ export class AskService {
   constructor(private readonly deps: AskServiceDeps) {}
 
   async ask(prompt: string): Promise<ExpressionSuggestion[]> {
-    const result = await generateExpressions(this.deps.aiClient, { prompt, origin: "askPage" });
+    const result = await generateExpressions(this.deps.aiClient, { prompt, origin: "askPage", capability: "ask_ai" });
     return result.expressions;
   }
 

@@ -10,6 +10,7 @@ export interface DistillInput {
 export const runDistill = async (client: AIClient, input: DistillInput): Promise<CopilotInsight> => {
   const result = await generateExpressions(client, {
     prompt: `Distill key expressions from this transcript:\n${input.transcript}`,
+    capability: "copilot_distill",
     origin: "stwDistill",
   });
 

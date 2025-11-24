@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import { AIClient } from "../../../../services/ai/client";
 import { evaluateUtterance } from "../../../../services/ai/evaluation-model";
 import { stwEvaluateRequestSchema } from "../../../../lib/validation/conversation";
-import { createInMemoryRepositories } from "../../../../services/persistence/repositories";
+import { createServerRepositories } from "../../../../services/persistence/server-repositories";
 
-const repositories = createInMemoryRepositories();
+const repositories = createServerRepositories();
 
 export async function POST(request: Request) {
   try {

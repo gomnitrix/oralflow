@@ -13,6 +13,7 @@ export const runInspirationBurst = async (
 ): Promise<CopilotInsight> => {
   const result = await generateExpressions(client, {
     prompt: `Provide an inspiration burst for: ${input.topic}`,
+    capability: "copilot_inspiration",
     origin: "stwInspiration",
   });
 

@@ -15,7 +15,16 @@ export type StwState =
   | "sent";
 
 export interface EvaluationGateway {
-  evaluate: (bubble: ConversationBubble) => Promise<{ evaluationId: string }>;
+  evaluate: (bubble: ConversationBubble) => Promise<{
+    evaluationId: string;
+    summary?: {
+      pronunciationIssues: string[];
+      grammarIssues: string[];
+      naturalnessNotes: string[];
+      nativeLikeSuggestion: string;
+      referenceAudioUrl: string | null;
+    } | null;
+  }>;
 }
 
 export interface PersistenceGateway {
@@ -108,6 +117,7 @@ export class StopTheWorldService {
       ...evaluating,
       state: "readyToSend",
       evaluationId: result.evaluationId,
+      evaluationSummary: result.summary ?? evaluating.evaluationSummary ?? null,
       updatedAt: new Date().toISOString(),
     };
     this.replaceUserBubble(ready);

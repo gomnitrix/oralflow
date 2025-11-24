@@ -25,9 +25,13 @@ export default async function StopTheWorldPage({ searchParams }: PageProps) {
   return (
     <main className="min-h-screen bg-custom-bg text-custom-text-dark">
       <StopTheWorldShell
+        scenarioId={scenario.id}
         scenarioTitle={scenario.title}
+        learnerRole={scenario.learnerRole}
+        aiRole={scenario.aiRole}
         mainGoal={scenario.mainGoal}
         subGoals={scenario.subGoals}
+        description={scenario.description}
       />
     </main>
   );
