@@ -34,6 +34,6 @@ export const runConversationTurn = async (
   input: ConversationTurnInput
 ): Promise<ConversationTurnResult> => {
   const prompt = buildConversationPrompt(input);
-  const completion = await client.completeChat(prompt);
+  const completion = await client.completeChat(prompt, 'chat');
   return { reply: completion.message, provider: completion.provider };
 };

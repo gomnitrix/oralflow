@@ -25,8 +25,8 @@ const Sidebar = () => {
                     <Link
                         href="/"
                         className={`flex items-center gap-3 px-4 py-2 rounded-full transition-colors ${isActive("/")
-                                ? "bg-custom-primary/20 text-custom-primary"
-                                : "hover:bg-custom-primary/10 text-custom-text-dark"
+                            ? "bg-custom-primary/20 text-custom-primary"
+                            : "hover:bg-custom-primary/10 text-custom-text-dark"
                             }`}
                     >
                         <span
@@ -42,8 +42,8 @@ const Sidebar = () => {
                     <Link
                         href="/scenarios"
                         className={`flex items-center gap-3 px-4 py-2 rounded-full transition-colors ${isActive("/scenarios")
-                                ? "bg-custom-primary/20 text-custom-primary"
-                                : "hover:bg-custom-primary/10 text-custom-text-dark"
+                            ? "bg-custom-primary/20 text-custom-primary"
+                            : "hover:bg-custom-primary/10 text-custom-text-dark"
                             }`}
                     >
                         <span className="material-symbols-outlined">smart_toy</span>
@@ -54,8 +54,8 @@ const Sidebar = () => {
                     <Link
                         href="/ask"
                         className={`flex items-center gap-3 px-4 py-2 rounded-full transition-colors ${isActive("/ask")
-                                ? "bg-custom-primary/20 text-custom-primary"
-                                : "hover:bg-custom-primary/10 text-custom-text-dark"
+                            ? "bg-custom-primary/20 text-custom-primary"
+                            : "hover:bg-custom-primary/10 text-custom-text-dark"
                             }`}
                     >
                         <span className="material-symbols-outlined">help_center</span>
@@ -66,13 +66,25 @@ const Sidebar = () => {
                     <Link
                         href="/notebook"
                         className={`flex items-center gap-3 px-4 py-2 rounded-full transition-colors ${isActive("/notebook")
-                                ? "bg-custom-primary/20 text-custom-primary"
-                                : "hover:bg-custom-primary/10 text-custom-text-dark"
+                            ? "bg-custom-primary/20 text-custom-primary"
+                            : "hover:bg-custom-primary/10 text-custom-text-dark"
                             }`}
                     >
                         <span className="material-symbols-outlined">book_2</span>
                         <p className={`text-sm ${isActive("/notebook") ? "font-bold" : "font-medium"}`}>
                             Notebook
+                        </p>
+                    </Link>
+                    <Link
+                        href="/models"
+                        className={`flex items-center gap-3 px-4 py-2 rounded-full transition-colors ${isActive("/models")
+                            ? "bg-custom-primary/20 text-custom-primary"
+                            : "hover:bg-custom-primary/10 text-custom-text-dark"
+                            }`}
+                    >
+                        <span className="material-symbols-outlined">settings_suggest</span>
+                        <p className={`text-sm ${isActive("/models") ? "font-bold" : "font-medium"}`}>
+                            Models
                         </p>
                     </Link>
                 </nav>

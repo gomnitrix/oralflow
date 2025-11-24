@@ -16,7 +16,7 @@ pnpm-debug.log*
 
 # Environment and local data
 .env
-.env.*
+# .env.*
 .vercel/
 coverage/
 .eslintcache

@@ -1,0 +1,16 @@
+{
+    "models": {
+        "language": [],
+        "embedding": [],
+        "tts": [],
+        "stt": []
+    },
+    "assignments": {
+        "chat": null,
+        "tools": null,
+        "embedding": null,
+        "tts": null,
+        "stt": null,
+        "realtime": null
+    }
+}
