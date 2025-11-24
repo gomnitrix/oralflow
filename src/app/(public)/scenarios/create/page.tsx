@@ -80,13 +80,21 @@ export default function ScenarioCreatePage() {
     if (generatedScenario) {
       // Switch to Manual Draft
       setActiveTab("manual");
+
+      // Combine Main Goal and Sub Goals for the "Your Goal" field
+      let goalText = generatedScenario.mainGoal || "";
+      if (generatedScenario.subGoals && generatedScenario.subGoals.length > 0) {
+        if (goalText) goalText += "\n\n";
+        goalText += "Sub Goals:\n" + generatedScenario.subGoals.map(g => `- ${g}`).join("\n");
+      }
+
       setFormData(prev => ({
         ...prev,
         mode: "manual",
-        background: generatedScenario.title || "",
+        background: generatedScenario.description || "", // Map description to background as requested
         userRole: generatedScenario.learnerRole || "",
         agentRole: generatedScenario.aiRole || "",
-        goal: generatedScenario.mainGoal || "",
+        goal: goalText,
       }));
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }

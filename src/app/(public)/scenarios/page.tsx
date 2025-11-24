@@ -1,56 +1,24 @@
-'use client';
-
-import React, { useState } from "react";
-import { useRouter } from "next/navigation";
-import { ScenarioCard } from "../../../components/scenario/ScenarioCard";
-import { ScenarioDetailModal } from "../../../components/scenario/ScenarioDetailModal";
+import React from "react";
+import { createServerRepositories } from "../../../services/persistence/server-repositories";
+import { ScenarioLibraryClient } from "./ScenarioLibraryClient";
 import { seedScenarios } from "../../../services/persistence/seeds/scenarios";
-import { ScenarioTemplate } from "../../../domains/scenario/models";
 
-export default function ScenarioLibraryPage() {
-  const scenarios = seedScenarios();
-  const router = useRouter();
-  const [selectedScenario, setSelectedScenario] = useState<ScenarioTemplate | null>(null);
+export const dynamic = 'force-dynamic'; // Ensure we always fetch fresh data
 
-  const handleStartStw = () => {
-    if (selectedScenario) {
-      router.push(`/stw?scenarioId=${selectedScenario.id}`);
-    }
-  };
+export default async function ScenarioLibraryPage() {
+  const repositories = createServerRepositories();
+  const scenarios = await repositories.scenarios.list();
 
-  const handleStartZen = () => {
-    if (selectedScenario) {
-      router.push(`/zen?scenarioId=${selectedScenario.id}`);
-    }
-  };
+  // If no scenarios exist yet (first run), we might want to seed them or just show empty.
+  // For now, let's merge seed scenarios if list is empty, or just rely on what's in storage.
+  // If we want to show seed scenarios + saved scenarios, we should seed the DB first.
+  // But `seedScenarios` returns a static list.
+  // Let's just show what's in the repo. If empty, user can create one.
+  // OPTIONAL: If repo is empty, use seedScenarios as fallback for display?
+  // Better: Just show repo items. The user can create new ones.
 
-  return (
-    <main className="p-8 lg:p-12 space-y-8">
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-custom-text-dark text-4xl font-black leading-tight tracking-tighter">Scenario Library</h1>
-          <p className="text-custom-text-dark/60 text-base font-normal leading-normal">Browse and launch practice scenarios.</p>
-        </div>
-      </header>
+  // However, to not break existing experience, if repo is empty, let's show seed scenarios.
+  const displayScenarios = scenarios.length > 0 ? scenarios : seedScenarios();
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {scenarios.map((scenario) => (
-          <ScenarioCard
-            key={scenario.id}
-            scenario={scenario}
-            onClick={() => setSelectedScenario(scenario)}
-          />
-        ))}
-      </div>
-
-      {selectedScenario && (
-        <ScenarioDetailModal
-          scenario={selectedScenario}
-          onClose={() => setSelectedScenario(null)}
-          onStartStw={handleStartStw}
-          onStartZen={handleStartZen}
-        />
-      )}
-    </main>
-  );
+  return <ScenarioLibraryClient initialScenarios={displayScenarios} />;
 }

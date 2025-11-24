@@ -20,5 +20,11 @@ export const ScenarioCard: React.FC<ScenarioCardProps> = ({ scenario, onClick })
       </div>
     </div>
     <p className="text-sm text-custom-text-dark/80 leading-relaxed line-clamp-2">{scenario.description}</p>
+    {scenario.mainGoal && (
+      <div className="pt-2 border-t border-custom-border/50">
+        <p className="text-xs font-bold text-custom-primary uppercase tracking-wider mb-1">Main Goal</p>
+        <p className="text-sm text-custom-text-dark font-medium line-clamp-1">{scenario.mainGoal}</p>
+      </div>
+    )}
   </div>
 );

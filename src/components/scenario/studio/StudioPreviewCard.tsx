@@ -63,8 +63,18 @@ export const StudioPreviewCard: React.FC<StudioPreviewCardProps> = ({
                 </div>
 
                 {/* Goals */}
-                <div className="space-y-3">
+                <div className="space-y-4">
                     <h3 className="font-bold text-custom-text-dark">Dialogue Goals</h3>
+
+                    {/* Main Goal */}
+                    {data.mainGoal && (
+                        <div className="bg-custom-primary/5 p-4 rounded-2xl border border-custom-primary/10">
+                            <p className="text-xs font-bold text-custom-primary uppercase tracking-wider mb-1">Main Goal</p>
+                            <p className="text-custom-text-dark font-medium">{data.mainGoal}</p>
+                        </div>
+                    )}
+
+                    {/* Sub Goals */}
                     <ul className="space-y-3">
                         {data.subGoals && data.subGoals.length > 0 ? (
                             data.subGoals.map((goal, index) => (
@@ -74,7 +84,7 @@ export const StudioPreviewCard: React.FC<StudioPreviewCardProps> = ({
                                 </li>
                             ))
                         ) : (
-                            <p className="text-custom-text-dark/40 italic">Goals will be generated...</p>
+                            !data.mainGoal && <p className="text-custom-text-dark/40 italic">Goals will be generated...</p>
                         )}
                     </ul>
                 </div>
