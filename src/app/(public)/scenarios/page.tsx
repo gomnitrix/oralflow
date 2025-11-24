@@ -1,10 +1,28 @@
-import React from "react";
+'use client';
+
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import { ScenarioCard } from "../../../components/scenario/ScenarioCard";
-import { ScenarioLaunchpad } from "../../../components/scenario/ScenarioLaunchpad";
+import { ScenarioDetailModal } from "../../../components/scenario/ScenarioDetailModal";
 import { seedScenarios } from "../../../services/persistence/seeds/scenarios";
+import { ScenarioTemplate } from "../../../domains/scenario/models";
 
 export default function ScenarioLibraryPage() {
   const scenarios = seedScenarios();
+  const router = useRouter();
+  const [selectedScenario, setSelectedScenario] = useState<ScenarioTemplate | null>(null);
+
+  const handleStartStw = () => {
+    if (selectedScenario) {
+      router.push(`/stw?scenarioId=${selectedScenario.id}`);
+    }
+  };
+
+  const handleStartZen = () => {
+    if (selectedScenario) {
+      router.push(`/zen?scenarioId=${selectedScenario.id}`);
+    }
+  };
 
   return (
     <main className="p-8 lg:p-12 space-y-8">
@@ -13,14 +31,26 @@ export default function ScenarioLibraryPage() {
           <h1 className="text-custom-text-dark text-4xl font-black leading-tight tracking-tighter">Scenario Library</h1>
           <p className="text-custom-text-dark/60 text-base font-normal leading-normal">Browse and launch practice scenarios.</p>
         </div>
-        <ScenarioLaunchpad scenarioId={scenarios[0].id} />
       </header>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {scenarios.map((scenario) => (
-          <ScenarioCard key={scenario.id} scenario={scenario} />
+          <ScenarioCard
+            key={scenario.id}
+            scenario={scenario}
+            onClick={() => setSelectedScenario(scenario)}
+          />
         ))}
       </div>
+
+      {selectedScenario && (
+        <ScenarioDetailModal
+          scenario={selectedScenario}
+          onClose={() => setSelectedScenario(null)}
+          onStartStw={handleStartStw}
+          onStartZen={handleStartZen}
+        />
+      )}
     </main>
   );
 }

@@ -4,18 +4,21 @@ import { ScenarioLaunchpad } from "./ScenarioLaunchpad";
 
 export interface ScenarioCardProps {
   scenario: ScenarioTemplate;
+  onClick: () => void;
 }
 
-export const ScenarioCard: React.FC<ScenarioCardProps> = ({ scenario }) => (
-  <div className="rounded-2xl bg-white border border-custom-border p-6 shadow-sm space-y-3 text-custom-text-dark hover:shadow-md transition-shadow">
+export const ScenarioCard: React.FC<ScenarioCardProps> = ({ scenario, onClick }) => (
+  <div
+    onClick={onClick}
+    className="group cursor-pointer rounded-2xl bg-white border border-custom-border p-6 shadow-sm space-y-3 text-custom-text-dark hover:shadow-md hover:border-custom-primary/50 transition-all"
+  >
     <div className="flex items-center gap-3">
-      <span className="text-3xl">{scenario.emoji}</span>
+      <span className="text-3xl group-hover:scale-110 transition-transform">{scenario.emoji}</span>
       <div>
-        <p className="text-lg font-bold">{scenario.title}</p>
+        <p className="text-lg font-bold group-hover:text-custom-primary transition-colors">{scenario.title}</p>
         <p className="text-xs text-custom-text-dark/60 font-medium uppercase tracking-wider">Mode: {scenario.preferredMode ?? "stw/zen"}</p>
       </div>
     </div>
-    <p className="text-sm text-custom-text-dark/80 leading-relaxed">{scenario.description}</p>
-    <ScenarioLaunchpad scenarioId={scenario.id} compact />
+    <p className="text-sm text-custom-text-dark/80 leading-relaxed line-clamp-2">{scenario.description}</p>
   </div>
 );

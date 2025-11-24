@@ -74,8 +74,8 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({ scenarioTi
       <div className="space-y-4">
         <header className="flex items-center justify-between">
           <div>
-            <p className="text-xs uppercase text-white/60">Scenario</p>
-            <h1 className="text-2xl font-semibold text-white">{scenarioTitle}</h1>
+            <p className="text-xs uppercase text-custom-text-dark/60">Scenario</p>
+            <h1 className="text-2xl font-semibold text-custom-text-dark">{scenarioTitle}</h1>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button onClick={() => { setError(null); startRecording(); }}>Record</Button>
@@ -94,7 +94,7 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({ scenarioTi
           </div>
         </header>
 
-        {error ? <p className="text-sm text-red-400">Error: {error}</p> : null}
+        {error ? <p className="text-sm text-red-500">Error: {error}</p> : null}
 
         <TranscriptList bubbles={bubblesWithActive as ConversationBubble[]} />
       </div>

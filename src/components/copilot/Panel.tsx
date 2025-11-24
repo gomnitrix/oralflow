@@ -8,8 +8,8 @@ export interface CopilotPanelProps {
 }
 
 export const CopilotPanel: React.FC<CopilotPanelProps> = ({ onInspiration, onDistill }) => (
-  <aside className="rounded-2xl bg-surface-subtle p-4 text-white space-y-4 min-w-[260px]">
-    <h2 className="text-lg font-semibold">Copilot</h2>
+  <aside className="rounded-2xl bg-white border border-custom-border p-6 text-custom-text-dark space-y-4 min-w-[260px] shadow-sm">
+    <h2 className="text-lg font-bold">Copilot</h2>
     <BurstCard onClick={onInspiration} />
     <DistillCard onClick={onDistill} />
   </aside>

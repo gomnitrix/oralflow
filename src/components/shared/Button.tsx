@@ -16,10 +16,10 @@ export type ButtonProps = AnchorProps | NativeButtonProps;
 
 const variantClasses: Record<Variant, string> = {
   primary:
-    "bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:outline-primary",
+    "bg-custom-primary text-white hover:bg-custom-primary/90 focus-visible:outline-custom-primary",
   secondary:
-    "bg-surface-card text-white border border-white/10 hover:bg-white/5 focus-visible:outline-white",
-  ghost: "bg-transparent text-white hover:bg-white/5 focus-visible:outline-white",
+    "bg-white text-custom-text-dark border border-custom-border hover:bg-custom-bg focus-visible:outline-custom-text-dark",
+  ghost: "bg-transparent text-custom-text-dark hover:bg-custom-bg focus-visible:outline-custom-text-dark",
 };
 
 const cx = (...classes: Array<string | false | null | undefined>) =>

@@ -1,13 +1,28 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, Suspense } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import EvaluationModal from "@/components/zen/EvaluationModal";
 
-export default function ZenMode() {
+function ZenModeContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const scenarioId = searchParams.get("scenarioId");
+
   const [isListening, setIsListening] = useState(true);
   const [showTranscript, setShowTranscript] = useState(false);
   const [showEvaluation, setShowEvaluation] = useState(false);
+
+  // Mock data - in a real app this would come from the backend
+  const mockEvaluation = {
+    accuracy: 87,
+    mistakes: [
+      { id: "1", type: "Incorrect verb tense", correction: '"I have went" should be "I have gone".' },
+      { id: "2", type: "Article usage", correction: '"I would like a coffee" instead of "I would like coffee".' },
+      { id: "3", type: "Pronunciation", correction: 'Emphasize the \'s\' sound in "Espresso".' },
+    ]
+  };
 
   const handleEndCall = () => {
     setIsListening(false);
@@ -16,29 +31,30 @@ export default function ZenMode() {
 
   const handleCloseEvaluation = () => {
     setShowEvaluation(false);
-    // Navigate back or reset
+    router.push("/scenarios");
   };
 
   const handleSaveToNotebook = () => {
     // Logic to save
     console.log("Saved to notebook");
     setShowEvaluation(false);
+    router.push("/notebook");
   };
 
   return (
-    <div className="flex-1 flex flex-col relative h-full">
+    <div className="flex-1 flex flex-col relative h-full bg-custom-bg">
       <header className="absolute top-0 left-0 right-0 p-6 z-10">
         <div className="flex flex-wrap gap-2">
           <Link
             href="/scenarios"
-            className="text-[#896b61] dark:text-gray-400 text-base font-medium leading-normal"
+            className="text-custom-text-dark/60 hover:text-custom-text-dark transition-colors text-base font-medium leading-normal"
           >
             Scenarios
           </Link>
-          <span className="text-[#896b61] dark:text-gray-500 text-base font-medium leading-normal">
+          <span className="text-custom-text-dark/40 text-base font-medium leading-normal">
             /
           </span>
-          <span className="text-[#181311] dark:text-gray-100 text-base font-medium leading-normal">
+          <span className="text-custom-text-dark text-base font-medium leading-normal">
             Ordering Coffee
           </span>
         </div>
@@ -50,7 +66,7 @@ export default function ZenMode() {
           <div className="w-full h-full bg-gradient-to-br from-orange-200 via-rose-200 to-purple-200 dark:from-orange-800 dark:via-rose-800 dark:to-purple-900 rounded-full blur-3xl opacity-60 animate-pulse"></div>
         </div>
         <div className="absolute inset-0 flex items-center justify-center">
-          <p className="text-2xl font-semibold text-gray-500 dark:text-gray-400">
+          <p className="text-2xl font-semibold text-custom-text-dark/60">
             {isListening ? "Listening..." : "Thinking..."}
           </p>
         </div>
@@ -58,10 +74,10 @@ export default function ZenMode() {
 
       <footer className="w-full p-6 z-10">
         <div className="flex justify-center">
-          <div className="flex gap-4 p-3 bg-white/60 dark:bg-black/30 backdrop-blur-sm rounded-full border border-gray-200 dark:border-gray-800">
+          <div className="flex gap-4 p-3 bg-white/60 backdrop-blur-sm rounded-full border border-custom-border shadow-sm">
             <button
               onClick={() => setIsListening(!isListening)}
-              className="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-12 w-12 bg-[#f4f1f0] dark:bg-gray-700 text-[#181311] dark:text-gray-100"
+              className="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-12 w-12 bg-custom-bg text-custom-text-dark hover:bg-custom-bg/80 transition-colors"
             >
               <span className="material-symbols-outlined">
                 {isListening ? "mic" : "mic_off"}
@@ -69,7 +85,7 @@ export default function ZenMode() {
             </button>
             <button
               onClick={handleEndCall}
-              className="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-12 w-12 bg-red-600 text-white"
+              className="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-12 w-12 bg-red-500 text-white hover:bg-red-600 transition-colors"
             >
               <span className="material-symbols-outlined">call_end</span>
             </button>
@@ -81,7 +97,7 @@ export default function ZenMode() {
       <div className="absolute top-6 right-6 z-10">
         <button
           onClick={() => setShowTranscript(!showTranscript)}
-          className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-10 px-4 bg-white/60 dark:bg-black/30 backdrop-blur-sm text-[#181311] dark:text-gray-100 gap-2 border border-gray-200 dark:border-gray-800"
+          className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-10 px-4 bg-white/60 backdrop-blur-sm text-custom-text-dark gap-2 border border-custom-border hover:bg-white/80 transition-colors"
         >
           <span className="material-symbols-outlined text-base">segment</span>
           <span className="truncate text-sm font-bold leading-normal tracking-[0.015em]">
@@ -90,16 +106,16 @@ export default function ZenMode() {
         </button>
       </div>
 
-      {/* Transcript Panel (Optional, hidden by default) */}
+      {/* Transcript Panel */}
       {showTranscript && (
-        <div className="absolute top-20 right-6 bottom-24 w-80 bg-white/90 dark:bg-black/80 backdrop-blur-md rounded-xl p-4 shadow-lg overflow-y-auto z-20 border border-gray-200 dark:border-gray-800">
-          <h3 className="font-bold mb-2">Transcript</h3>
+        <div className="absolute top-20 right-6 bottom-24 w-80 bg-white/90 backdrop-blur-md rounded-xl p-4 shadow-lg overflow-y-auto z-20 border border-custom-border">
+          <h3 className="font-bold mb-2 text-custom-text-dark">Transcript</h3>
           <div className="space-y-2 text-sm">
-            <p>
-              <span className="font-bold text-primary">AI:</span> Hello! What
+            <p className="text-custom-text-dark">
+              <span className="font-bold text-custom-primary">AI:</span> Hello! What
               can I get for you today?
             </p>
-            <p>
+            <p className="text-custom-text-dark">
               <span className="font-bold">You:</span> Hi, I&apos;d like a coffee
               please.
             </p>
@@ -111,7 +127,16 @@ export default function ZenMode() {
         isOpen={showEvaluation}
         onClose={handleCloseEvaluation}
         onSave={handleSaveToNotebook}
+        data={mockEvaluation}
       />
     </div>
+  );
+}
+
+export default function ZenMode() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
+      <ZenModeContent />
+    </Suspense>
   );
 }

@@ -6,11 +6,11 @@ export interface DistillCardProps {
 }
 
 export const DistillCard: React.FC<DistillCardProps> = ({ onClick }) => (
-  <div className="rounded-2xl bg-surface-card p-4 shadow-card text-white space-y-2">
+  <div className="rounded-2xl bg-custom-bg border border-custom-border p-4 shadow-sm text-custom-text-dark space-y-2">
     <div className="flex items-center justify-between">
       <div>
-        <p className="text-sm font-semibold">Distill</p>
-        <p className="text-xs text-white/60">Extract key phrases from the last turn</p>
+        <p className="text-sm font-bold">Distill</p>
+        <p className="text-xs text-custom-text-dark/60">Extract key phrases from the last turn</p>
       </div>
       <span className="text-xl">🔎</span>
     </div>

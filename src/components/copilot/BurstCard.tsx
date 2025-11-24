@@ -6,11 +6,11 @@ export interface BurstCardProps {
 }
 
 export const BurstCard: React.FC<BurstCardProps> = ({ onClick }) => (
-  <div className="rounded-2xl bg-surface-card p-4 shadow-card text-white space-y-2">
+  <div className="rounded-2xl bg-custom-bg border border-custom-border p-4 shadow-sm text-custom-text-dark space-y-2">
     <div className="flex items-center justify-between">
       <div>
-        <p className="text-sm font-semibold">Inspiration Burst</p>
-        <p className="text-xs text-white/60">Get unstuck with quick ideas</p>
+        <p className="text-sm font-bold">Inspiration Burst</p>
+        <p className="text-xs text-custom-text-dark/60">Get unstuck with quick ideas</p>
       </div>
       <span className="text-xl">⚡️</span>
     </div>
