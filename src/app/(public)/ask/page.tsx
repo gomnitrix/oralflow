@@ -2,35 +2,70 @@
 
 import React, { useState } from "react";
 import { ExpressionPreview } from "../../../components/ask/ExpressionPreview";
-import { AskService } from "../../../domains/notes/ask-service";
 import { NotebookService } from "../../../domains/notes/notebook-service";
 import { createInMemoryRepositories } from "../../../services/persistence/repositories";
-import { AIClient } from "../../../services/ai/client";
 import type { ExpressionSuggestion } from "../../../domains/notes/models";
 
 const repositories = createInMemoryRepositories();
 const notebookService = new NotebookService({ repository: repositories.notebook });
-const askService = new AskService({ aiClient: new AIClient(), notebook: notebookService });
+
+interface AskResponse {
+  suggestions: ExpressionSuggestion[];
+  error?: string;
+}
 
 export default function AskPage() {
   const [prompt, setPrompt] = useState("");
   const [suggestions, setSuggestions] = useState<ExpressionSuggestion[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
-    const result = await askService.ask(prompt);
-    setSuggestions(result);
+    if (!prompt.trim()) {
+      setError("Please enter a prompt to ask for suggestions.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt }),
+      });
+      const data = (await response.json().catch(() => null)) as AskResponse | null;
+
+      if (!response.ok || !data) {
+        throw new Error(data?.error ?? "Failed to generate suggestions.");
+      }
+
+      setSuggestions(data.suggestions ?? []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to generate suggestions.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const save = async (suggestion: ExpressionSuggestion) => {
-    await askService.saveSuggestion(suggestion);
+    try {
+      setError(null);
+      await notebookService.saveSuggestion(suggestion);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save suggestion.");
+    }
   };
 
   return (
     <main className="p-8 lg:p-12 space-y-8">
       <header>
         <h1 className="text-custom-text-dark text-4xl font-black leading-tight tracking-tighter">Ask</h1>
-        <p className="text-custom-text-dark/60 text-base font-normal leading-normal">Ask for expressions and save what you like.</p>
+        <p className="text-custom-text-dark/60 text-base font-normal leading-normal">
+          Ask for expressions and save what you like.
+        </p>
       </header>
 
       <form onSubmit={submit} className="space-y-4">
@@ -40,14 +75,18 @@ export default function AskPage() {
           rows={4}
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
+          disabled={isSubmitting}
         />
         <button
           type="submit"
-          className="rounded-full bg-custom-primary px-6 py-3 text-sm font-bold text-white hover:bg-custom-primary/90 transition-colors"
+          className="rounded-full bg-custom-primary px-6 py-3 text-sm font-bold text-white hover:bg-custom-primary/90 transition-colors disabled:opacity-70"
+          disabled={isSubmitting}
         >
-          Ask
+          {isSubmitting ? "Generating…" : "Ask"}
         </button>
       </form>
+
+      {error ? <p className="text-sm text-red-500">{error}</p> : null}
 
       {suggestions.length === 0 ? (
         <p className="text-custom-text-dark/60 text-sm">Suggestions will appear here.</p>
