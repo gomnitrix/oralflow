@@ -49,6 +49,20 @@ export class StopTheWorldService {
     return this.session;
   }
 
+  startConversation(initialMessage: string = "Hello! Let's practice."): ConversationSession {
+    if (this.session.bubbles.length === 0) {
+      const bubble = createConversationBubble({
+        sessionId: this.session.id,
+        speaker: "ai",
+        text: initialMessage,
+        state: "sent",
+      });
+      this.session.bubbles.push(bubble);
+      this.persist();
+    }
+    return this.session;
+  }
+
   startRecording(): ConversationSession {
     const bubble = this.currentUserBubble();
     assertState(bubble, ["idle", "sent"]);

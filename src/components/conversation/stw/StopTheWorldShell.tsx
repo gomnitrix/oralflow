@@ -4,11 +4,13 @@ import React, { useEffect, useMemo, useState } from "react";
 import { StopTheWorldService } from "../../../domains/conversation/stw-service";
 import type { ConversationSession, ConversationBubble } from "../../../domains/conversation/models";
 import { TranscriptList } from "../../shared/TranscriptList";
-import { Button } from "../../shared/Button";
 import { CopilotPanel } from "../../copilot/Panel";
+import { ControlBar } from "./ControlBar";
 
 export interface StopTheWorldShellProps {
   scenarioTitle: string;
+  mainGoal?: string;
+  subGoals?: string[];
 }
 
 const useStopTheWorld = () => {
@@ -29,6 +31,7 @@ const useStopTheWorld = () => {
     setActiveIndex(next.bubbles.length - 1);
   };
 
+  const startConversation = () => updateSession(service.startConversation("Bonjour! Qu'est-ce que je vous sers aujourd'hui?")); // Example initial message
   const startRecording = () => updateSession(service.startRecording());
   const stopRecording = () => updateSession(service.finishRecording({ text: "Sample utterance" }));
   const evaluate = async () => updateSession(await service.evaluate());
@@ -51,6 +54,7 @@ const useStopTheWorld = () => {
   return {
     session,
     activeIndex,
+    startConversation,
     startRecording,
     stopRecording,
     evaluate,
@@ -59,10 +63,51 @@ const useStopTheWorld = () => {
   };
 };
 
-export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({ scenarioTitle }) => {
-  const { session, activeIndex, startRecording, stopRecording, evaluate, send, retry } =
+export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({ scenarioTitle, mainGoal, subGoals }) => {
+  const { session, activeIndex, startConversation, startRecording, stopRecording, evaluate, send, retry } =
     useStopTheWorld();
+  const [recordingStatus, setRecordingStatus] = useState<"idle" | "recording" | "review">("idle");
   const [error, setError] = useState<string | null>(null);
+
+  // Auto-scroll to bottom when bubbles change
+  const transcriptEndRef = React.useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    transcriptEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [session.bubbles.length]);
+
+  const handleRecord = () => {
+    setError(null);
+    startRecording();
+    setRecordingStatus("recording");
+  };
+
+  const handleStop = () => {
+    setError(null);
+    stopRecording();
+    setRecordingStatus("review");
+  };
+
+  const handleSend = () => {
+    setError(null);
+    send();
+    setRecordingStatus("idle");
+  };
+
+  const handleRetry = () => {
+    setError(null);
+    retry();
+    setRecordingStatus("idle"); // Reset to idle to allow re-recording
+    // Ideally, retry should clear the last user bubble and let them record again immediately or go back to idle.
+    // Based on requirements: "Retry: Clear bubble and re-record".
+    // So we might want to auto-start recording or just go to idle. Let's go to idle.
+  };
+
+  // Trigger AI greeting if session is empty
+  useEffect(() => {
+    if (session.bubbles.length === 0) {
+      startConversation();
+    }
+  }, [session.bubbles.length, startConversation]);
 
   const bubblesWithActive = session.bubbles.map((bubble, index) => ({
     ...bubble,
@@ -70,36 +115,63 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({ scenarioTi
   }));
 
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[2fr_1fr]">
-      <div className="space-y-4">
-        <header className="flex items-center justify-between">
-          <div>
-            <p className="text-xs uppercase text-custom-text-dark/60">Scenario</p>
-            <h1 className="text-2xl font-semibold text-custom-text-dark">{scenarioTitle}</h1>
+    <div className="flex flex-col lg:flex-row h-[calc(100vh-4rem)] overflow-hidden bg-custom-bg">
+      {/* Left Column: Dialogue Arena */}
+      <div className="flex-1 flex flex-col relative border-r border-custom-border bg-white lg:max-w-[60%]">
+        {/* Header */}
+        <header className="p-6 border-b border-custom-border bg-white z-10 shadow-sm">
+          <div className="mb-4">
+            <p className="text-xs uppercase text-custom-text-dark/60 tracking-wider mb-1">Scenario</p>
+            <h1 className="text-2xl font-black text-custom-text-dark tracking-tight">{scenarioTitle}</h1>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button onClick={() => { setError(null); startRecording(); }}>Record</Button>
-            <Button variant="secondary" onClick={() => { setError(null); stopRecording(); }}>
-              Stop
-            </Button>
-            <Button variant="secondary" onClick={() => evaluate().catch((err) => setError(err.message))}>
-              Evaluate
-            </Button>
-            <Button variant="secondary" onClick={() => { setError(null); send(); }}>
-              Send
-            </Button>
-            <Button variant="ghost" onClick={() => { setError(null); retry(); }}>
-              Retry (J/K navigate)
-            </Button>
-          </div>
+
+          {mainGoal && (
+            <div className="bg-custom-primary/5 p-4 rounded-xl border border-custom-primary/10">
+              <p className="text-xs font-bold text-custom-primary uppercase tracking-wider mb-1">Your Goal</p>
+              <p className="text-sm text-custom-text-dark font-medium">{mainGoal}</p>
+              {subGoals && subGoals.length > 0 && (
+                <ul className="mt-2 space-y-1">
+                  {subGoals.map((goal, idx) => (
+                    <li key={idx} className="flex items-start gap-2 text-xs text-custom-text-dark/80">
+                      <span className="material-symbols-outlined text-custom-primary text-sm shrink-0">check_circle</span>
+                      {goal}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
         </header>
 
-        {error ? <p className="text-sm text-red-500">Error: {error}</p> : null}
+        {/* Transcript */}
+        <div className="flex-1 overflow-y-auto p-6 pb-32 scroll-smooth">
+          <TranscriptList bubbles={bubblesWithActive as ConversationBubble[]} />
+          <div ref={transcriptEndRef} />
+        </div>
 
-        <TranscriptList bubbles={bubblesWithActive as ConversationBubble[]} />
+        {/* Error Message */}
+        {error && (
+          <div className="absolute bottom-24 left-6 right-6 bg-red-50 text-red-500 p-3 rounded-lg text-sm text-center border border-red-100">
+            {error}
+          </div>
+        )}
+
+        {/* Control Bar */}
+        <div className="absolute bottom-0 left-0 right-0 lg:right-[40%]">
+          <ControlBar
+            status={recordingStatus}
+            onRecord={handleRecord}
+            onStop={handleStop}
+            onSend={handleSend}
+            onRetry={handleRetry}
+          />
+        </div>
       </div>
 
-      <CopilotPanel />
+      {/* Right Column: Copilot Coach */}
+      <div className="flex-1 bg-custom-bg flex flex-col h-full overflow-hidden">
+        <CopilotPanel mode={recordingStatus === "review" ? "assessment" : "standard"} />
+      </div>
     </div>
   );
 };

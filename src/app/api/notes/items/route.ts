@@ -33,5 +33,5 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "id is required" }, { status: 400 });
   }
   await notebookService.delete(id);
-  return NextResponse.json({}, { status: 204 });
+  return new NextResponse(null, { status: 204 });
 }
