@@ -1,5 +1,5 @@
 import { ProviderManager, type ProviderType } from "./provider-manager";
-import { SettingsService } from "./settings";
+import { SettingsService, type AssignmentCapability } from "./settings";
 
 export type ProviderName = ProviderType;
 
@@ -84,7 +84,7 @@ export class AIClient {
     return createOpenAICompatibleAdapter(providerId, provider.apiKey, provider.baseUrl);
   }
 
-  async completeChat(prompt: ChatPrompt, capability: 'chat' | 'tools' | 'realtime' = 'chat'): Promise<ChatCompletion> {
+  async completeChat(prompt: ChatPrompt, capability: AssignmentCapability = 'stw_chat'): Promise<ChatCompletion> {
     const settings = this.settingsService.getSettings();
     let modelId = settings.assignments[capability];
 
@@ -93,8 +93,6 @@ export class AIClient {
       // Default fallback for now if nothing configured
       const activeProviders = this.providerManager.getActiveProviders();
       if (activeProviders.length > 0) {
-        // This is a bit arbitrary, but better than failing if user hasn't configured yet
-        // In reality, we might want to force configuration or have hardcoded defaults
         if (activeProviders.find(p => p.id === 'openai')) {
           return this.getAdapter('openai').completeChat(prompt, 'gpt-4o-realtime-stub');
         }
@@ -105,27 +103,21 @@ export class AIClient {
       throw new Error(`No model assigned for capability: ${capability}`);
     }
 
-    // Find which provider this model belongs to
-    // We need to look up the model in the settings to find its provider
-    // But wait, the assignment is just an ID (likely the model name). 
-    // We need to know the provider for this model.
-    // The settings.models lists have the info.
-
     let providerId: ProviderName | undefined;
     let modelName = modelId;
 
-    // Search in language models for chat capability
-    const languageModel = settings.models.language.find(m => m.id === modelId);
-    if (languageModel) {
-      providerId = languageModel.provider as ProviderName;
-      modelName = languageModel.id;
-    } else {
-      // If not found in user configured models, check if it's a known default or fallback
-      // For this implementation, let's assume if it's not in the list, we might have issues.
-      // However, for the initial state where lists are empty, we might need some bootstrapped models.
+    // Search in all model lists
+    for (const list of Object.values(settings.models)) {
+      const found = list.find(m => m.id === modelId);
+      if (found) {
+        providerId = found.provider as ProviderName;
+        modelName = found.id;
+        break;
+      }
+    }
 
-      // Let's try to infer or default.
-      // If we are in the middle of migration, we might want to support the old hardcoded behavior if config is empty.
+    if (!providerId) {
+      // Fallback for migration or missing config
       const activeProviders = this.providerManager.getActiveProviders();
       if (activeProviders.find(p => p.id === 'openai')) {
         providerId = 'openai';

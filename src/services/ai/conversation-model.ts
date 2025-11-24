@@ -1,5 +1,6 @@
 import type { ProviderName } from "./client";
 import { AIClient, type ChatMessage, type ChatPrompt } from "./client";
+import type { AssignmentCapability } from "./settings";
 
 export interface ConversationTurnInput {
   systemPrompt?: string;
@@ -31,9 +32,10 @@ export const buildConversationPrompt = (input: ConversationTurnInput): ChatPromp
 
 export const runConversationTurn = async (
   client: AIClient,
-  input: ConversationTurnInput
+  input: ConversationTurnInput,
+  capability: AssignmentCapability = 'stw_chat'
 ): Promise<ConversationTurnResult> => {
   const prompt = buildConversationPrompt(input);
-  const completion = await client.completeChat(prompt, 'chat');
+  const completion = await client.completeChat(prompt, capability);
   return { reply: completion.message, provider: completion.provider };
 };

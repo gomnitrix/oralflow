@@ -1,16 +1,15 @@
 'use client';
 
 import React, { useState } from 'react';
-import { AIModel } from '@/services/ai/settings';
-import { ProviderName } from '@/services/ai/client';
+import { AIModel, type AISettings } from '@/services/ai/settings';
 
 interface Props {
     title: string;
     description: string;
-    category: 'language' | 'embedding' | 'tts' | 'stt';
+    category: keyof AISettings['models'];
     models: AIModel[];
-    onAddModel: (category: string, model: AIModel) => void;
-    onRemoveModel: (category: string, modelId: string) => void;
+    onAddModel: (category: keyof AISettings['models'], model: AIModel) => void;
+    onRemoveModel: (category: keyof AISettings['models'], modelId: string) => void;
     availableProviders: { id: string; name: string }[];
 }
 
@@ -41,7 +40,7 @@ export const ModelCapabilityConfig: React.FC<Props> = ({ title, description, cat
                         {/* Icon placeholder based on category */}
                         <div className="p-1.5 bg-blue-50 text-blue-600 rounded-lg">
                             {category === 'language' && <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>}
-                            {category === 'embedding' && <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>}
+                            {category === 'speech_to_speech' && <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>}
                             {category === 'tts' && <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>}
                             {category === 'stt' && <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>}
                         </div>

@@ -1,26 +1,27 @@
 'use client';
 
 import React from 'react';
-import { AIModel, AISettings } from '@/services/ai/settings';
+import { AIModel, AISettings, type AssignmentCapability } from '@/services/ai/settings';
 
 interface Props {
     settings: AISettings;
-    onUpdateAssignment: (capability: string, modelId: string | null) => void;
-    availableModels: {
-        language: AIModel[];
-        embedding: AIModel[];
-        tts: AIModel[];
-        stt: AIModel[];
-    };
+    onUpdateAssignment: (capability: AssignmentCapability, modelId: string | null) => void;
+    availableModels: AISettings['models'];
     providers: any[]; // To check for first-party constraint
 }
 
 export const ModelAssignmentConfig: React.FC<Props> = ({ settings, onUpdateAssignment, availableModels, providers }) => {
 
-    const renderSelect = (capability: string, label: string, description: string, models: AIModel[], required = false, filter?: (m: AIModel) => boolean) => {
+    const renderSelect = (
+        capability: AssignmentCapability,
+        label: string,
+        description: string,
+        models: AIModel[],
+        required = false,
+        filter?: (m: AIModel) => boolean
+    ) => {
         const filteredModels = filter ? models.filter(filter) : models;
-        const currentModelId = settings.assignments[capability as keyof typeof settings.assignments];
-        const currentModel = models.find(m => m.id === currentModelId);
+        const currentModelId = settings.assignments[capability];
 
         return (
             <div className="mb-6">
@@ -58,20 +59,45 @@ export const ModelAssignmentConfig: React.FC<Props> = ({ settings, onUpdateAssig
     };
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-10">
             <div>
-                <h2 className="text-lg font-semibold mb-4">Default Model Assignments</h2>
-                <p className="text-sm text-gray-500 mb-6">Configure which models to use for different purposes across Open Notebook</p>
-
+                <h2 className="text-lg font-semibold mb-4">Zen Mode</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-2">
-                    {renderSelect('chat', 'Chat Model', 'Used for chat conversations', availableModels.language, true)}
-                    {renderSelect('tools', 'Tools Model', 'Used for function calling - OpenAI or Anthropic recommended', availableModels.language)}
-                    {renderSelect('embedding', 'Embedding Model', 'Used for semantic search and vector embeddings', availableModels.embedding, true)}
-                    {renderSelect('stt', 'Speech-to-Text Model', 'Used for audio transcription', availableModels.stt)}
-                    {renderSelect('tts', 'Text-to-Speech Model', 'Used for podcast generation', availableModels.tts)}
-                    {/* Realtime is special, needs first party check */}
-                    {/* We assume language models can be realtime if they are from first party providers for now, or we could add a specific capability */}
-                    {renderSelect('realtime', 'Real-time Model', 'Used for Zen mode (First-party providers only)', availableModels.language, false, isFirstParty)}
+                    {renderSelect('zen_realtime', 'Real-time Model', 'Used for Zen mode (First-party providers only)', availableModels.speech_to_speech, false, isFirstParty)}
+                </div>
+            </div>
+
+            <hr className="border-gray-200" />
+
+            <div>
+                <h2 className="text-lg font-semibold mb-4">STW Mode</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-2">
+                    {renderSelect('stw_chat', 'Chat Model', 'Main conversation model', availableModels.language, true)}
+                    {renderSelect('stw_stt', 'Speech-to-Text', 'Transcribe user audio', availableModels.stt, true)}
+                    {renderSelect('stw_tts', 'Text-to-Speech', 'Generate AI voice', availableModels.tts, true)}
+                    {renderSelect('stw_assessment_text', 'Assessment (Text Analysis)', 'Analyze user text for suggestions', availableModels.language)}
+                    {renderSelect('stw_assessment_pronunciation', 'Assessment (Pronunciation)', 'Provide pronunciation feedback', availableModels.speech_to_speech)}
+                </div>
+            </div>
+
+            <hr className="border-gray-200" />
+
+            <div>
+                <h2 className="text-lg font-semibold mb-4">Copilot</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-2">
+                    {renderSelect('copilot_distill', 'Distill Model', 'Summarize and extract insights', availableModels.language)}
+                    {renderSelect('copilot_inspiration', 'Inspiration Burst', 'Generate creative ideas', availableModels.language)}
+                </div>
+            </div>
+
+            <hr className="border-gray-200" />
+
+            <div>
+                <h2 className="text-lg font-semibold mb-4">Other Scenarios</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-2">
+                    {renderSelect('scenario_draft', 'Scenario Draft', 'Generate scenario drafts', availableModels.language)}
+                    {renderSelect('ask_ai', 'Ask AI', 'General Q&A', availableModels.language)}
+                    {renderSelect('review_notes', 'Review Notes', 'Format and organize notes', availableModels.language)}
                 </div>
             </div>
         </div>

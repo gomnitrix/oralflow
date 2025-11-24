@@ -7,40 +7,59 @@ export interface AIModel {
     id: string;
     name: string;
     provider: string;
-    capabilities: ('language' | 'embedding' | 'tts' | 'stt')[];
+    capabilities: ('language' | 'tts' | 'stt' | 'speech_to_speech')[];
 }
 
 export interface AISettings {
     models: {
         language: AIModel[];
-        embedding: AIModel[];
         tts: AIModel[];
         stt: AIModel[];
+        speech_to_speech: AIModel[];
     };
     assignments: {
-        chat: string | null; // model ID
-        tools: string | null;
-        embedding: string | null;
-        tts: string | null;
-        stt: string | null;
-        realtime: string | null;
+        // Zen Mode
+        zen_realtime: string | null;
+
+        // STW Mode
+        stw_chat: string | null;
+        stw_stt: string | null;
+        stw_tts: string | null;
+        stw_assessment_text: string | null;
+        stw_assessment_pronunciation: string | null;
+
+        // Copilot
+        copilot_distill: string | null;
+        copilot_inspiration: string | null;
+
+        // Other Scenarios
+        scenario_draft: string | null;
+        ask_ai: string | null;
+        review_notes: string | null;
     };
 }
+
+export type AssignmentCapability = keyof AISettings['assignments'];
 
 const DEFAULT_SETTINGS: AISettings = {
     models: {
         language: [],
-        embedding: [],
         tts: [],
-        stt: []
+        stt: [],
+        speech_to_speech: []
     },
     assignments: {
-        chat: null,
-        tools: null,
-        embedding: null,
-        tts: null,
-        stt: null,
-        realtime: null
+        zen_realtime: null,
+        stw_chat: null,
+        stw_stt: null,
+        stw_tts: null,
+        stw_assessment_text: null,
+        stw_assessment_pronunciation: null,
+        copilot_distill: null,
+        copilot_inspiration: null,
+        scenario_draft: null,
+        ask_ai: null,
+        review_notes: null
     }
 };
 
@@ -63,7 +82,19 @@ export class SettingsService {
         try {
             if (fs.existsSync(SETTINGS_FILE)) {
                 const data = fs.readFileSync(SETTINGS_FILE, 'utf-8');
-                return { ...DEFAULT_SETTINGS, ...JSON.parse(data) };
+                const parsed = JSON.parse(data) as Partial<AISettings>;
+                return {
+                    ...DEFAULT_SETTINGS,
+                    ...parsed,
+                    models: {
+                        ...DEFAULT_SETTINGS.models,
+                        ...(parsed.models ?? {})
+                    },
+                    assignments: {
+                        ...DEFAULT_SETTINGS.assignments,
+                        ...(parsed.assignments ?? {})
+                    }
+                };
             }
         } catch (error) {
             console.error('Failed to load AI settings:', error);

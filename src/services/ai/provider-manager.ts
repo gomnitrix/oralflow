@@ -6,16 +6,15 @@ export interface AIProvider {
     isActive: boolean;
     baseUrl?: string;
     apiKey?: string;
-    capabilities: ('language' | 'embedding' | 'tts' | 'stt' | 'realtime')[];
+    capabilities: ('language' | 'embedding' | 'tts' | 'stt' | 'realtime' | 'speech_to_speech')[];
     isFirstParty: boolean;
 }
 
 export class ProviderManager {
     private static instance: ProviderManager;
-    private providers: AIProvider[];
 
     private constructor() {
-        this.providers = this.detectProviders();
+        // this.providers = this.detectProviders(); // Don't cache
     }
 
     public static getInstance(): ProviderManager {
@@ -32,7 +31,7 @@ export class ProviderManager {
                 name: 'OpenAI',
                 isActive: !!process.env.OPENAI_API_KEY,
                 apiKey: process.env.OPENAI_API_KEY,
-                capabilities: ['language', 'embedding', 'tts', 'stt', 'realtime'],
+                capabilities: ['language', 'embedding', 'tts', 'stt', 'realtime', 'speech_to_speech'],
                 isFirstParty: true
             },
             {
@@ -40,7 +39,7 @@ export class ProviderManager {
                 name: 'Gemini',
                 isActive: !!process.env.GEMINI_API_KEY,
                 apiKey: process.env.GEMINI_API_KEY,
-                capabilities: ['language', 'embedding', 'realtime'], // Gemini supports multimodal but mapping to these for now
+                capabilities: ['language', 'embedding', 'realtime', 'speech_to_speech'],
                 isFirstParty: true
             },
             {
@@ -65,14 +64,14 @@ export class ProviderManager {
     }
 
     public getProviders(): AIProvider[] {
-        return this.providers;
+        return this.detectProviders();
     }
 
     public getActiveProviders(): AIProvider[] {
-        return this.providers.filter(p => p.isActive);
+        return this.detectProviders().filter(p => p.isActive);
     }
 
     public getProvider(id: ProviderType): AIProvider | undefined {
-        return this.providers.find(p => p.id === id);
+        return this.detectProviders().find(p => p.id === id);
     }
 }

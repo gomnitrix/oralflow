@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { ProviderStatusList } from '@/components/models/ProviderStatusList';
 import { ModelCapabilityConfig } from '@/components/models/ModelCapabilityConfig';
 import { ModelAssignmentConfig } from '@/components/models/ModelAssignmentConfig';
-import { AISettings, AIModel } from '@/services/ai/settings';
+import { AISettings, AIModel, type AssignmentCapability } from '@/services/ai/settings';
 import { AIProvider } from '@/services/ai/provider-manager';
 
 export default function ModelsPage() {
@@ -33,7 +33,7 @@ export default function ModelsPage() {
         fetchData();
     }, []);
 
-    const handleUpdateAssignment = async (capability: string, modelId: string | null) => {
+    const handleUpdateAssignment = async (capability: AssignmentCapability, modelId: string | null) => {
         if (!settings) return;
 
         const newAssignments = { ...settings.assignments, [capability]: modelId };
@@ -47,11 +47,11 @@ export default function ModelsPage() {
         });
     };
 
-    const handleAddModel = async (category: string, model: AIModel) => {
+    const handleAddModel = async (category: keyof AISettings['models'], model: AIModel) => {
         if (!settings) return;
 
         // Optimistic update
-        const newModels = { ...settings.models, [category]: [...settings.models[category as keyof typeof settings.models], model] };
+        const newModels = { ...settings.models, [category]: [...settings.models[category], model] };
         setSettings({ ...settings, models: newModels });
 
         await fetch('/api/ai/settings', {
@@ -61,11 +61,11 @@ export default function ModelsPage() {
         });
     };
 
-    const handleRemoveModel = async (category: string, modelId: string) => {
+    const handleRemoveModel = async (category: keyof AISettings['models'], modelId: string) => {
         if (!settings) return;
 
         // Optimistic update
-        const newModels = { ...settings.models, [category]: settings.models[category as keyof typeof settings.models].filter(m => m.id !== modelId) };
+        const newModels = { ...settings.models, [category]: settings.models[category].filter(m => m.id !== modelId) };
         setSettings({ ...settings, models: newModels });
 
         await fetch('/api/ai/settings', {
@@ -103,13 +103,13 @@ export default function ModelsPage() {
                     availableProviders={activeProviders.filter(p => p.capabilities.includes('language'))}
                 />
                 <ModelCapabilityConfig
-                    title="Embedding Models"
-                    description="Semantic search and vector embeddings"
-                    category="embedding"
-                    models={settings.models.embedding}
+                    title="Speech-to-Speech"
+                    description="Real-time voice conversation models"
+                    category="speech_to_speech"
+                    models={settings.models.speech_to_speech}
                     onAddModel={handleAddModel}
                     onRemoveModel={handleRemoveModel}
-                    availableProviders={activeProviders.filter(p => p.capabilities.includes('embedding'))}
+                    availableProviders={activeProviders.filter(p => p.capabilities.includes('speech_to_speech'))}
                 />
                 <ModelCapabilityConfig
                     title="Text-to-Speech"
