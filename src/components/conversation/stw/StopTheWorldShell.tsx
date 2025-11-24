@@ -118,9 +118,9 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({ scenarioTi
   const activeBubble = session.bubbles[activeIndex];
 
   return (
-    <div className="grid grid-cols-10 h-[calc(100vh-4rem)] overflow-hidden bg-custom-bg">
+    <div className="grid grid-cols-10 h-screen overflow-hidden bg-[#f8f6f6]">
       {/* Left Column: Dialogue Arena (60%) */}
-      <div className="col-span-10 lg:col-span-6 flex flex-col relative border-r border-custom-border bg-gray-50/50">
+      <div className="col-span-10 lg:col-span-6 flex flex-col relative border-r border-custom-border bg-[#f8f6f6]">
         {/* Header */}
         <header className="p-6 bg-transparent z-10 flex items-center justify-between">
           <h1 className="text-xl font-black text-custom-text-dark tracking-tight">{scenarioTitle}</h1>
@@ -191,7 +191,7 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({ scenarioTi
       </div>
 
       {/* Right Column: Copilot Coach (40%) */}
-      <div className="hidden lg:flex col-span-4 bg-white flex-col h-full overflow-hidden z-20">
+      <div className="hidden lg:flex col-span-4 bg-[#ffffff] flex-col h-full overflow-hidden z-20">
         <CopilotPanel
           mode={recordingStatus === "review" ? "assessment" : "standard"}
           selectedBubble={activeBubble}

@@ -8,16 +8,50 @@ interface CopilotPanelProps {
 }
 
 export const CopilotPanel: React.FC<CopilotPanelProps> = ({ mode = "standard", selectedBubble }) => {
-  const [activeTab, setActiveTab] = useState<"distill" | "inspiration">("distill");
+  // State to store context per bubble ID
+  const [contexts, setContexts] = useState<Record<string, { activeTab: "distill" | "inspiration"; inputValue: string }>>({});
+
+  // Get current context or default
+  const currentContext = selectedBubble ? contexts[selectedBubble.id] || { activeTab: "distill", inputValue: "" } : { activeTab: "distill", inputValue: "" };
+
+  const updateContext = (updates: Partial<{ activeTab: "distill" | "inspiration"; inputValue: string }>) => {
+    if (!selectedBubble) return;
+    setContexts(prev => {
+      const current = prev[selectedBubble.id] || { activeTab: "distill", inputValue: "" };
+      return {
+        ...prev,
+        [selectedBubble.id]: { ...current, ...updates }
+      };
+    });
+  };
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
-      if (event.key.toLowerCase() === "h") setActiveTab("distill");
-      if (event.key.toLowerCase() === "l") setActiveTab("inspiration");
+      if (!selectedBubble) return;
+      if (event.key.toLowerCase() === "h") updateContext({ activeTab: "distill" });
+      if (event.key.toLowerCase() === "l") updateContext({ activeTab: "inspiration" });
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, []);
+  }, [selectedBubble]); // Re-bind when bubble changes to ensure we update the correct context
+
+  // Mock content generation based on bubble ID (deterministic)
+  const getMockContent = (bubble: ConversationBubble) => {
+    const idSum = bubble.id.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const tips = [
+      "Try using 'Je voudrais...' instead of 'Je veux...' to sound more polite.",
+      "In French, adjectives often come after the noun.",
+      "Remember to use 'vous' for formal situations.",
+      "Don't forget the liaison between 'les' and 'amis'.",
+      "Use 'est-ce que' to turn a statement into a question."
+    ];
+    return {
+      tip: tips[idSum % tips.length],
+      vocab: bubble.text.split(" ").slice(0, 3).join(", ") // Simple mock vocab
+    };
+  };
+
+  const mockContent = selectedBubble ? getMockContent(selectedBubble) : null;
 
   // If in assessment mode (user recorded but hasn't sent), override content
   if (mode === "assessment") {
@@ -68,8 +102,8 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({ mode = "standard", s
       <div className="px-6 py-4">
         <div className="grid grid-cols-2 gap-2 p-1 bg-gray-100 rounded-full">
           <button
-            onClick={() => setActiveTab("distill")}
-            className={`py-2 px-4 rounded-full text-sm font-bold transition-all ${activeTab === "distill"
+            onClick={() => updateContext({ activeTab: "distill" })}
+            className={`py-2 px-4 rounded-full text-sm font-bold transition-all ${currentContext.activeTab === "distill"
               ? "bg-white text-custom-text-dark shadow-sm"
               : "text-custom-text-dark/60 hover:text-custom-text-dark"
               }`}
@@ -77,8 +111,8 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({ mode = "standard", s
             Distill
           </button>
           <button
-            onClick={() => setActiveTab("inspiration")}
-            className={`py-2 px-4 rounded-full text-sm font-bold transition-all ${activeTab === "inspiration"
+            onClick={() => updateContext({ activeTab: "inspiration" })}
+            className={`py-2 px-4 rounded-full text-sm font-bold transition-all ${currentContext.activeTab === "inspiration"
               ? "bg-white text-custom-text-dark shadow-sm"
               : "text-custom-text-dark/60 hover:text-custom-text-dark"
               }`}
@@ -90,7 +124,7 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({ mode = "standard", s
 
       {/* Content Area */}
       <div className="flex-1 p-6 overflow-y-auto">
-        {activeTab === "distill" && (
+        {currentContext.activeTab === "distill" && (
           <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
             {selectedBubble ? (
               <>
@@ -122,12 +156,14 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({ mode = "standard", s
           </div>
         )}
 
-        {activeTab === "inspiration" && (
+        {currentContext.activeTab === "inspiration" && (
           <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
             <div className="bg-white p-6 rounded-3xl shadow-sm border border-custom-border">
               <p className="text-sm font-bold text-custom-text-dark mb-3">Need a hint?</p>
               <input
                 type="text"
+                value={currentContext.inputValue}
+                onChange={(e) => updateContext({ inputValue: e.target.value })}
                 placeholder="Type what you want to say..."
                 className="w-full p-4 rounded-xl bg-gray-50 border border-transparent focus:bg-white focus:border-custom-primary/20 text-sm outline-none transition-all"
               />
@@ -139,7 +175,7 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({ mode = "standard", s
             <div className="bg-gradient-to-br from-indigo-50 to-purple-50 p-6 rounded-3xl border border-indigo-100/50">
               <p className="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-2">Quick Tip</p>
               <p className="text-sm text-indigo-900/80 font-medium">
-                Try using &quot;Je voudrais...&quot; instead of &quot;Je veux...&quot; to sound more polite.
+                {mockContent?.tip || "Select a bubble to get a tip."}
               </p>
             </div>
           </div>
