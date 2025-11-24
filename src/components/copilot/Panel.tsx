@@ -57,7 +57,9 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({ mode = "standard", s
   // Debug: Log when selectedBubble changes
   useEffect(() => {
     console.log('[CopilotPanel] selectedBubble changed:', selectedBubble?.id, selectedBubble?.text);
-  }, [selectedBubble]);
+    console.log('[CopilotPanel] mockContent.tip:', mockContent?.tip);
+    console.log('[CopilotPanel] currentContext:', currentContext);
+  }, [selectedBubble, mockContent, currentContext]);
 
   // If in assessment mode (user recorded but hasn't sent), override content
   if (mode === "assessment") {
