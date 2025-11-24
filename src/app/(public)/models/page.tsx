@@ -81,12 +81,21 @@ export default function ModelsPage() {
 
     const activeProviders = providers.filter(p => p.isActive);
 
+    if (!settings) return <div>Loading...</div>;
+
+    // Filter models based on active providers
+    const activeProviderIds = activeProviders.map(p => p.id);
+    const filteredModels = {
+        language: settings.models.language.filter(m => activeProviderIds.includes(m.provider as any)),
+        tts: settings.models.tts.filter(m => activeProviderIds.includes(m.provider as any)),
+        stt: settings.models.stt.filter(m => activeProviderIds.includes(m.provider as any)),
+        speech_to_speech: settings.models.speech_to_speech.filter(m => activeProviderIds.includes(m.provider as any)),
+        realtime_speech: settings.models.realtime_speech.filter(m => activeProviderIds.includes(m.provider as any)),
+    };
+
     return (
-        <div className="p-8 max-w-6xl mx-auto space-y-10 pb-20">
-            <div>
-                <h1 className="text-2xl font-bold mb-2">Model Management</h1>
-                <p className="text-gray-600">Configure AI models for different purposes across Open Notebook</p>
-            </div>
+        <div className="p-8 max-w-4xl mx-auto space-y-8">
+            <h1 className="text-2xl font-bold mb-6">AI Models</h1>
 
             <ProviderStatusList />
 
@@ -97,7 +106,7 @@ export default function ModelsPage() {
                     title="Language Models"
                     description="Chat, transformations, and text generation"
                     category="language"
-                    models={settings.models.language}
+                    models={filteredModels.language}
                     onAddModel={handleAddModel}
                     onRemoveModel={handleRemoveModel}
                     availableProviders={activeProviders.filter(p => p.capabilities.includes('language'))}
@@ -106,7 +115,7 @@ export default function ModelsPage() {
                     title="Real-time Speech Models"
                     description="Low-latency models for Zen Mode (First-party only)"
                     category="realtime_speech"
-                    models={settings.models.realtime_speech}
+                    models={filteredModels.realtime_speech}
                     onAddModel={handleAddModel}
                     onRemoveModel={handleRemoveModel}
                     availableProviders={activeProviders.filter(p => p.capabilities.includes('realtime_speech'))}
@@ -115,7 +124,7 @@ export default function ModelsPage() {
                     title="Speech-to-Speech"
                     description="Voice conversation models"
                     category="speech_to_speech"
-                    models={settings.models.speech_to_speech}
+                    models={filteredModels.speech_to_speech}
                     onAddModel={handleAddModel}
                     onRemoveModel={handleRemoveModel}
                     availableProviders={activeProviders}
@@ -124,7 +133,7 @@ export default function ModelsPage() {
                     title="Text-to-Speech"
                     description="Generate audio from text"
                     category="tts"
-                    models={settings.models.tts}
+                    models={filteredModels.tts}
                     onAddModel={handleAddModel}
                     onRemoveModel={handleRemoveModel}
                     availableProviders={activeProviders.filter(p => p.capabilities.includes('tts'))}
@@ -133,7 +142,7 @@ export default function ModelsPage() {
                     title="Speech-to-Text"
                     description="Transcribe audio to text"
                     category="stt"
-                    models={settings.models.stt}
+                    models={filteredModels.stt}
                     onAddModel={handleAddModel}
                     onRemoveModel={handleRemoveModel}
                     availableProviders={activeProviders.filter(p => p.capabilities.includes('stt'))}
@@ -145,7 +154,7 @@ export default function ModelsPage() {
             <ModelAssignmentConfig
                 settings={settings}
                 onUpdateAssignment={handleUpdateAssignment}
-                availableModels={settings.models}
+                availableModels={filteredModels}
                 providers={providers}
             />
         </div>

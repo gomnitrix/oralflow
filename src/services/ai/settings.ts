@@ -1,7 +1,9 @@
 import fs from 'fs';
 import path from 'path';
 
-const SETTINGS_FILE = path.join(process.cwd(), 'ai-settings.json');
+const SETTINGS_FILE = process.env.LOCAL_STORAGE_PATH
+    ? path.join(process.env.LOCAL_STORAGE_PATH, 'ai-settings.json')
+    : path.join(process.cwd(), 'ai-settings.json');
 
 export interface AIModel {
     id: string;
