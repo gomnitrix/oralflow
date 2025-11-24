@@ -70,7 +70,7 @@ export const generateScenario = async (
       { role: "system", content: "You are an expert language tutor. Create engaging role-play scenarios. Output ONLY valid JSON." },
       { role: "user", content: buildScenarioPrompt(input) },
     ],
-  });
+  }, "scenario_draft");
 
   let parsed: any = {};
   try {
@@ -125,7 +125,7 @@ export const generateExpressions = async (
       },
       { role: "user", content: input.prompt },
     ],
-  });
+  }, "ask_ai");
 
   const suggestion = createExpressionSuggestion({
     text: completion.message || "Sample expression",

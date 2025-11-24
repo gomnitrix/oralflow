@@ -14,8 +14,8 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const parsed = scenarioGenerateSchema.parse(body);
-    const scenario = await studio.generate(parsed);
-    return NextResponse.json({ scenario, provider: "stub" });
+    const result = await studio.generate(parsed);
+    return NextResponse.json({ scenario: result.scenario, provider: result.provider });
   } catch (error) {
     return NextResponse.json({ error: (error as Error).message }, { status: 400 });
   }

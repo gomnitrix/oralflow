@@ -24,22 +24,59 @@ interface ProviderAdapter {
   completeChat(prompt: ChatPrompt, model: string): Promise<ChatCompletion>;
 }
 
+const normalizeBaseUrl = (baseUrl?: string): string => {
+  const url = baseUrl ?? "https://api.openai.com/v1";
+  return url.endsWith("/") ? url.slice(0, -1) : url;
+};
+
+const extractOpenAIMessage = (data: any): string => {
+  const choice = data?.choices?.[0];
+  const content = choice?.message?.content;
+  if (typeof content === "string") {
+    return content.trim();
+  }
+  if (Array.isArray(content)) {
+    return content.map((item) => item?.text ?? "").join("").trim();
+  }
+  return "";
+};
+
 const createOpenAICompatibleAdapter = (name: ProviderName, apiKey: string, baseUrl?: string): ProviderAdapter => ({
   name,
   async completeChat(prompt: ChatPrompt, model: string): Promise<ChatCompletion> {
-    // In a real implementation, this would make an HTTP request to the provider's API
-    // For now, we keep the stub behavior but acknowledge the configuration
     if (!apiKey) {
       throw new Error(`${name.toUpperCase()}_API_KEY is not configured`);
     }
 
-    // Simulating a network call
-    // const response = await fetch(`${baseUrl}/chat/completions`, ...);
+    const response = await fetch(`${normalizeBaseUrl(baseUrl)}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        messages: prompt.messages,
+        temperature: prompt.temperature ?? 0.7,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => "");
+      throw new Error(`Failed to call ${name} (${response.status}): ${errorText || response.statusText}`);
+    }
+
+    const data = await response.json();
+    const message = extractOpenAIMessage(data);
+
+    if (!message) {
+      throw new Error(`No completion returned from ${name}`);
+    }
 
     return {
-      message: prompt.messages[prompt.messages.length - 1]?.content ?? "",
+      message,
       provider: name,
-      model: model,
+      model,
     };
   },
 });
@@ -50,8 +87,48 @@ const createGeminiAdapter = (apiKey: string): ProviderAdapter => ({
     if (!apiKey) {
       throw new Error("GEMINI_API_KEY is not configured");
     }
+
+    const systemMessage = prompt.messages.find((m) => m.role === "system");
+    const conversationMessages = prompt.messages.filter((m) => m.role !== "system");
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contents: conversationMessages.map((msg) => ({
+            role: msg.role === "assistant" ? "model" : "user",
+            parts: [{ text: msg.content }],
+          })),
+          systemInstruction: systemMessage
+            ? {
+                role: "system",
+                parts: [{ text: systemMessage.content }],
+              }
+            : undefined,
+          safetySettings: [],
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => "");
+      throw new Error(`Failed to call GEMINI (${response.status}): ${errorText || response.statusText}`);
+    }
+
+    const data = await response.json();
+    const parts = data?.candidates?.[0]?.content?.parts;
+    const message = Array.isArray(parts) ? parts.map((p: any) => p?.text ?? "").join("").trim() : "";
+
+    if (!message) {
+      throw new Error("No completion returned from GEMINI");
+    }
+
     return {
-      message: prompt.messages[prompt.messages.length - 1]?.content ?? "",
+      message,
       provider: "gemini",
       model: model,
     };

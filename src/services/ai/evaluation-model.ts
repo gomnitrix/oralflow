@@ -37,7 +37,7 @@ export const evaluateUtterance = async (
       { role: "system", content: "You are a speech coach evaluating user utterances." },
       { role: "user", content: prompt },
     ],
-  });
+  }, "stw_assessment_text");
 
   const record = createEvaluationRecord({
     bubbleId: input.bubbleId,
