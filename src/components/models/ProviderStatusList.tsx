@@ -19,11 +19,11 @@ export const ProviderStatusList: React.FC = () => {
         switch (id) {
             case 'openai':
                 return (
-                    <img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/openai.svg" alt="OpenAI" className="w-5 h-5" />
+                    <img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/openai.png" alt="OpenAI" className="w-5 h-5" />
                 );
             case 'gemini':
                 return (
-                    <img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/google-gemini.svg" alt="Gemini" className="w-5 h-5" />
+                    <img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/google-gemini.png" alt="Gemini" className="w-5 h-5" />
                 );
             default:
                 return (
