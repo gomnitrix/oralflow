@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 
 import type { ConversationBubble } from "../../domains/conversation/models";
 
@@ -14,7 +14,7 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({ mode = "standard", s
   // Get current context or default
   const currentContext = selectedBubble ? contexts[selectedBubble.id] || { activeTab: "distill", inputValue: "" } : { activeTab: "distill", inputValue: "" };
 
-  const updateContext = (updates: Partial<{ activeTab: "distill" | "inspiration"; inputValue: string }>) => {
+  const updateContext = useCallback((updates: Partial<{ activeTab: "distill" | "inspiration"; inputValue: string }>) => {
     if (!selectedBubble) return;
     setContexts(prev => {
       const current = prev[selectedBubble.id] || { activeTab: "distill", inputValue: "" };
@@ -23,7 +23,7 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({ mode = "standard", s
         [selectedBubble.id]: { ...current, ...updates }
       };
     });
-  };
+  }, [selectedBubble]);
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
@@ -33,7 +33,7 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({ mode = "standard", s
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [selectedBubble]); // Re-bind when bubble changes to ensure we update the correct context
+  }, [selectedBubble, updateContext]);
 
   // Mock content generation based on bubble ID (deterministic)
   const getMockContent = (bubble: ConversationBubble) => {
@@ -45,13 +45,19 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({ mode = "standard", s
       "Don't forget the liaison between 'les' and 'amis'.",
       "Use 'est-ce que' to turn a statement into a question."
     ];
+    const selectedTip = tips[idSum % tips.length];
     return {
-      tip: tips[idSum % tips.length],
+      tip: `[Bubble: ${bubble.id}] ${selectedTip}`,
       vocab: bubble.text.split(" ").slice(0, 3).join(", ") // Simple mock vocab
     };
   };
 
   const mockContent = selectedBubble ? getMockContent(selectedBubble) : null;
+
+  // Debug: Log when selectedBubble changes
+  useEffect(() => {
+    console.log('[CopilotPanel] selectedBubble changed:', selectedBubble?.id, selectedBubble?.text);
+  }, [selectedBubble]);
 
   // If in assessment mode (user recorded but hasn't sent), override content
   if (mode === "assessment") {
