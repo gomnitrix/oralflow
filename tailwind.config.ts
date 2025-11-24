@@ -5,40 +5,28 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        primary: {
-          DEFAULT: "#2563EB",
-          foreground: "#FFFFFF",
-          muted: "#93C5FD",
-        },
-        surface: {
-          DEFAULT: "#0F172A",
-          subtle: "#111827",
-          card: "#1F2937",
-        },
-        accent: {
-          DEFAULT: "#22D3EE",
-          warm: "#FBBF24",
-        },
-      },
-      spacing: {
-        13: "3.25rem",
-        15: "3.75rem",
-        18: "4.5rem",
+        primary: "#e97149",
+        "background-light": "#f8f6f6",
+        "background-dark": "#211511",
+        "custom-primary": "#FFAB91",
+        "custom-accent": "#80CBC4",
+        "custom-bg": "#FDFBF8",
+        "custom-text-dark": "#4E4A47",
+        "custom-border": "#EAE6E1",
       },
       fontFamily: {
-        display: ["Inter", "ui-sans-serif", "system-ui"],
-        body: ["Inter", "ui-sans-serif", "system-ui"],
+        display: ["Lexend", "sans-serif"],
+        body: ["Lexend", "sans-serif"],
       },
       borderRadius: {
-        xl: "1rem",
-        "2xl": "1.5rem",
-      },
-      boxShadow: {
-        card: "0 10px 40px rgba(0,0,0,0.2)",
+        DEFAULT: "1rem",
+        lg: "2rem",
+        xl: "3rem",
+        full: "9999px",
       },
     },
   },
-  plugins: [],
+  plugins: [require("@tailwindcss/forms"), require("@tailwindcss/container-queries")],
 };
 
 export default config;
