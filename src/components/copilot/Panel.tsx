@@ -45,21 +45,13 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({ mode = "standard", s
       "Don't forget the liaison between 'les' and 'amis'.",
       "Use 'est-ce que' to turn a statement into a question."
     ];
-    const selectedTip = tips[idSum % tips.length];
     return {
-      tip: `[Bubble: ${bubble.id}] ${selectedTip}`,
-      vocab: bubble.text.split(" ").slice(0, 3).join(", ") // Simple mock vocab
+      tip: tips[idSum % tips.length],
+      vocab: bubble.text.split(" ").slice(0, 3).join(", ")
     };
   };
 
   const mockContent = selectedBubble ? getMockContent(selectedBubble) : null;
-
-  // Debug: Log when selectedBubble changes
-  useEffect(() => {
-    console.log('[CopilotPanel] selectedBubble changed:', selectedBubble?.id, selectedBubble?.text);
-    console.log('[CopilotPanel] mockContent.tip:', mockContent?.tip);
-    console.log('[CopilotPanel] currentContext:', currentContext);
-  }, [selectedBubble, mockContent, currentContext]);
 
   // If in assessment mode (user recorded but hasn't sent), override content
   if (mode === "assessment") {

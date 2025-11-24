@@ -193,7 +193,7 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({ scenarioTi
       {/* Right Column: Copilot Coach (40%) */}
       <div className="hidden lg:flex col-span-4 bg-[#ffffff] flex-col h-full overflow-hidden z-20">
         <CopilotPanel
-          mode={recordingStatus === "review" ? "assessment" : "standard"}
+          mode={recordingStatus === "review" && activeBubble?.speaker === "user" ? "assessment" : "standard"}
           selectedBubble={activeBubble}
         />
       </div>
