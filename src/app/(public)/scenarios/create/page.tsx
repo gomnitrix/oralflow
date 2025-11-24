@@ -11,11 +11,22 @@ export default function ScenarioCreatePage() {
   const router = useRouter();
 
   // Form State
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    mode: "manual" | "ai" | "import";
+    background: string;
+    userRole: string;
+    agentRole: string;
+    goal: string;
+    keyword: string;
+    sourceText: string;
+  }>({
+    mode: "manual",
     background: "",
     userRole: "",
     agentRole: "",
     goal: "",
+    keyword: "",
+    sourceText: "",
   });
 
   // Generated Data State
@@ -32,28 +43,36 @@ export default function ScenarioCreatePage() {
   const handleGenerate = async () => {
     setIsGenerating(true);
 
-    // Mock AI Generation Delay
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      const response = await fetch("/api/scenarios/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: formData.mode,
+          keyword: formData.keyword,
+          sourceText: formData.sourceText,
+          draft: formData.mode === "manual" ? {
+            title: formData.background,
+            description: formData.goal, // Using goal as description for now or we could combine
+            learnerRole: formData.userRole,
+            aiRole: formData.agentRole,
+            mainGoal: formData.goal,
+          } : undefined,
+        }),
+      });
 
-    // Mock Generated Data based on inputs
-    const mockGenerated: Partial<ScenarioTemplate> = {
-      id: `gen_${Date.now()}`,
-      title: formData.background ? `Scenario at ${formData.background}` : "Custom Scenario",
-      description: `You are a ${formData.userRole || "person"} interacting with a ${formData.agentRole || "person"} at ${formData.background || "a location"}. ${formData.goal}`,
-      emoji: "✨",
-      learnerRole: formData.userRole || "Learner",
-      aiRole: formData.agentRole || "Agent",
-      subGoals: [
-        "Greet the other person politely.",
-        "Ask a relevant question.",
-        "Respond to an inquiry.",
-        "Close the conversation naturally."
-      ],
-      preferredMode: "zen",
-    };
+      if (!response.ok) {
+        throw new Error("Failed to generate scenario");
+      }
 
-    setGeneratedScenario(mockGenerated);
-    setIsGenerating(false);
+      const data = await response.json();
+      setGeneratedScenario(data.scenario);
+    } catch (error) {
+      console.error("Generation error:", error);
+      // Optional: Show error toast
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleEdit = () => {

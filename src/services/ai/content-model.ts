@@ -20,13 +20,45 @@ export interface ScenarioGenerationResult {
 }
 
 export const buildScenarioPrompt = (input: ScenarioGenerationInput): string => {
-  if (input.mode === "manual" && input.draft?.title) {
-    return `Normalize this scenario for practice:\nTitle: ${input.draft.title}\nDescription: ${input.draft.description ?? ""}`;
+  const jsonStructure = `
+  Return a JSON object with this structure:
+  {
+    "title": "string",
+    "description": "string",
+    "emoji": "string (single emoji)",
+    "learnerRole": "string",
+    "aiRole": "string",
+    "mainGoal": "string",
+    "subGoals": ["string", "string", "string"],
+    "preferredMode": "zen" | "stw"
   }
+  `;
+
+  if (input.mode === "manual" && input.draft) {
+    return `
+    Normalize this scenario draft into a structured practice scenario.
+    Draft:
+    - Background: ${input.draft.title || "General"}
+    - User Role: ${input.draft.learnerRole || "Learner"}
+    - Other Role: ${input.draft.aiRole || "Agent"}
+    - Goal: ${input.draft.mainGoal || "Practice speaking"}
+    ${jsonStructure}
+    `;
+  }
+
   if (input.mode === "import" && input.sourceText) {
-    return `Convert the imported text into a concise scenario card:\n${input.sourceText}`;
+    return `
+    Analyze the following text and create a role-play scenario based on it.
+    Text: "${input.sourceText}"
+    ${jsonStructure}
+    `;
   }
-  return `Generate a speaking scenario about: ${input.keyword ?? "general conversation"}`;
+
+  // AI Generate Mode
+  return `
+  Generate a creative role-play scenario based on these keywords: "${input.keyword || "general conversation"}".
+  ${jsonStructure}
+  `;
 };
 
 export const generateScenario = async (
@@ -35,22 +67,36 @@ export const generateScenario = async (
 ): Promise<ScenarioGenerationResult> => {
   const completion = await client.completeChat({
     messages: [
-      { role: "system", content: "Create short, goal-focused scenarios for speaking practice." },
+      { role: "system", content: "You are an expert language tutor. Create engaging role-play scenarios. Output ONLY valid JSON." },
       { role: "user", content: buildScenarioPrompt(input) },
     ],
   });
 
+  let parsed: any = {};
+  try {
+    // Basic cleanup to handle markdown code blocks if present
+    const cleanJson = completion.message.replace(/```json\n?|\n?```/g, "").trim();
+    parsed = JSON.parse(cleanJson);
+  } catch (e) {
+    console.error("Failed to parse AI response:", completion.message);
+    // Fallback to basic structure if parsing fails
+    parsed = {
+      title: "Generated Scenario",
+      description: completion.message.slice(0, 100),
+    };
+  }
+
   const scenario = createScenarioTemplate({
-    title: input.draft?.title ?? (completion.message.slice(0, 60) || "Practice Scenario"),
-    emoji: input.draft?.emoji ?? "🗣️",
-    description: input.draft?.description ?? "Improve speaking confidence in a guided role-play.",
-    learnerRole: input.draft?.learnerRole ?? "Learner",
-    aiRole: input.draft?.aiRole ?? "Coach",
-    mainGoal: input.draft?.mainGoal ?? "Hold a focused conversation on the topic.",
-    subGoals: input.draft?.subGoals ?? ["Practice pronunciation", "Stay concise"],
+    title: parsed.title || "New Scenario",
+    emoji: parsed.emoji || "💬",
+    description: parsed.description || "A practice scenario.",
+    learnerRole: parsed.learnerRole || "Learner",
+    aiRole: parsed.aiRole || "Partner",
+    mainGoal: parsed.mainGoal || "Practice speaking.",
+    subGoals: parsed.subGoals || [],
     sourceType: input.mode,
     sourceText: input.sourceText ?? null,
-    preferredMode: input.draft?.preferredMode ?? null,
+    preferredMode: parsed.preferredMode || "zen",
   });
 
   return { provider: completion.provider, scenario };
