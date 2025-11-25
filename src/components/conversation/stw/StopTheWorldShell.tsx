@@ -120,6 +120,37 @@ const encodeWav = (samples: Float32Array, sampleRate: number): ArrayBuffer => {
   return buffer;
 };
 
+const resampleToMono16k = (audioBuffer: AudioBuffer): Float32Array => {
+  const targetRate = 16000;
+  if (audioBuffer.sampleRate === targetRate && audioBuffer.numberOfChannels === 1) {
+    return audioBuffer.getChannelData(0);
+  }
+
+  // Mixdown to mono
+  const length = audioBuffer.length;
+  const mono = new Float32Array(length);
+  for (let channel = 0; channel < audioBuffer.numberOfChannels; channel++) {
+    const data = audioBuffer.getChannelData(channel);
+    for (let i = 0; i < length; i++) {
+      mono[i] += data[i] / audioBuffer.numberOfChannels;
+    }
+  }
+
+  // Resample to 16k via linear interpolation
+  const targetLength = Math.round((mono.length * targetRate) / audioBuffer.sampleRate);
+  const resampled = new Float32Array(targetLength);
+  const ratio = (mono.length - 1) / (targetLength - 1);
+  for (let i = 0; i < targetLength; i++) {
+    const idx = i * ratio;
+    const idx1 = Math.floor(idx);
+    const idx2 = Math.min(idx1 + 1, mono.length - 1);
+    const frac = idx - idx1;
+    resampled[i] = mono[idx1] * (1 - frac) + mono[idx2] * frac;
+  }
+
+  return resampled;
+};
+
 const convertBlobToWav = async (blob: Blob): Promise<Blob> => {
   if (blob.type.includes("wav") || blob.type.includes("mp3")) {
     return blob;
@@ -129,19 +160,8 @@ const convertBlobToWav = async (blob: Blob): Promise<Blob> => {
   const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
   const decoded = await audioContext.decodeAudioData(arrayBuffer.slice(0));
 
-  const channelCount = decoded.numberOfChannels;
-  const length = decoded.length;
-  const sampleRate = decoded.sampleRate;
-  const mono = new Float32Array(length);
-
-  for (let channel = 0; channel < channelCount; channel++) {
-    const data = decoded.getChannelData(channel);
-    for (let i = 0; i < length; i++) {
-      mono[i] += data[i] / channelCount;
-    }
-  }
-
-  const wavBuffer = encodeWav(mono, sampleRate);
+  const resampledMono = resampleToMono16k(decoded);
+  const wavBuffer = encodeWav(resampledMono, 16000);
   return new Blob([wavBuffer], { type: "audio/wav" });
 };
 
