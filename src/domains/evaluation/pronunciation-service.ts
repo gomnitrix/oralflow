@@ -93,25 +93,36 @@ const parseWordScores = (rawDetail: unknown): { word: string; accuracy: number; 
   }
 };
 
+const resolveGranularity = (): sdk.PronunciationAssessmentGranularity => {
+  const env = process.env.AZURE_PRONUNCIATION_GRANULARITY?.toLowerCase();
+  if (env === "word") return sdk.PronunciationAssessmentGranularity.Word;
+  if (env === "fulltext") return sdk.PronunciationAssessmentGranularity.FullText;
+  return sdk.PronunciationAssessmentGranularity.Phoneme;
+};
+
 const runAzurePronunciationAssessment = async (input: { audioBase64: string; text: string; audioMimeType?: string | null }) => {
   const speechConfig = createSpeechConfig();
   const { pushStream, audioBuffer } = createAudioStream(input.audioBase64, input.audioMimeType);
   const audioConfig = sdk.AudioConfig.fromStreamInput(pushStream);
   const recognizer = new sdk.SpeechRecognizer(speechConfig, audioConfig);
 
+  // Unscripted assessment: empty referenceText so Azure uses recognized speech, not provided transcript
   const pronunciationConfig = new sdk.PronunciationAssessmentConfig(
-    input.text,
+    "",
     sdk.PronunciationAssessmentGradingSystem.HundredMark,
-    sdk.PronunciationAssessmentGranularity.Phoneme,
+    resolveGranularity(),
     true
   );
   pronunciationConfig.enableProsodyAssessment = true;
+  // Enable miscue tagging per request (only applicable when reference text is supplied, kept on for completeness)
+  (pronunciationConfig as any).enableMiscue = true;
   pronunciationConfig.applyTo(recognizer);
 
   console.log("[azure:pronunciation] start", {
     mimeType: input.audioMimeType,
     byteLength: audioBuffer.byteLength,
     textPreview: input.text.slice(0, 80),
+    granularity: sdk.PronunciationAssessmentGranularity[resolveGranularity()],
   });
 
   try {
@@ -156,6 +167,7 @@ const runAzurePronunciationAssessment = async (input: { audioBase64: string; tex
       fluencyScore: assessment?.fluencyScore,
       accuracyScore: assessment?.accuracyScore,
       completenessScore: assessment?.completenessScore,
+      raw: rawDetail,
     });
     const wordScores = parseWordScores(rawDetail);
 
