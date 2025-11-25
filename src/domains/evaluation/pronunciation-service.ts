@@ -51,11 +51,56 @@ const createSpeechConfig = () => {
   return speechConfig;
 };
 
+const parseWavHeader = (buffer: Buffer) => {
+  if (buffer.toString("ascii", 0, 4) !== "RIFF" || buffer.toString("ascii", 8, 12) !== "WAVE") {
+    return null;
+  }
+
+  let offset = 12;
+  let fmtChunkOffset = -1;
+  let dataOffset = -1;
+
+  while (offset < buffer.length - 8) {
+    const chunkId = buffer.toString("ascii", offset, offset + 4);
+    const chunkSize = buffer.readUInt32LE(offset + 4);
+    if (chunkId === "fmt ") fmtChunkOffset = offset;
+    if (chunkId === "data") {
+      dataOffset = offset + 8;
+      break;
+    }
+    offset += 8 + chunkSize;
+  }
+
+  if (fmtChunkOffset === -1 || dataOffset === -1) {
+    return null;
+  }
+
+  const audioFormat = buffer.readUInt16LE(fmtChunkOffset + 8);
+  const numChannels = buffer.readUInt16LE(fmtChunkOffset + 10);
+  const sampleRate = buffer.readUInt32LE(fmtChunkOffset + 12);
+  const bitsPerSample = buffer.readUInt16LE(fmtChunkOffset + 22);
+
+  if (audioFormat !== 1) return null; // PCM only
+
+  return { numChannels, sampleRate, bitsPerSample, dataOffset };
+};
+
 const createAudioStream = (audioBase64: string, mimeType?: string | null) => {
   const normalized = normalizeBase64Audio(audioBase64);
   const audioBuffer = Buffer.from(normalized, "base64");
   if (!audioBuffer.byteLength) {
     throw new Error("Invalid audio payload for pronunciation scoring.");
+  }
+
+  // Prefer WAV to ensure Azure can parse PCM payload
+  if (mimeType?.includes("wav")) {
+    const wavMeta = parseWavHeader(audioBuffer);
+    if (wavMeta) {
+      const pcmData = audioBuffer.subarray(wavMeta.dataOffset);
+      const format = sdk.AudioStreamFormat.getWaveFormatPCM(wavMeta.sampleRate, wavMeta.bitsPerSample, wavMeta.numChannels);
+      const pushStream = sdk.AudioInputStream.createPushStream(format);
+      return { pushStream, audioBuffer: pcmData };
+    }
   }
 
   const hasCompressed =
