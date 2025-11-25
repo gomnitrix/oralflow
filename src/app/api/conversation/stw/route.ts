@@ -1,3 +1,4 @@
+import { Buffer } from "buffer";
 import { NextResponse } from "next/server";
 
 import { runConversationTurn } from "../../../../services/ai/conversation-model";
@@ -8,11 +9,18 @@ import { runInspirationBurst } from "../../../../domains/copilot/inspiration-ser
 import { SettingsService, type AssignmentCapability } from "../../../../services/ai/settings";
 import { synthesizePlaceholderSpeech } from "../../../../lib/audio/placeholder";
 import { synthesizeSpeech } from "../../../../services/ai/tts";
+import { createOpenAIClient, resolveModelForCapability } from "../../../../services/ai/model-routing";
 
 const settings = SettingsService.getInstance();
 
 const getAssignment = (capability: AssignmentCapability): string | null => {
   return settings.getSettings().assignments[capability] ?? null;
+};
+
+const cleanBase64Audio = (audioBase64: string): string => {
+  if (!audioBase64) return "";
+  const [, base64] = audioBase64.split(",");
+  return (base64 || audioBase64).trim();
 };
 
 const buildSystemPrompt = (input: {
@@ -114,34 +122,51 @@ async function handleCopilot(payload: unknown) {
   return { insight, modelId: getAssignment("copilot_inspiration") };
 }
 
+async function transcribeWithOpenAI(audioBase64: string, mimeType?: string | null, hint?: string | null) {
+  const normalized = cleanBase64Audio(audioBase64);
+  const buffer = Buffer.from(normalized, "base64");
+  if (!buffer.byteLength) {
+    throw new Error("Invalid audio payload for transcription.");
+  }
+
+  const { provider, model } = resolveModelForCapability("stw_stt", { categoryOverride: "stt", fallbackModel: "whisper-1" });
+  const client = createOpenAIClient(provider);
+
+  const fileType = mimeType || "audio/webm";
+  const extension = fileType.includes("wav") ? "wav" : fileType.includes("mp3") ? "mp3" : "webm";
+
+  const file = new File([buffer], `speech.${extension}`, { type: fileType });
+  const transcription = await client.audio.transcriptions.create({
+    file,
+    model,
+    ...(hint ? { prompt: hint } : {}),
+  });
+
+  const text = transcription.text?.trim() ?? "";
+  if (!text) {
+    throw new Error("Empty transcript returned from STT model.");
+  }
+
+  return { text, modelId: model };
+}
+
 async function handleTranscribe(payload: unknown) {
   const parsed = stwTranscribeRequestSchema.parse(payload);
-  const client = new AIClient();
-
-  // Avoid sending very long payloads to the model by truncating the base64 sample.
-  const audioSnippet = parsed.audioBase64.slice(0, 4000);
 
   try {
-    const completion = await client.completeChat(
-      {
-        messages: [
-          { role: "system", content: "You are a speech-to-text engine. Return only the clean transcript." },
-          {
-            role: "user",
-            content: `Audio (base64 ${parsed.mimeType || "audio/webm"}, truncated): ${audioSnippet}`,
-          },
-          parsed.hint
-            ? { role: "user", content: `Context: ${parsed.hint}` }
-            : { role: "user", content: "If the audio is unclear, provide your best guess." },
-        ],
-      },
-      "stw_stt"
-    );
-
-    return { text: completion.message.trim(), modelId: getAssignment("stw_stt") };
+    const transcription = await transcribeWithOpenAI(parsed.audioBase64, parsed.mimeType, parsed.hint);
+    return { text: transcription.text, modelId: transcription.modelId };
   } catch (error) {
     const fallback = parsed.hint || "Recorded response";
-    return { text: fallback, modelId: getAssignment("stw_stt"), warning: (error as Error).message };
+    let modelId = getAssignment("stw_stt");
+    if (!modelId) {
+      try {
+        modelId = resolveModelForCapability("stw_stt", { categoryOverride: "stt", fallbackModel: "whisper-1" }).model;
+      } catch {
+        modelId = null;
+      }
+    }
+    return { text: fallback, modelId, warning: (error as Error).message };
   }
 }
 

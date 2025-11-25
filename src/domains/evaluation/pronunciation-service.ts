@@ -25,6 +25,12 @@ const ensureAzureConfig = (): boolean => {
   return !!AZURE_SPEECH_KEY && (!!AZURE_SPEECH_REGION || !!AZURE_SPEECH_ENDPOINT);
 };
 
+const normalizeBase64Audio = (audioBase64: string): string => {
+  if (!audioBase64) return "";
+  const [, base64] = audioBase64.split(",");
+  return (base64 || audioBase64).trim();
+};
+
 const createSpeechConfig = () => {
   if (!AZURE_SPEECH_KEY) {
     throw new Error("Azure Speech is not configured. Set AZURE_SPEECH_KEY and AZURE_SPEECH_REGION or AZURE_SPEECH_ENDPOINT.");
@@ -45,14 +51,15 @@ const createSpeechConfig = () => {
   return speechConfig;
 };
 
-const createAudioStream = (audioBase64: string, mimeType?: string | null) => {
-  const format =
-    mimeType?.includes("webm") || mimeType?.includes("ogg")
-      ? sdk.AudioStreamFormat.getWaveFormat(16000, 16, 1, sdk.AudioFormatTag.WEBM_OPUS)
-      : sdk.AudioStreamFormat.getDefaultInputFormat();
+const createAudioStream = (audioBase64: string, _mimeType?: string | null) => {
+  const format = sdk.AudioStreamFormat.getDefaultInputFormat();
+  const normalized = normalizeBase64Audio(audioBase64);
+  const audioBuffer = Buffer.from(normalized, "base64");
+  if (!audioBuffer.byteLength) {
+    throw new Error("Invalid audio payload for pronunciation scoring.");
+  }
 
   const pushStream = sdk.AudioInputStream.createPushStream(format);
-  const audioBuffer = Buffer.from(audioBase64, "base64");
   return { pushStream, audioBuffer };
 };
 
@@ -108,7 +115,7 @@ const runAzurePronunciationAssessment = async (input: { audioBase64: string; tex
       () => {
         // Push audio after start to honor continuous mode semantics
         try {
-          pushStream.write(audioBuffer.buffer.slice(audioBuffer.byteOffset, audioBuffer.byteOffset + audioBuffer.byteLength));
+          pushStream.write(audioBuffer);
           pushStream.close();
         } catch (err) {
           reject(err as Error);

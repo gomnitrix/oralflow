@@ -1,4 +1,7 @@
 'use client';
+'use client';
+
+/* eslint-disable @next/next/no-img-element */
 
 import React, { useEffect, useState } from 'react';
 import { ProviderManager, type AIProvider } from '@/services/ai/provider-manager';
