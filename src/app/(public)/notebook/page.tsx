@@ -1,9 +1,9 @@
 import React from "react";
-import { NotebookCard } from "../../../components/notebook/NotebookCard";
 import { NotebookService } from "../../../domains/notes/notebook-service";
-import { createInMemoryRepositories } from "../../../services/persistence/repositories";
+import { createServerRepositories } from "../../../services/persistence/server-repositories";
+import { NotebookList } from "../../../components/notebook/NotebookList";
 
-const repositories = createInMemoryRepositories();
+const repositories = createServerRepositories();
 const notebookService = new NotebookService({ repository: repositories.notebook });
 
 export default async function NotebookPage() {
@@ -18,28 +18,7 @@ export default async function NotebookPage() {
         </div>
       </header>
 
-      {items.length === 0 ? (
-        <div className="rounded-2xl bg-white p-8 border border-custom-border shadow-sm text-center">
-          <p className="text-lg font-bold text-custom-text-dark">No notebook items yet</p>
-          <p className="text-custom-text-dark/60 mt-1">
-            Save from StW, Zen, or Ask to see them here.
-          </p>
-          <div className="flex justify-center gap-4 mt-4">
-            <a className="text-custom-primary font-bold hover:underline" href="/ask">
-              Try Ask
-            </a>
-            <a className="text-custom-primary font-bold hover:underline" href="/scenarios/create">
-              Scenario Studio
-            </a>
-          </div>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {items.map((item) => (
-            <NotebookCard key={item.id} item={item} />
-          ))}
-        </div>
-      )}
+      <NotebookList initialItems={items} />
     </main>
   );
 }

@@ -120,22 +120,21 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
   }, []);
 
   const bootstrapGreeting = useCallback(
-    async (targetSession: ConversationSession) => {
+    async (targetSession: ConversationSession, placeholderId?: string) => {
       try {
         const data = await callAction<{ reply: string; audioUrl?: string | null }>({
           action: "start",
           scenario,
         });
 
-        const aiBubble = createConversationBubble({
-          sessionId: targetSession.id,
-          speaker: "ai",
-          text: data.reply,
-          audioUrl: data.audioUrl ?? null,
-          state: "sent",
-        });
-
-        setSession({ ...targetSession, bubbles: [aiBubble] });
+        updateSession((prev) => ({
+          ...prev,
+          bubbles: prev.bubbles.map((b) =>
+            placeholderId && b.id === placeholderId
+              ? { ...b, text: data.reply, audioUrl: data.audioUrl ?? null, state: "sent", updatedAt: new Date().toISOString() }
+              : b
+          ),
+        }));
         setActiveIndex(0);
         if (data.audioUrl && typeof Audio !== "undefined") {
           const audio = new Audio(data.audioUrl);
@@ -145,15 +144,21 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
         setError((err as Error).message);
       }
     },
-    [scenario]
+    [scenario, updateSession]
   );
 
   useEffect(() => {
     const freshSession = createConversationSession({ scenarioId, mode: "stw" });
-    setSession(freshSession);
+    const placeholder = createConversationBubble({
+      sessionId: freshSession.id,
+      speaker: "ai",
+      text: "",
+      state: "pending",
+    });
+    setSession({ ...freshSession, bubbles: [placeholder] });
     setActiveIndex(0);
     setRecordingStatus("idle");
-    void bootstrapGreeting(freshSession);
+    void bootstrapGreeting(freshSession, placeholder.id);
   }, [bootstrapGreeting, scenarioId]);
 
   useEffect(() => {
@@ -299,13 +304,19 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
       return;
     }
 
-    if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
-      setError("Microphone not supported in this environment. Use a modern browser over HTTPS.");
-      return;
-    }
-
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const requestStream = () => {
+        if (navigator.mediaDevices?.getUserMedia) {
+          return navigator.mediaDevices.getUserMedia({ audio: true });
+        }
+        const legacy = (navigator as any).getUserMedia;
+        if (legacy) {
+          return new Promise<MediaStream>((resolve, reject) => legacy.call(navigator, { audio: true }, resolve, reject));
+        }
+        throw new Error("getUserMedia not available");
+      };
+
+      const stream = await requestStream();
       const recorder = new MediaRecorder(stream);
       audioChunksRef.current = [];
 
@@ -338,8 +349,8 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
       setRecordingStatus("idle");
       setError(
         err instanceof Error
-          ? `Microphone unavailable: ${err.message}`
-          : "Microphone unavailable. Please allow access and try again."
+          ? `Microphone unavailable: ${err.message}. If on HTTP, allow insecure mic access or switch to HTTPS.`
+          : "Microphone unavailable. Please allow access and try again. If on HTTP, enable mic permissions."
       );
     }
   }, [finalizeRecording, latestUserBubble, recordingStatus, updateSession]);
