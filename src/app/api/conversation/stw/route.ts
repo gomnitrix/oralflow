@@ -11,6 +11,7 @@ import { SettingsService, type AssignmentCapability } from "../../../../services
 import { synthesizePlaceholderSpeech } from "../../../../lib/audio/placeholder";
 import { synthesizeSpeech } from "../../../../services/ai/tts";
 import { createOpenAIClient, resolveModelForCapability } from "../../../../services/ai/model-routing";
+import type { ProviderType } from "../../../../services/ai/provider-manager";
 
 export const runtime = "nodejs";
 const settings = SettingsService.getInstance();
@@ -132,32 +133,48 @@ async function transcribeWithOpenAI(audioBase64: string, mimeType?: string | nul
     throw new Error("Invalid audio payload for transcription.");
   }
 
-  const { provider, model } = resolveModelForCapability("stw_stt", { categoryOverride: "stt", fallbackModel: "whisper-1" });
-  const client = createOpenAIClient(provider);
-
   const fileType = mimeType || "audio/webm";
   const extension = fileType.includes("wav") ? "wav" : fileType.includes("mp3") ? "mp3" : "webm";
 
   const file = await toFile(buffer, `speech.${extension}`, { type: fileType });
-  console.log("[stw:transcribe] request", {
-    provider,
-    model,
-    mimeType: fileType,
-    size: buffer.byteLength,
-    hintPreview: hint ? `${hint.slice(0, 40)}${hint.length > 40 ? "…" : ""}` : null,
-  });
-  const transcription = await client.audio.transcriptions.create({
-    file,
-    model,
-    ...(hint ? { prompt: hint } : {}),
-  });
+  const tryTranscribe = async (providerId: ProviderType, modelId: string) => {
+    const client = createOpenAIClient(providerId);
+    console.log("[stw:transcribe] request", {
+      provider: providerId,
+      model: modelId,
+      mimeType: fileType,
+      size: buffer.byteLength,
+      hintPreview: hint ? `${hint.slice(0, 40)}${hint.length > 40 ? "…" : ""}` : null,
+    });
+    const transcription = await client.audio.transcriptions.create({
+      file,
+      model: modelId,
+      ...(hint ? { prompt: hint } : {}),
+    });
+    const text = transcription.text?.trim() ?? "";
+    if (!text) {
+      throw new Error("Empty transcript returned from STT model.");
+    }
+    return { text, modelId, providerId };
+  };
 
-  const text = transcription.text?.trim() ?? "";
-  if (!text) {
-    throw new Error("Empty transcript returned from STT model.");
+  const { provider, model } = resolveModelForCapability("stw_stt", { categoryOverride: "stt", fallbackModel: "whisper-1" });
+
+  try {
+    return await tryTranscribe(provider, model);
+  } catch (primaryErr) {
+    const status = (primaryErr as any)?.status ?? (primaryErr as any)?.response?.status;
+    const canFallbackToOpenAI = provider !== "openai" && !!process.env.OPENAI_API_KEY;
+    if (canFallbackToOpenAI) {
+      try {
+        console.warn("[stw:transcribe] primary provider failed, falling back to openai", { status, provider, model });
+        return await tryTranscribe("openai", "whisper-1");
+      } catch (fallbackErr) {
+        throw fallbackErr;
+      }
+    }
+    throw primaryErr;
   }
-
-  return { text, modelId: model };
 }
 
 async function handleTranscribe(payload: unknown) {
