@@ -51,13 +51,22 @@ const createSpeechConfig = () => {
   return speechConfig;
 };
 
-const createAudioStream = (audioBase64: string, _mimeType?: string | null) => {
-  const format = sdk.AudioStreamFormat.getDefaultInputFormat();
+const createAudioStream = (audioBase64: string, mimeType?: string | null) => {
   const normalized = normalizeBase64Audio(audioBase64);
   const audioBuffer = Buffer.from(normalized, "base64");
   if (!audioBuffer.byteLength) {
     throw new Error("Invalid audio payload for pronunciation scoring.");
   }
+
+  const format =
+    mimeType?.includes("webm") || mimeType?.includes("ogg")
+      ? sdk.AudioStreamFormat.getWaveFormat(
+          16000,
+          16,
+          1,
+          mimeType?.includes("ogg") ? sdk.AudioFormatTag.OGG_OPUS : sdk.AudioFormatTag.WEBM_OPUS
+        )
+      : sdk.AudioStreamFormat.getDefaultInputFormat();
 
   const pushStream = sdk.AudioInputStream.createPushStream(format);
   return { pushStream, audioBuffer };
@@ -115,7 +124,8 @@ const runAzurePronunciationAssessment = async (input: { audioBase64: string; tex
       () => {
         // Push audio after start to honor continuous mode semantics
         try {
-          pushStream.write(audioBuffer);
+          const slice = audioBuffer.buffer.slice(audioBuffer.byteOffset, audioBuffer.byteOffset + audioBuffer.byteLength);
+          pushStream.write(slice);
           pushStream.close();
         } catch (err) {
           reject(err as Error);

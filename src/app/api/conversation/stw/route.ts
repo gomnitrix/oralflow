@@ -1,5 +1,6 @@
 import { Buffer } from "buffer";
 import { NextResponse } from "next/server";
+import { toFile } from "openai/uploads";
 
 import { runConversationTurn } from "../../../../services/ai/conversation-model";
 import { AIClient, type ChatMessage } from "../../../../services/ai/client";
@@ -135,7 +136,7 @@ async function transcribeWithOpenAI(audioBase64: string, mimeType?: string | nul
   const fileType = mimeType || "audio/webm";
   const extension = fileType.includes("wav") ? "wav" : fileType.includes("mp3") ? "mp3" : "webm";
 
-  const file = new File([buffer], `speech.${extension}`, { type: fileType });
+  const file = await toFile(buffer, `speech.${extension}`, { type: fileType });
   const transcription = await client.audio.transcriptions.create({
     file,
     model,
