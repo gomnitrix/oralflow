@@ -202,7 +202,11 @@ async function transcribeWithOpenAI(audioBase64: string, mimeType?: string | nul
       {
         role: "user",
         content: [
-          { type: "text", text: "Generate a transcript of the speech." },
+          {
+            type: "text", text: `Provide a verbatim transcription of the audio.
+          - Do not invent or add content
+          - Do not summarize
+          - Output only what is spoken in the audio` },
           // @ts-expect-error openai sdk typings lag behind multimodal input_audio support for some providers
           { type: "input_audio", input_audio: { data: normalized, format } },
         ],
