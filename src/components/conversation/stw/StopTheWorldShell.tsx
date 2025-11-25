@@ -300,7 +300,6 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
           { base64: audioBase64, mimeType: blob.type, audioUrl }
         );
       } catch (err) {
-        console.error("[stw] transcription/evaluation failed", err);
         setError((err as Error).message);
       } finally {
         setIsTranscribing(false);

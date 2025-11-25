@@ -11,7 +11,7 @@ import { SettingsService, type AssignmentCapability } from "../../../../services
 import { synthesizePlaceholderSpeech } from "../../../../lib/audio/placeholder";
 import { synthesizeSpeech } from "../../../../services/ai/tts";
 import { createOpenAIClient, resolveModelForCapability } from "../../../../services/ai/model-routing";
-import type { ProviderType } from "../../../../services/ai/provider-manager";
+import { ProviderManager, type ProviderType } from "../../../../services/ai/provider-manager";
 
 export const runtime = "nodejs";
 const settings = SettingsService.getInstance();
@@ -129,55 +129,45 @@ async function transcribeWithOpenAI(audioBase64: string, mimeType?: string | nul
   const normalized = cleanBase64Audio(audioBase64);
   const buffer = Buffer.from(normalized, "base64");
   if (!buffer.byteLength) {
-    console.error("[stw:transcribe] empty audio buffer");
     throw new Error("Invalid audio payload for transcription.");
   }
 
-  const fileType = mimeType || "audio/webm";
-  const extension = fileType.includes("wav") ? "wav" : fileType.includes("mp3") ? "mp3" : "webm";
-
-  const file = await toFile(buffer, `speech.${extension}`, { type: fileType });
-  const tryTranscribe = async (providerId: ProviderType, modelId: string) => {
-    const client = createOpenAIClient(providerId);
-    console.log("[stw:transcribe] request", {
-      provider: providerId,
-      model: modelId,
-      mimeType: fileType,
-      size: buffer.byteLength,
-      hintPreview: hint ? `${hint.slice(0, 40)}${hint.length > 40 ? "…" : ""}` : null,
-    });
-    try {
-      const transcription = await client.audio.transcriptions.create({
-        file,
-        model: modelId,
-        ...(hint ? { prompt: hint } : {}),
-      });
-      const text = transcription.text?.trim() ?? "";
-      if (!text) {
-        throw new Error("Empty transcript returned from STT model.");
-      }
-      return { text, modelId, providerId };
-    } catch (err) {
-      const anyErr = err as any;
-      console.error("[stw:transcribe] provider call failed", {
-        providerId,
-        modelId,
-        message: anyErr?.message,
-        status: anyErr?.status ?? anyErr?.response?.status,
-        responseData: anyErr?.response?.data,
-      });
-      // Enrich error for upstream logging
-      if (anyErr && typeof anyErr === "object") {
-        anyErr.providerId = providerId;
-        anyErr.modelId = modelId;
-      }
-      throw err;
-    }
-  };
-
   const { provider, model } = resolveModelForCapability("stw_stt", { categoryOverride: "stt", fallbackModel: "whisper-1" });
+  const fileType = mimeType || "audio/webm";
+  const audioSnippet = normalized.slice(0, 4000);
+  const providerInfo = ProviderManager.getInstance().getProvider(provider);
 
-  return tryTranscribe(provider, model);
+  if (providerInfo?.id === "openai") {
+    const extension = fileType.includes("wav") ? "wav" : fileType.includes("mp3") ? "mp3" : "webm";
+    const file = await toFile(buffer, `speech.${extension}`, { type: fileType });
+    const client = createOpenAIClient(provider);
+    const transcription = await client.audio.transcriptions.create({
+      file,
+      model,
+      ...(hint ? { prompt: hint } : {}),
+    });
+    const text = transcription.text?.trim() ?? "";
+    if (!text) {
+      throw new Error("Empty transcript returned from STT model.");
+    }
+    return { text, modelId: model };
+  }
+
+  const client = createOpenAIClient(provider);
+  const completion = await client.chat.completions.create({
+    model,
+    messages: [
+      { role: "system", content: "You are a speech-to-text engine. Return only the clean transcript." },
+      { role: "user", content: `Audio (base64 ${fileType}, truncated): ${audioSnippet}` },
+      hint ? { role: "user", content: `Context: ${hint}` } : { role: "user", content: "If unclear, guess the likely transcript." },
+    ],
+    temperature: 0.2,
+  });
+  const text = completion.choices?.[0]?.message?.content?.trim() ?? "";
+  if (!text) {
+    throw new Error(`Transcription failed for provider ${provider} (model ${model}).`);
+  }
+  return { text, modelId: model };
 }
 
 async function handleTranscribe(payload: unknown) {
@@ -190,16 +180,6 @@ async function handleTranscribe(payload: unknown) {
     }
     return { text: transcription.text, modelId: transcription.modelId };
   } catch (error) {
-    const errObj = error as any;
-    console.error("[stw:transcribe] failed", {
-      error: errObj?.message,
-      mimeType: parsed.mimeType,
-      size: parsed.audioBase64?.length ?? 0,
-      status: errObj?.status,
-      cause: errObj?.cause,
-      response: errObj?.response ? { status: errObj.response?.status, data: errObj.response?.data } : undefined,
-      provider: errObj?.providerId,
-    });
     const fallback = "";
     let modelId = getAssignment("stw_stt");
     if (!modelId) {
