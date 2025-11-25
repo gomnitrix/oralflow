@@ -75,6 +75,76 @@ const pickSupportedMimeType = (): string | undefined => {
   return undefined;
 };
 
+const floatTo16BitPCM = (buffer: Float32Array): Int16Array => {
+  const output = new Int16Array(buffer.length);
+  for (let i = 0; i < buffer.length; i++) {
+    const s = Math.max(-1, Math.min(1, buffer[i]));
+    output[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+  }
+  return output;
+};
+
+const encodeWav = (samples: Float32Array, sampleRate: number): ArrayBuffer => {
+  const bytesPerSample = 2;
+  const blockAlign = bytesPerSample * 1;
+  const buffer = new ArrayBuffer(44 + samples.length * bytesPerSample);
+  const view = new DataView(buffer);
+
+  const writeString = (offset: number, str: string) => {
+    for (let i = 0; i < str.length; i++) {
+      view.setUint8(offset + i, str.charCodeAt(i));
+    }
+  };
+
+  const pcm = floatTo16BitPCM(samples);
+
+  writeString(0, "RIFF");
+  view.setUint32(4, 36 + pcm.length * bytesPerSample, true);
+  writeString(8, "WAVE");
+  writeString(12, "fmt ");
+  view.setUint32(16, 16, true); // PCM chunk size
+  view.setUint16(20, 1, true); // PCM format
+  view.setUint16(22, 1, true); // mono
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * blockAlign, true);
+  view.setUint16(32, blockAlign, true);
+  view.setUint16(34, bytesPerSample * 8, true);
+  writeString(36, "data");
+  view.setUint32(40, pcm.length * bytesPerSample, true);
+
+  let offset = 44;
+  for (let i = 0; i < pcm.length; i++, offset += bytesPerSample) {
+    view.setInt16(offset, pcm[i], true);
+  }
+
+  return buffer;
+};
+
+const convertBlobToWav = async (blob: Blob): Promise<Blob> => {
+  if (blob.type.includes("wav") || blob.type.includes("mp3")) {
+    return blob;
+  }
+
+  const arrayBuffer = await blob.arrayBuffer();
+  const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+  const decoded = await audioContext.decodeAudioData(arrayBuffer.slice(0));
+
+  const channelCount = decoded.numberOfChannels;
+  const length = decoded.length;
+  const sampleRate = decoded.sampleRate;
+  const mono = new Float32Array(length);
+
+  for (let channel = 0; channel < channelCount; channel++) {
+    const data = decoded.getChannelData(channel);
+    for (let i = 0; i < length; i++) {
+      mono[i] += data[i] / channelCount;
+    }
+  }
+
+  const wavBuffer = encodeWav(mono, sampleRate);
+  return new Blob([wavBuffer], { type: "audio/wav" });
+};
+
 export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
   scenarioId,
   scenarioTitle,
@@ -360,11 +430,21 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
         };
 
         recorder.onstop = () => {
-          stream.getTracks().forEach((track) => track.stop());
-          if (!audioChunksRef.current.length) return;
-        const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || "audio/wav" });
-          void finalizeRecording(blob);
-        };
+        stream.getTracks().forEach((track) => track.stop());
+        if (!audioChunksRef.current.length) return;
+        const rawBlob = new Blob(audioChunksRef.current, { type: recorder.mimeType || "audio/wav" });
+        void (async () => {
+          let processed = rawBlob;
+          if (rawBlob.type.includes("webm") || rawBlob.type.includes("ogg")) {
+            try {
+              processed = await convertBlobToWav(rawBlob);
+            } catch (err) {
+              console.warn("Failed to convert audio to wav, using raw blob", err);
+            }
+          }
+          await finalizeRecording(processed);
+        })();
+      };
 
         recorder.start();
         mediaRecorderRef.current = recorder;
