@@ -83,16 +83,23 @@ export class SettingsService {
             if (fs.existsSync(SETTINGS_FILE)) {
                 const data = fs.readFileSync(SETTINGS_FILE, 'utf-8');
                 const parsed = JSON.parse(data) as Partial<AISettings>;
+
+                const parsedModels = (parsed.models ?? {}) as Partial<AISettings['models']>;
+                const parsedAssignments = (parsed.assignments ?? {}) as Partial<AISettings['assignments']>;
+
                 return {
                     ...DEFAULT_SETTINGS,
                     ...parsed,
                     models: {
                         ...DEFAULT_SETTINGS.models,
-                        ...(parsed.models ?? {})
+                        language: parsedModels.language ?? [],
+                        tts: parsedModels.tts ?? [],
+                        stt: parsedModels.stt ?? [],
+                        realtime_speech: parsedModels.realtime_speech ?? [],
                     },
                     assignments: {
                         ...DEFAULT_SETTINGS.assignments,
-                        ...(parsed.assignments ?? {})
+                        ...parsedAssignments,
                     }
                 };
             }

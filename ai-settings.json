@@ -1,16 +1,20 @@
 {
-    "models": {
-        "language": [],
-        "embedding": [],
-        "tts": [],
-        "stt": []
-    },
-    "assignments": {
-        "chat": null,
-        "tools": null,
-        "embedding": null,
-        "tts": null,
-        "stt": null,
-        "realtime": null
-    }
+  "models": {
+    "language": [],
+    "tts": [],
+    "stt": [],
+    "realtime_speech": []
+  },
+  "assignments": {
+    "zen_realtime": null,
+    "stw_chat": null,
+    "stw_stt": null,
+    "stw_tts": null,
+    "stw_assessment_text": null,
+    "copilot_distill": null,
+    "copilot_inspiration": null,
+    "scenario_draft": null,
+    "ask_ai": null,
+    "review_notes": null
+  }
 }

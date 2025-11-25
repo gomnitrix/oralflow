@@ -57,7 +57,12 @@ export const resolveModelForCapability = (
     throw new Error(`Model ${assignedId} is assigned to ${capability} but not found in configured model list.`);
   }
 
+  const isCriticalAssignment = capability.startsWith("stw_") || capability === "zen_realtime";
+
   if (!providerId) {
+    if (isCriticalAssignment) {
+      throw new Error(`No model assigned for ${capability}. Please configure it in Model Settings.`);
+    }
     const fallbackProvider = providerManager
       .getActiveProviders()
       .find((p) => p.capabilities.includes(categoryToProviderCapability[category]));
