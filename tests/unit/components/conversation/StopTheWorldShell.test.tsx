@@ -11,6 +11,9 @@ const mockFetch = (payload: any) =>
 
 describe("StopTheWorldShell", () => {
   beforeEach(() => {
+    (global as any).Audio = function () {
+      return { play: jest.fn().mockResolvedValue(undefined) } as any;
+    };
     (global as any).fetch = jest.fn((_: string, options?: RequestInit) => {
       const body = options?.body ? JSON.parse(options.body as string) : {};
       if (body.action === "start") {

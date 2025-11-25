@@ -7,6 +7,7 @@ import { runDistill } from "../../../../domains/copilot/distill-service";
 import { runInspirationBurst } from "../../../../domains/copilot/inspiration-service";
 import { SettingsService, type AssignmentCapability } from "../../../../services/ai/settings";
 import { synthesizePlaceholderSpeech } from "../../../../lib/audio/placeholder";
+import { synthesizeSpeech } from "../../../../services/ai/tts";
 
 const settings = SettingsService.getInstance();
 
@@ -39,9 +40,15 @@ const mapHistoryToMessages = (history: { speaker: "user" | "ai"; text: string }[
     content: entry.text,
   }));
 
-const ttsForText = (text: string): string | null => {
+const ttsForText = async (text: string): Promise<string | null> => {
   if (!text.trim()) return null;
-  return synthesizePlaceholderSpeech(text, { modelId: getAssignment("stw_tts") ?? undefined });
+  try {
+    const result = await synthesizeSpeech(text, "stw_tts");
+    return result.audioUrl;
+  } catch (error) {
+    console.error("TTS fallback invoked:", error);
+    return synthesizePlaceholderSpeech(text, { modelId: getAssignment("stw_tts") ?? undefined });
+  }
 };
 
 async function handleStart(payload: unknown) {
@@ -62,7 +69,7 @@ async function handleStart(payload: unknown) {
     reply: turn.reply,
     provider: turn.provider,
     modelId: getAssignment("stw_chat"),
-    audioUrl: ttsForText(turn.reply),
+    audioUrl: await ttsForText(turn.reply),
   };
 }
 
@@ -85,7 +92,7 @@ async function handleReply(payload: unknown) {
     reply: turn.reply,
     provider: turn.provider,
     modelId: getAssignment("stw_chat"),
-    audioUrl: ttsForText(turn.reply),
+    audioUrl: await ttsForText(turn.reply),
   };
 }
 

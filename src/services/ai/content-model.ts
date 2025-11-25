@@ -144,5 +144,30 @@ export const generateExpressions = async (
     linkedNotebookItemId: null,
   });
 
-  return { provider: completion.provider, expressions: [suggestion] };
+  const parseList = (raw: string): ExpressionSuggestion[] => {
+    const lines = raw
+      .split(/\r?\n/) // break lines
+      .map((line) => line.replace(/^[-*\d\.\s]+/, "").trim())
+      .filter(Boolean);
+
+    if (lines.length === 0) return [suggestion];
+
+    return lines.slice(0, 5).map((line, idx) => {
+      const [textPart, meaningPart] = line.split(/[:\-–—]\s+/, 2);
+      return createExpressionSuggestion({
+        text: textPart?.trim() || line,
+        meaning: meaningPart?.trim() || "Useful variant",
+        usageNotes: "",
+        examples: [line],
+        tone: input.tone ?? "neutral",
+        origin: input.origin ?? "askPage",
+        linkedNotebookItemId: null,
+        id: `${capability}_expr_${idx}_${Math.random().toString(36).slice(2, 8)}`,
+      });
+    });
+  };
+
+  const expressions = parseList(completion.message || "") || [suggestion];
+
+  return { provider: completion.provider, expressions };
 };
