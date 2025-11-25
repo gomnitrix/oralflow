@@ -133,13 +133,22 @@ const sanitizeTranscript = (text: string, provider: string, model: string): stri
   if (trimmed.toUpperCase().includes("TRANSCRIPTION_UNAVAILABLE")) {
     throw new Error(`Provider ${provider} could not transcribe the audio (model ${model}).`);
   }
-  const base64Like = trimmed.match(/[A-Za-z0-9+/=]{120,}/);
+
+  const base64Like = trimmed.match(/[A-Za-z0-9+/=_-]{120,}/);
   if (base64Like && base64Like[0].length > 200) {
     throw new Error(`Provider ${provider} returned non-text content instead of transcript (model ${model}).`);
   }
-  if (trimmed.length > 4000) {
-    throw new Error(`Provider ${provider} returned an unusually long response for transcript (model ${model}).`);
+  const hexLike = trimmed.match(/[A-Fa-f0-9]{160,}/);
+  if (hexLike && hexLike[0].length > 200) {
+    throw new Error(`Provider ${provider} returned binary-like content instead of transcript (model ${model}).`);
   }
+
+  const whitespaceCount = (trimmed.match(/\s/g) || []).length;
+  const whitespaceRatio = whitespaceCount / Math.max(trimmed.length, 1);
+  if (trimmed.length > 2000 && whitespaceRatio < 0.05) {
+    throw new Error(`Provider ${provider} returned non-linguistic content for transcript (model ${model}).`);
+  }
+
   return trimmed;
 };
 
@@ -158,11 +167,19 @@ async function transcribeWithOpenAI(audioBase64: string, mimeType?: string | nul
     const extension = fileType.includes("wav") ? "wav" : fileType.includes("mp3") ? "mp3" : "webm";
     const file = await toFile(buffer, `speech.${extension}`, { type: fileType });
     const client = createOpenAIClient(provider);
+    console.log("[stw:transcribe] request", { provider, model, mimeType: fileType, size: buffer.byteLength });
     const transcription = await client.audio.transcriptions.create({
       file,
       model,
     });
-    const text = sanitizeTranscript(transcription.text ?? "", provider, model);
+    const rawText = transcription.text ?? "";
+    console.log("[stw:transcribe] response (openai)", {
+      provider,
+      model,
+      textPreview: rawText.slice(0, 200),
+      length: rawText.length,
+    });
+    const text = sanitizeTranscript(rawText, provider, model);
     return { text, modelId: model };
   }
 
@@ -178,6 +195,7 @@ async function transcribeWithOpenAI(audioBase64: string, mimeType?: string | nul
             : "wav";
 
   const client = createOpenAIClient(provider);
+  console.log("[stw:transcribe] request", { provider, model, mimeType: fileType, size: buffer.byteLength });
   const completion = await client.chat.completions.create({
     model,
     messages: [
@@ -192,7 +210,14 @@ async function transcribeWithOpenAI(audioBase64: string, mimeType?: string | nul
     ],
     temperature: 0,
   });
-  const text = sanitizeTranscript(completion.choices?.[0]?.message?.content ?? "", provider, model);
+  const rawText = completion.choices?.[0]?.message?.content ?? "";
+  console.log("[stw:transcribe] response (chat)", {
+    provider,
+    model,
+    textPreview: rawText.slice(0, 200),
+    length: rawText.length,
+  });
+  const text = sanitizeTranscript(rawText, provider, model);
   return { text, modelId: model };
 }
 
