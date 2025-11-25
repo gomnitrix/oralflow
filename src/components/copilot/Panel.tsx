@@ -251,36 +251,36 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({
                       </div>
 
                       {(summary.wordScores ?? []).length > 0 && (
-                        <div className="mt-4 space-y-3">
-                          <p className="text-xs font-semibold text-custom-text-dark/60 uppercase mb-1">
-                            Pronunciation by word (with phonemes)
-                          </p>
-                          <div className="space-y-2">
-                            {(summary.wordScores ?? []).map((word, idx) => (
-                              <div key={`${word.word}-${idx}`} className="bg-white rounded-xl border border-custom-border px-3 py-2 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-sm font-semibold text-custom-text-dark">{word.word}</span>
-                                  <span className="text-[11px] text-custom-text-dark/60">
-                                    {word.accuracy}/100 {word.errorType && word.errorType !== "None" ? `· ${word.errorType}` : ""}
+                        <div className="mt-4 space-y-2">
+                          <p className="text-xs font-semibold text-custom-text-dark/60 uppercase mb-1">Pronunciation detail</p>
+                          <div className="leading-7 text-sm flex flex-wrap gap-2">
+                            {(summary.wordScores ?? []).map((word, idx) => {
+                              const wordScore = word.accuracy ?? 0;
+                              const wordColor =
+                                wordScore >= 90 ? "text-green-700" : wordScore >= 75 ? "text-amber-700" : "text-red-700";
+                              return (
+                                <div key={`${word.word}-${idx}`} className="flex flex-col items-start">
+                                  <div className="flex gap-1 text-[11px]">
+                                    {(word.phonemes ?? []).map((p, pIdx) => {
+                                      const score = p.accuracy ?? 0;
+                                      const color =
+                                        score >= 90 ? "text-green-600" : score >= 75 ? "text-amber-600" : "text-red-600";
+                                      return (
+                                        <span key={`${word.word}-phoneme-${p.phoneme}-${pIdx}`} className={`${color} font-semibold`}>
+                                          {p.phoneme}
+                                        </span>
+                                      );
+                                    })}
+                                  </div>
+                                  <span
+                                    className={`font-semibold ${wordColor}`}
+                                    title={`${word.word}: ${wordScore}/100${word.errorType && word.errorType !== "None" ? ` · ${word.errorType}` : ""}`}
+                                  >
+                                    {word.word}
                                   </span>
                                 </div>
-                                <div className="mt-1 flex flex-wrap gap-1">
-                                  {(word.phonemes ?? []).map((p, pIdx) => {
-                                    const score = p.accuracy ?? 0;
-                                    const color =
-                                      score >= 90 ? "bg-green-100 text-green-800" : score >= 75 ? "bg-amber-100 text-amber-800" : "bg-red-100 text-red-800";
-                                    return (
-                                      <div
-                                        key={`${word.word}-phoneme-${p.phoneme}-${pIdx}`}
-                                        className={`px-2 py-1 rounded-full text-xs font-semibold ${color}`}
-                                      >
-                                        {p.phoneme} {score ? `${score}` : ""}
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         </div>
                       )}
