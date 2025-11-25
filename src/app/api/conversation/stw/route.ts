@@ -146,35 +146,38 @@ async function transcribeWithOpenAI(audioBase64: string, mimeType?: string | nul
       size: buffer.byteLength,
       hintPreview: hint ? `${hint.slice(0, 40)}${hint.length > 40 ? "…" : ""}` : null,
     });
-    const transcription = await client.audio.transcriptions.create({
-      file,
-      model: modelId,
-      ...(hint ? { prompt: hint } : {}),
-    });
-    const text = transcription.text?.trim() ?? "";
-    if (!text) {
-      throw new Error("Empty transcript returned from STT model.");
+    try {
+      const transcription = await client.audio.transcriptions.create({
+        file,
+        model: modelId,
+        ...(hint ? { prompt: hint } : {}),
+      });
+      const text = transcription.text?.trim() ?? "";
+      if (!text) {
+        throw new Error("Empty transcript returned from STT model.");
+      }
+      return { text, modelId, providerId };
+    } catch (err) {
+      const anyErr = err as any;
+      console.error("[stw:transcribe] provider call failed", {
+        providerId,
+        modelId,
+        message: anyErr?.message,
+        status: anyErr?.status ?? anyErr?.response?.status,
+        responseData: anyErr?.response?.data,
+      });
+      // Enrich error for upstream logging
+      if (anyErr && typeof anyErr === "object") {
+        anyErr.providerId = providerId;
+        anyErr.modelId = modelId;
+      }
+      throw err;
     }
-    return { text, modelId, providerId };
   };
 
   const { provider, model } = resolveModelForCapability("stw_stt", { categoryOverride: "stt", fallbackModel: "whisper-1" });
 
-  try {
-    return await tryTranscribe(provider, model);
-  } catch (primaryErr) {
-    const status = (primaryErr as any)?.status ?? (primaryErr as any)?.response?.status;
-    const canFallbackToOpenAI = provider !== "openai" && !!process.env.OPENAI_API_KEY;
-    if (canFallbackToOpenAI) {
-      try {
-        console.warn("[stw:transcribe] primary provider failed, falling back to openai", { status, provider, model });
-        return await tryTranscribe("openai", "whisper-1");
-      } catch (fallbackErr) {
-        throw fallbackErr;
-      }
-    }
-    throw primaryErr;
-  }
+  return tryTranscribe(provider, model);
 }
 
 async function handleTranscribe(payload: unknown) {
