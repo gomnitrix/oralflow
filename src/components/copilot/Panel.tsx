@@ -186,6 +186,13 @@ const StructuredGrid: React.FC<{
     );
   };
 
+const ScorePill: React.FC<{ label: string; value?: number }> = ({ label, value }) => (
+  <div className="rounded-xl bg-white border border-custom-border px-3 py-2 flex items-center justify-between">
+    <span className="text-[10px] font-semibold uppercase tracking-wide text-custom-text-dark/60">{label}</span>
+    <span className="text-sm font-bold text-custom-text-dark">{value !== undefined ? Math.round(value) : "—"}</span>
+  </div>
+);
+
 export const CopilotPanel: React.FC<CopilotPanelProps> = ({
   mode = "standard",
   selectedBubble,
@@ -194,6 +201,23 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({
   loading = false,
 }) => {
   const { context, updateContext } = useBubbleContext(selectedBubble?.id);
+  const summary = selectedBubble?.evaluationSummary;
+  const [autoPlayed, setAutoPlayed] = useState(false);
+
+  useEffect(() => {
+    // Reset autoplay when reference audio or mode changes
+    setAutoPlayed(false);
+  }, [summary?.referenceAudioUrl, mode]);
+
+  useEffect(() => {
+    if (mode !== "assessment") return;
+    if (!summary?.referenceAudioUrl) return;
+    if (autoPlayed) return;
+    if (typeof Audio === "undefined") return;
+    const audio = new Audio(summary.referenceAudioUrl);
+    audio.play().catch(() => undefined);
+    setAutoPlayed(true);
+  }, [autoPlayed, mode, summary?.referenceAudioUrl]);
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
@@ -209,7 +233,6 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({
   const inspirationInsights = (selectedBubble?.copilotInsights ?? []).filter((i) => i.type === "inspiration");
 
   if (mode === "assessment") {
-    const summary = selectedBubble?.evaluationSummary;
     return (
       <div className="flex flex-col h-full bg-white border-l border-custom-border">
         <div className="p-6 pb-4 border-b border-custom-border/50">
@@ -226,13 +249,70 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({
                     <span className="material-symbols-outlined text-green-500 text-base">mic</span>
                     Pronunciation
                   </p>
-                  <ul className="text-sm text-custom-text-dark/70 list-disc list-inside mt-1 space-y-1">
-                    {summary.pronunciationIssues.length > 0 ? (
-                      summary.pronunciationIssues.map((issue, idx) => <li key={idx}>{issue}</li>)
-                    ) : (
-                      <li>Sounding clear.</li>
-                    )}
-                  </ul>
+                  {!summary.pronunciationEnabled && (
+                    <p className="text-sm text-custom-text-dark/60 mt-1">
+                      {summary.pronunciationIssues[0] || "Pronunciation assessment not enabled."}
+                    </p>
+                  )}
+                  {summary.pronunciationEnabled && (
+                    <>
+                      <div className="grid grid-cols-2 gap-3 mt-2">
+                        <ScorePill label="Pronunciation" value={summary.pronunciationScores?.overall} />
+                        <ScorePill label="Accuracy" value={summary.pronunciationScores?.accuracy} />
+                        <ScorePill label="Fluency" value={summary.pronunciationScores?.fluency} />
+                        <ScorePill label="Completeness" value={summary.pronunciationScores?.completeness} />
+                        {summary.pronunciationScores?.prosody !== undefined && (
+                          <ScorePill label="Prosody" value={summary.pronunciationScores?.prosody} />
+                        )}
+                      </div>
+
+                      <div className="mt-3 space-y-2">
+                        <p className="text-xs font-semibold uppercase text-custom-text-dark/50">Azure Speech (continuous)</p>
+                        <ul className="text-sm text-custom-text-dark/70 list-disc list-inside space-y-1">
+                          {summary.pronunciationIssues.length > 0 ? (
+                            summary.pronunciationIssues.map((issue, idx) => <li key={idx}>{issue}</li>)
+                          ) : (
+                            <li>Sounding clear.</li>
+                          )}
+                        </ul>
+                      </div>
+
+                      {(summary.wordScores ?? []).filter((w) => w.accuracy < 95).length > 0 && (
+                        <div className="mt-2">
+                          <p className="text-xs font-semibold text-custom-text-dark/60 uppercase mb-2">Words to polish</p>
+                          <div className="flex flex-wrap gap-2">
+                            {(summary.wordScores ?? [])
+                              .filter((w) => w.accuracy < 95)
+                              .slice(0, 6)
+                              .map((word, idx) => (
+                                <div
+                                  key={`${word.word}-${idx}`}
+                                  className="rounded-full border border-custom-border bg-white px-3 py-1.5 flex items-center gap-2 shadow-[0_1px_3px_rgba(0,0,0,0.05)]"
+                                >
+                                  <span className="text-sm font-semibold text-custom-text-dark">{word.word}</span>
+                                  <span className="text-[11px] text-custom-text-dark/60">
+                                    {word.accuracy}/100 {word.errorType ? `· ${word.errorType}` : ""}
+                                  </span>
+                                </div>
+                              ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {summary.referenceAudioUrl && (
+                        <button
+                          className="mt-3 text-xs font-semibold text-custom-primary bg-white border border-custom-primary/30 rounded-full px-3 py-1 hover:bg-custom-primary/10 transition-colors"
+                          onClick={() => {
+                            if (typeof Audio === "undefined") return;
+                            const audio = new Audio(summary.referenceAudioUrl || "");
+                            void audio.play().catch(() => undefined);
+                          }}
+                        >
+                          Replay reference audio
+                        </button>
+                      )}
+                    </>
+                  )}
                 </div>
 
                 <div>

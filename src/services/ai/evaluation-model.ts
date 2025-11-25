@@ -21,7 +21,7 @@ export const buildEvaluationPrompt = (input: EvaluationInput): string => {
   const mode = input.mode ?? "stw";
   return [
     `Mode: ${mode}`,
-    "Assess pronunciation, grammar, and naturalness.",
+    "Assess grammar and naturalness only.",
     "Return concise bullet points for each dimension.",
     `User text: ${input.text}`,
   ].join("\n");
@@ -34,16 +34,21 @@ export const evaluateUtterance = async (
   const prompt = buildEvaluationPrompt(input);
   const completion = await client.completeChat({
     messages: [
-      { role: "system", content: "You are a speech coach evaluating user utterances." },
+      { role: "system", content: "You are a speech coach evaluating user utterances for grammar and naturalness." },
       { role: "user", content: prompt },
     ],
   }, "stw_assessment_text");
 
+  const bullets = completion.message
+    .split(/\n+/)
+    .map((line) => line.replace(/^[-*]\s*/, "").trim())
+    .filter(Boolean);
+
   const record = createEvaluationRecord({
     bubbleId: input.bubbleId,
-    pronunciationIssues: [`${completion.message} (pronunciation)`],
-    grammarIssues: [`${completion.message} (grammar)`],
-    naturalnessNotes: [`${completion.message} (naturalness)`],
+    pronunciationIssues: [],
+    grammarIssues: bullets.length ? bullets : [completion.message],
+    naturalnessNotes: [],
     nativeLikeSuggestion: "Try simplifying the sentence for clarity.",
     referenceAudioUrl: input.audioUrl ?? null,
   });

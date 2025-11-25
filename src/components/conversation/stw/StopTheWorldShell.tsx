@@ -183,13 +183,12 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
   }, []);
 
   const transcribeAudio = useCallback(
-    async (blob: Blob) => {
-      const base64 = await blobToBase64(blob);
+    async (audioBase64: string, mimeType: string) => {
       const data = await callAction<{ text: string }>({
         action: "transcribe",
         sessionId: sessionRef.current.id,
-        audioBase64: base64,
-        mimeType: blob.type,
+        audioBase64,
+        mimeType,
         hint: mainGoal || scenarioTitle,
       });
       return data.text || "Recorded response";
@@ -198,7 +197,7 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
   );
 
   const evaluateBubble = useCallback(
-    async (bubble: ConversationBubble) => {
+    async (bubble: ConversationBubble, audio: { base64?: string; mimeType?: string; audioUrl?: string | null }) => {
       setIsEvaluating(true);
       updateSession((prev) => ({
         ...prev,
@@ -215,7 +214,9 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
             sessionId: sessionRef.current.id,
             bubbleId: bubble.id,
             text: bubble.text,
-            audioUrl: bubble.audioUrl,
+            audioUrl: audio.audioUrl ?? bubble.audioUrl,
+            audioBase64: audio.base64,
+            audioMimeType: audio.mimeType,
           }),
         });
 
@@ -234,10 +235,13 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
                   evaluationId: data.evaluationId,
                   evaluationSummary: {
                     pronunciationIssues: data.pronunciationIssues ?? [],
+                    pronunciationScores: data.pronunciationScores ?? null,
+                    wordScores: data.wordScores ?? [],
                     grammarIssues: data.grammarIssues ?? [],
                     naturalnessNotes: data.naturalnessNotes ?? [],
                     nativeLikeSuggestion: data.nativeLikeSuggestion ?? "",
                     referenceAudioUrl: data.referenceAudioUrl ?? b.audioUrl ?? null,
+                    pronunciationEnabled: data.pronunciationEnabled ?? false,
                   },
                   updatedAt: new Date().toISOString(),
                 }
@@ -265,6 +269,7 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
       if (!recordingBubble) return;
 
       const audioUrl = URL.createObjectURL(blob);
+      const audioBase64 = await blobToBase64(blob);
       updateSession((prev) => ({
         ...prev,
         bubbles: prev.bubbles.map((b) =>
@@ -277,14 +282,17 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
       setRecordingStatus("review");
       setIsTranscribing(true);
       try {
-        const transcript = await transcribeAudio(blob);
+        const transcript = await transcribeAudio(audioBase64, blob.type || "audio/webm");
         updateSession((prev) => ({
           ...prev,
           bubbles: prev.bubbles.map((b) =>
             b.id === recordingBubble.id ? { ...b, text: transcript, state: "pending" } : b
           ),
         }));
-        await evaluateBubble({ ...recordingBubble, text: transcript, audioUrl });
+        await evaluateBubble(
+          { ...recordingBubble, text: transcript, audioUrl },
+          { base64: audioBase64, mimeType: blob.type, audioUrl }
+        );
       } catch (err) {
         setError((err as Error).message);
       } finally {

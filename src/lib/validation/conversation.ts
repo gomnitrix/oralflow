@@ -5,6 +5,8 @@ export const stwEvaluateRequestSchema = z.object({
   bubbleId: z.string().min(1, "bubbleId is required"),
   text: z.string().min(1, "text is required"),
   audioUrl: z.string().url().optional().nullable(),
+  audioBase64: z.string().min(1, "audioBase64 is required").optional().nullable(),
+  audioMimeType: z.string().optional().nullable(),
 });
 
 export type StwEvaluateRequest = z.infer<typeof stwEvaluateRequestSchema>;

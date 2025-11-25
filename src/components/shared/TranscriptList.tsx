@@ -20,6 +20,7 @@ export const TranscriptList: React.FC<TranscriptListProps> = ({ bubbles, onBubbl
       {bubbles.map((bubble) => {
         const isUser = bubble.speaker === "user";
         const isActive = (bubble as any).isActive;
+        const isUnsentUser = isUser && bubble.state !== "sent";
 
         return (
           <div
@@ -49,7 +50,7 @@ export const TranscriptList: React.FC<TranscriptListProps> = ({ bubbles, onBubbl
                     ? "ring-2 ring-custom-primary ring-offset-2"
                     : "hover:shadow-md"
                     } ${isUser
-                      ? "bg-custom-primary text-white border-custom-primary rounded-br-none"
+                      ? `bg-custom-primary text-white border-custom-primary rounded-br-none ${isUnsentUser ? "ring-1 ring-offset-2 ring-custom-primary/60 animate-pulse" : ""}`
                       : "bg-white text-custom-text-dark border-custom-border rounded-bl-none"
                     }`}
                 >

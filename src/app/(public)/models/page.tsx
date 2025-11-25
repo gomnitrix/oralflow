@@ -89,7 +89,6 @@ export default function ModelsPage() {
         language: settings.models.language.filter(m => activeProviderIds.includes(m.provider as any)),
         tts: settings.models.tts.filter(m => activeProviderIds.includes(m.provider as any)),
         stt: settings.models.stt.filter(m => activeProviderIds.includes(m.provider as any)),
-        speech_to_speech: settings.models.speech_to_speech.filter(m => activeProviderIds.includes(m.provider as any)),
         realtime_speech: settings.models.realtime_speech.filter(m => activeProviderIds.includes(m.provider as any)),
     };
 
@@ -121,15 +120,6 @@ export default function ModelsPage() {
                     availableProviders={activeProviders.filter(p => p.capabilities.includes('realtime_speech'))}
                 />
                 <ModelCapabilityConfig
-                    title="Speech-to-Speech"
-                    description="Voice conversation models"
-                    category="speech_to_speech"
-                    models={filteredModels.speech_to_speech}
-                    onAddModel={handleAddModel}
-                    onRemoveModel={handleRemoveModel}
-                    availableProviders={activeProviders}
-                />
-                <ModelCapabilityConfig
                     title="Text-to-Speech"
                     description="Generate audio from text"
                     category="tts"
@@ -155,7 +145,6 @@ export default function ModelsPage() {
                 settings={settings}
                 onUpdateAssignment={handleUpdateAssignment}
                 availableModels={filteredModels}
-                providers={providers}
             />
         </div>
     );

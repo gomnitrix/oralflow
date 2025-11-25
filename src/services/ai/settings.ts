@@ -9,7 +9,7 @@ export interface AIModel {
     id: string;
     name: string;
     provider: string;
-    capabilities: ('language' | 'tts' | 'stt' | 'speech_to_speech' | 'realtime_speech')[];
+    capabilities: ('language' | 'tts' | 'stt' | 'realtime_speech')[];
 }
 
 export interface AISettings {
@@ -17,7 +17,6 @@ export interface AISettings {
         language: AIModel[];
         tts: AIModel[];
         stt: AIModel[];
-        speech_to_speech: AIModel[];
         realtime_speech: AIModel[];
     };
     assignments: {
@@ -29,7 +28,6 @@ export interface AISettings {
         stw_stt: string | null;
         stw_tts: string | null;
         stw_assessment_text: string | null;
-        stw_assessment_pronunciation: string | null;
 
         // Copilot
         copilot_distill: string | null;
@@ -49,7 +47,6 @@ const DEFAULT_SETTINGS: AISettings = {
         language: [],
         tts: [],
         stt: [],
-        speech_to_speech: [],
         realtime_speech: []
     },
     assignments: {
@@ -58,7 +55,6 @@ const DEFAULT_SETTINGS: AISettings = {
         stw_stt: null,
         stw_tts: null,
         stw_assessment_text: null,
-        stw_assessment_pronunciation: null,
         copilot_distill: null,
         copilot_inspiration: null,
         scenario_draft: null,

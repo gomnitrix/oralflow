@@ -3,6 +3,8 @@ import { NotebookService } from "../../../domains/notes/notebook-service";
 import { createServerRepositories } from "../../../services/persistence/server-repositories";
 import { NotebookList } from "../../../components/notebook/NotebookList";
 
+export const dynamic = "force-dynamic";
+
 const repositories = createServerRepositories();
 const notebookService = new NotebookService({ repository: repositories.notebook });
 

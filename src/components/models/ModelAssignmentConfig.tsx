@@ -7,11 +7,9 @@ interface Props {
     settings: AISettings;
     onUpdateAssignment: (capability: AssignmentCapability, modelId: string | null) => void;
     availableModels: AISettings['models'];
-    providers: any[]; // To check for first-party constraint
 }
 
-export const ModelAssignmentConfig: React.FC<Props> = ({ settings, onUpdateAssignment, availableModels, providers }) => {
-
+export const ModelAssignmentConfig: React.FC<Props> = ({ settings, onUpdateAssignment, availableModels }) => {
     const renderSelect = (
         capability: AssignmentCapability,
         label: string,
@@ -52,12 +50,6 @@ export const ModelAssignmentConfig: React.FC<Props> = ({ settings, onUpdateAssig
         );
     };
 
-    // Filter for Real-time models (First-party only)
-    const isFirstParty = (model: AIModel) => {
-        const provider = providers.find(p => p.id === model.provider);
-        return provider?.isFirstParty ?? false;
-    };
-
     return (
         <div className="space-y-10">
             <div>
@@ -76,7 +68,6 @@ export const ModelAssignmentConfig: React.FC<Props> = ({ settings, onUpdateAssig
                     {renderSelect('stw_stt', 'Speech-to-Text', 'Transcribe user audio', availableModels.stt, true)}
                     {renderSelect('stw_tts', 'Text-to-Speech', 'Generate AI voice', availableModels.tts, true)}
                     {renderSelect('stw_assessment_text', 'Assessment (Text Analysis)', 'Analyze user text for suggestions', availableModels.language)}
-                    {renderSelect('stw_assessment_pronunciation', 'Assessment (Pronunciation)', 'Provide pronunciation feedback', availableModels.speech_to_speech)}
                 </div>
             </div>
 

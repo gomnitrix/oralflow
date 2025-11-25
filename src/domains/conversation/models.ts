@@ -28,6 +28,18 @@ export interface EvaluationRecord {
   bubbleId: string;
   createdAt: ISODateString;
   pronunciationIssues: string[];
+  pronunciationScores?: {
+    overall?: number;
+    accuracy?: number;
+    fluency?: number;
+    completeness?: number;
+    prosody?: number;
+  } | null;
+  wordScores?: {
+    word: string;
+    accuracy: number;
+    errorType?: string | null;
+  }[];
   grammarIssues: string[];
   naturalnessNotes: string[];
   nativeLikeSuggestion: string;
@@ -47,10 +59,13 @@ export interface ConversationBubble {
   evaluationId: string | null;
   evaluationSummary?: {
     pronunciationIssues: string[];
+    pronunciationScores?: EvaluationRecord["pronunciationScores"];
+    wordScores?: EvaluationRecord["wordScores"];
     grammarIssues: string[];
     naturalnessNotes: string[];
     nativeLikeSuggestion: string;
     referenceAudioUrl: string | null;
+    pronunciationEnabled?: boolean;
   } | null;
 }
 
@@ -136,6 +151,8 @@ export const createEvaluationRecord = (
   bubbleId: input.bubbleId,
   createdAt: input.createdAt ?? nowIso(),
   pronunciationIssues: input.pronunciationIssues,
+  pronunciationScores: input.pronunciationScores ?? null,
+  wordScores: input.wordScores ?? [],
   grammarIssues: input.grammarIssues,
   naturalnessNotes: input.naturalnessNotes,
   nativeLikeSuggestion: input.nativeLikeSuggestion ?? "",
