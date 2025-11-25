@@ -98,8 +98,9 @@ const StructuredGrid: React.FC<{
   bubbleId?: string;
 }>
   = ({ notes, fallback, origin, bubbleId }) => {
-    const [savingId, setSavingId] = useState<string | null>(null);
-    const [message, setMessage] = useState<string | null>(null);
+  const [savingId, setSavingId] = useState<string | null>(null);
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+  const [message, setMessage] = useState<string | null>(null);
 
     const saveNote = async (note: StructuredNote) => {
       setSavingId(note.id);
@@ -116,6 +117,7 @@ const StructuredGrid: React.FC<{
           throw new Error(data?.error || "Failed to save note");
         }
         setMessage("Saved to Notebook");
+        setSavedIds((prev) => new Set(prev).add(note.id));
       } catch (error) {
         setMessage((error as Error).message);
       } finally {
@@ -156,9 +158,9 @@ const StructuredGrid: React.FC<{
               <button
                 className="text-xs font-semibold text-custom-primary bg-white/70 border border-custom-primary/30 rounded-full px-2 py-1 hover:bg-custom-primary/10 transition-colors disabled:opacity-50"
                 onClick={() => saveNote(note)}
-                disabled={savingId === note.id}
+                disabled={savingId === note.id || savedIds.has(note.id)}
               >
-                {savingId === note.id ? "Saving..." : "Save"}
+                {savingId === note.id ? "Saving..." : savedIds.has(note.id) ? "Saved" : "Save"}
               </button>
             </div>
 

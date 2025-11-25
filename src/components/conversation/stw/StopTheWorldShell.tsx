@@ -152,7 +152,7 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
     const placeholder = createConversationBubble({
       sessionId: freshSession.id,
       speaker: "ai",
-      text: "",
+      text: "Preparing reply…",
       state: "pending",
     });
     setSession({ ...freshSession, bubbles: [placeholder] });
@@ -306,12 +306,18 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
 
     try {
       const requestStream = () => {
+        const navAny = navigator as any;
+        const legacy = navAny.getUserMedia || navAny.webkitGetUserMedia || navAny.mozGetUserMedia;
+        if (!navigator.mediaDevices) {
+          (navAny.mediaDevices as any) = {};
+        }
+        if (!navigator.mediaDevices.getUserMedia && legacy) {
+          navigator.mediaDevices.getUserMedia = (constraints: MediaStreamConstraints) =>
+            new Promise<MediaStream>((resolve, reject) => legacy.call(navigator, constraints, resolve, reject));
+        }
+
         if (navigator.mediaDevices?.getUserMedia) {
           return navigator.mediaDevices.getUserMedia({ audio: true });
-        }
-        const legacy = (navigator as any).getUserMedia;
-        if (legacy) {
-          return new Promise<MediaStream>((resolve, reject) => legacy.call(navigator, { audio: true }, resolve, reject));
         }
         throw new Error("getUserMedia not available");
       };

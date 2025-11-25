@@ -54,7 +54,7 @@ export const TranscriptList: React.FC<TranscriptListProps> = ({ bubbles, onBubbl
                     }`}
                 >
                   {bubble.text || (
-                    <span className="italic opacity-50">Listening...</span>
+                    <span className="italic opacity-50">Preparing...</span>
                   )}
                 </div>
 
