@@ -64,13 +64,11 @@ const parseEvaluationResponse = (
           ? sanitizeLine(parsed.nativeLike)
           : undefined;
 
-    if (grammar.length || naturalness.length || nativeLike) {
-      return {
-        grammar,
-        naturalness,
-        nativeLike,
-      };
-    }
+    return {
+      grammar,
+      naturalness,
+      nativeLike,
+    };
   } catch (error) {
     // Fall through to text parsing below
   }
@@ -108,10 +106,13 @@ export const evaluateUtterance = async (
   );
 
   const parsed = parseEvaluationResponse(completion.message);
-  const grammarIssues = parsed.grammar.length ? parsed.grammar : [sanitizeLine(completion.message) || completion.message];
-  const naturalnessNotes = parsed.naturalness;
+
+  const grammarIssues = parsed.grammar.length ? parsed.grammar : ["Grammar looks good."];
+  const naturalnessNotes = parsed.naturalness.length ? parsed.naturalness : ["Sounds natural."];
   const nativeLikeSuggestion =
-    parsed.nativeLike?.trim() || parsed.naturalness[0] || "Keep sentences concise and natural.";
+    parsed.nativeLike?.trim() ||
+    parsed.naturalness[0] ||
+    "This already sounds natural to a native speaker.";
 
   const record = createEvaluationRecord({
     bubbleId: input.bubbleId,

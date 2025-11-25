@@ -39,6 +39,10 @@ export interface EvaluationRecord {
     word: string;
     accuracy: number;
     errorType?: string | null;
+    phonemes?: {
+      phoneme: string;
+      accuracy: number;
+    }[];
   }[];
   grammarIssues: string[];
   naturalnessNotes: string[];

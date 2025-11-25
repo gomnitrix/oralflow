@@ -76,7 +76,7 @@ const createAudioStream = (audioBase64: string, mimeType?: string | null) => {
   return { pushStream, audioBuffer };
 };
 
-const parseWordScores = (rawDetail: unknown): { word: string; accuracy: number; errorType?: string | null }[] => {
+const parseWordScores = (rawDetail: unknown): { word: string; accuracy: number; errorType?: string | null; phonemes?: { phoneme: string; accuracy: number }[] }[] => {
   try {
     const detail = typeof rawDetail === "string" ? JSON.parse(rawDetail) : (rawDetail as any);
     const words = detail?.NBest?.[0]?.Words;
@@ -86,6 +86,12 @@ const parseWordScores = (rawDetail: unknown): { word: string; accuracy: number; 
         word: w.Word ?? w.word ?? "",
         accuracy: Math.round(w.PronunciationAssessment?.AccuracyScore ?? w.AccuracyScore ?? 0),
         errorType: w.PronunciationAssessment?.ErrorType ?? w.ErrorType ?? null,
+        phonemes: Array.isArray(w.Phonemes)
+          ? w.Phonemes.map((p: any) => ({
+              phoneme: p?.Phoneme ?? "",
+              accuracy: Math.round(p?.PronunciationAssessment?.AccuracyScore ?? 0),
+            })).filter((p: { phoneme: string }) => !!p.phoneme)
+          : [],
       }))
       .filter((w: { word: string }) => !!w.word);
   } catch (error) {
@@ -180,29 +186,6 @@ const runAzurePronunciationAssessment = async (input: { audioBase64: string; tex
   }
 };
 
-const buildPronunciationIssues = (
-  scores: NonNullable<EvaluationRecord["pronunciationScores"]>,
-  wordScores: NonNullable<EvaluationRecord["wordScores"]>
-): string[] => {
-  const issues: string[] = [];
-  issues.push(
-    `Pronunciation ${Math.round(scores.overall ?? 0)}/100 · Accuracy ${Math.round(scores.accuracy ?? 0)}/100 · Fluency ${Math.round(
-      scores.fluency ?? 0
-    )}/100`
-  );
-  const weakWords = wordScores.filter((w) => w.accuracy < 85).slice(0, 5);
-  if (weakWords.length) {
-    issues.push(
-      `Needs work: ${weakWords
-        .map((w) => `${w.word} (${w.accuracy}/100${w.errorType ? `, ${w.errorType.toLowerCase()}` : ""})`)
-        .join("; ")}`
-    );
-  } else {
-    issues.push("Great clarity on all words tested.");
-  }
-  return issues;
-};
-
 export const evaluatePronunciation = async (input: PronunciationInput): Promise<PronunciationResult> => {
   if (!ensureAzureConfig()) {
     const record = createEvaluationRecord({
@@ -253,7 +236,7 @@ export const evaluatePronunciation = async (input: PronunciationInput): Promise<
 
     const record = createEvaluationRecord({
       bubbleId: input.bubbleId,
-      pronunciationIssues: buildPronunciationIssues(scores, result.wordScores),
+      pronunciationIssues: [],
       pronunciationScores: scores,
       wordScores: result.wordScores,
       grammarIssues: [],

@@ -250,35 +250,37 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({
                         )}
                       </div>
 
-                      <div className="mt-3 space-y-2">
-                        <p className="text-xs font-semibold uppercase text-custom-text-dark/50">Azure Speech (continuous)</p>
-                        <ul className="text-sm text-custom-text-dark/70 list-disc list-inside space-y-1">
-                          {summary.pronunciationIssues.length > 0 ? (
-                            summary.pronunciationIssues.map((issue, idx) => <li key={idx}>{issue}</li>)
-                          ) : (
-                            <li>Sounding clear.</li>
-                          )}
-                        </ul>
-                      </div>
-
-                      {(summary.wordScores ?? []).filter((w) => w.accuracy < 95).length > 0 && (
-                        <div className="mt-2">
-                          <p className="text-xs font-semibold text-custom-text-dark/60 uppercase mb-2">Words to polish</p>
-                          <div className="flex flex-wrap gap-2">
-                            {(summary.wordScores ?? [])
-                              .filter((w) => w.accuracy < 95)
-                              .slice(0, 6)
-                              .map((word, idx) => (
-                                <div
-                                  key={`${word.word}-${idx}`}
-                                  className="rounded-full border border-custom-border bg-white px-3 py-1.5 flex items-center gap-2 shadow-[0_1px_3px_rgba(0,0,0,0.05)]"
-                                >
+                      {(summary.wordScores ?? []).length > 0 && (
+                        <div className="mt-4 space-y-3">
+                          <p className="text-xs font-semibold text-custom-text-dark/60 uppercase mb-1">
+                            Pronunciation by word (with phonemes)
+                          </p>
+                          <div className="space-y-2">
+                            {(summary.wordScores ?? []).map((word, idx) => (
+                              <div key={`${word.word}-${idx}`} className="bg-white rounded-xl border border-custom-border px-3 py-2 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                                <div className="flex items-center justify-between">
                                   <span className="text-sm font-semibold text-custom-text-dark">{word.word}</span>
                                   <span className="text-[11px] text-custom-text-dark/60">
-                                    {word.accuracy}/100 {word.errorType ? `· ${word.errorType}` : ""}
+                                    {word.accuracy}/100 {word.errorType && word.errorType !== "None" ? `· ${word.errorType}` : ""}
                                   </span>
                                 </div>
-                              ))}
+                                <div className="mt-1 flex flex-wrap gap-1">
+                                  {(word.phonemes ?? []).map((p, pIdx) => {
+                                    const score = p.accuracy ?? 0;
+                                    const color =
+                                      score >= 90 ? "bg-green-100 text-green-800" : score >= 75 ? "bg-amber-100 text-amber-800" : "bg-red-100 text-red-800";
+                                    return (
+                                      <div
+                                        key={`${word.word}-phoneme-${p.phoneme}-${pIdx}`}
+                                        className={`px-2 py-1 rounded-full text-xs font-semibold ${color}`}
+                                      >
+                                        {p.phoneme} {score ? `${score}` : ""}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         </div>
                       )}
