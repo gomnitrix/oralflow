@@ -11,7 +11,6 @@ import {
 import { TranscriptList } from "../../shared/TranscriptList";
 import { CopilotPanel } from "../../copilot/Panel";
 import { ControlBar, type ControlBarStatus } from "./ControlBar";
-import { synthesizePlaceholderSpeech } from "../../../lib/audio/placeholder";
 
 export interface StopTheWorldShellProps {
   scenarioId: string;
@@ -300,46 +299,12 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
       return;
     }
 
-    const startBubble = () => {
-      let newIndex = 0;
-      updateSession((prev) => {
-        const newBubble = createConversationBubble({ sessionId: prev.id, speaker: "user", state: "recording" });
-        const bubbles = [...prev.bubbles, newBubble];
-        newIndex = bubbles.length - 1;
-        return { ...prev, bubbles };
-      });
-      setActiveIndex(newIndex);
-      setRecordingStatus("recording");
-      return newIndex;
-    };
-
-    const fallbackTyped = async () => {
-      const typed = typeof window !== "undefined" ? window.prompt("Type your response if mic is blocked") : "";
-      if (!typed) {
-        setError("Microphone unavailable. Please allow access and try again.");
-        return;
-      }
-      const index = startBubble();
-      const audioUrl = synthesizePlaceholderSpeech(typed, { modelId: undefined });
-      updateSession((prev) => ({
-        ...prev,
-        bubbles: prev.bubbles.map((b, idx) =>
-          idx === index
-            ? { ...b, text: typed, audioUrl, state: "pending", updatedAt: new Date().toISOString() }
-            : b
-        ),
-      }));
-      setRecordingStatus("review");
-      const target = sessionRef.current.bubbles[index];
-      await evaluateBubble({ ...target, text: typed, audioUrl } as ConversationBubble);
-    };
+    if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
+      setError("Microphone not supported in this environment. Use a modern browser over HTTPS.");
+      return;
+    }
 
     try {
-      if (!navigator.mediaDevices?.getUserMedia) {
-        await fallbackTyped();
-        return;
-      }
-
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const recorder = new MediaRecorder(stream);
       audioChunksRef.current = [];
@@ -359,11 +324,25 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
 
       recorder.start();
       mediaRecorderRef.current = recorder;
-      startBubble();
+      let newIndex = 0;
+      updateSession((prev) => {
+        const newBubble = createConversationBubble({ sessionId: prev.id, speaker: "user", state: "recording" });
+        const bubbles = [...prev.bubbles, newBubble];
+        newIndex = bubbles.length - 1;
+        return { ...prev, bubbles };
+      });
+      setActiveIndex(newIndex);
+      setRecordingStatus("recording");
     } catch (err) {
-      await fallbackTyped();
+      console.error("Microphone access failed", err);
+      setRecordingStatus("idle");
+      setError(
+        err instanceof Error
+          ? `Microphone unavailable: ${err.message}`
+          : "Microphone unavailable. Please allow access and try again."
+      );
     }
-  }, [evaluateBubble, finalizeRecording, latestUserBubble, recordingStatus, updateSession]);
+  }, [finalizeRecording, latestUserBubble, recordingStatus, updateSession]);
 
   const handleStop = useCallback(() => {
     if (recordingStatus !== "recording") return;
@@ -441,6 +420,7 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
           bubbleText: selected.text,
           type,
           topic,
+          history: sessionRef.current.bubbles.map((b) => ({ speaker: b.speaker, text: b.text })).filter((b) => b.text),
         });
 
         updateSession((prev) => ({

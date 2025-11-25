@@ -20,6 +20,7 @@ export interface CopilotInsight {
   title: string;
   description: string;
   suggestedExpressions: ExpressionSuggestion[];
+  structuredNotes?: import("../copilot/models").StructuredNote[] | null;
 }
 
 export interface EvaluationRecord {
@@ -87,6 +88,7 @@ export const createCopilotInsight = (
   title: input.title,
   description: input.description,
   suggestedExpressions: input.suggestedExpressions ?? [],
+  structuredNotes: input.structuredNotes ?? null,
 });
 
 export const createConversationBubble = (

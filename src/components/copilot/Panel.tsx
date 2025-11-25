@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 
 import type { ConversationBubble } from "../../domains/conversation/models";
+import type { StructuredNote } from "../../domains/copilot/models";
+import type { NotebookItemInput } from "../../lib/validation/notes";
 
 interface CopilotPanelProps {
   mode?: "standard" | "assessment";
@@ -34,8 +36,8 @@ const useBubbleContext = (bubbleId?: string) => {
   return { context, updateContext };
 };
 
-const InsightList: React.FC<{ title: string; insights: ConversationBubble["copilotInsights"]; badge?: string }>
-  = ({ title, insights, badge }) => (
+const InsightList: React.FC<{ title: string; insights: ConversationBubble["copilotInsights"]; badge?: string; bubbleId?: string }>
+  = ({ title, insights, badge, bubbleId }) => (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <p className="text-sm font-bold text-custom-text-dark">{title}</p>
@@ -45,7 +47,7 @@ const InsightList: React.FC<{ title: string; insights: ConversationBubble["copil
         <p className="text-sm text-custom-text-dark/50">Run Copilot to generate suggestions.</p>
       ) : (
         insights.map((insight) => (
-          <div key={insight.id} className="rounded-2xl border border-custom-border bg-[#f8f6f6] p-4 space-y-3">
+          <div key={insight.id} className="rounded-2xl border border-custom-border bg-[#f4f5f7] p-4 space-y-3">
             <div className="flex items-center gap-2">
               <span className="text-lg">{insight.type === "distill" ? "🔎" : "⚡️"}</span>
               <div>
@@ -53,22 +55,134 @@ const InsightList: React.FC<{ title: string; insights: ConversationBubble["copil
                 <p className="text-xs text-custom-text-dark/60">{insight.description}</p>
               </div>
             </div>
-            <div className="space-y-2">
-              {insight.suggestedExpressions.map((expr) => (
-                <div key={expr.id} className="rounded-xl bg-white border border-custom-border px-3 py-2">
-                  <p className="text-sm font-semibold text-custom-text-dark">{expr.text}</p>
-                  <p className="text-xs text-custom-text-dark/60">{expr.meaning}</p>
-                  {expr.examples.length > 0 && (
-                    <p className="text-xs text-custom-text-dark/50 mt-1">Example: {expr.examples[0]}</p>
-                  )}
-                </div>
-              ))}
-            </div>
+
+            <StructuredGrid
+              notes={insight.structuredNotes ?? []}
+              fallback={insight.suggestedExpressions}
+              origin={insight.type === "distill" ? "stwDistill" : "stwInspiration"}
+              bubbleId={bubbleId}
+            />
           </div>
         ))
       )}
     </div>
   );
+
+const mapStructuredToNotebook = (
+  note: StructuredNote,
+  source: "stwDistill" | "stwInspiration",
+  bubbleId?: string
+): NotebookItemInput => {
+  const now = new Date().toISOString();
+  return {
+    id: `${source}_${note.id}`,
+    phrase: note.content,
+    meaning: note.explanation.zh || note.explanation.en || note.content,
+    usageNotes: note.explanation.en,
+    variants: [],
+    exampleSentences: note.examples,
+    contextSentence: note.examples[0] ?? "",
+    ipa: "",
+    spokenNotes: "",
+    source: "stw",
+    sourceDetails: `${source}:${bubbleId ?? ""}`,
+    createdAt: now,
+    updatedAt: now,
+  };
+};
+
+const StructuredGrid: React.FC<{
+  notes: StructuredNote[];
+  fallback?: ConversationBubble["copilotInsights"][number]["suggestedExpressions"];
+  origin: "stwDistill" | "stwInspiration";
+  bubbleId?: string;
+}>
+  = ({ notes, fallback, origin, bubbleId }) => {
+    const [savingId, setSavingId] = useState<string | null>(null);
+    const [message, setMessage] = useState<string | null>(null);
+
+    const saveNote = async (note: StructuredNote) => {
+      setSavingId(note.id);
+      setMessage(null);
+      try {
+        const payload = mapStructuredToNotebook(note, origin, bubbleId);
+        const response = await fetch("/api/notes/items", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data?.error || "Failed to save note");
+        }
+        setMessage("Saved to Notebook");
+      } catch (error) {
+        setMessage((error as Error).message);
+      } finally {
+        setSavingId(null);
+      }
+    };
+
+    if (!notes.length && fallback?.length) {
+      return (
+        <div className="space-y-2">
+          {fallback.map((expr) => (
+            <div key={expr.id} className="rounded-xl bg-white border border-custom-border px-3 py-2">
+              <p className="text-sm font-semibold text-custom-text-dark">{expr.text}</p>
+              <p className="text-xs text-custom-text-dark/60">{expr.meaning}</p>
+              {expr.examples.length > 0 && (
+                <p className="text-xs text-custom-text-dark/50 mt-1">Example: {expr.examples[0]}</p>
+              )}
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-2">
+        {notes.map((note) => (
+          <div
+            key={note.id}
+            className="group relative rounded-2xl bg-[#f9fafb] border border-custom-border/80 px-3 py-3"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <p className="text-sm font-bold text-custom-text-dark">{note.content}</p>
+                {note.examples[0] && (
+                  <p className="text-xs text-custom-text-dark/60 mt-1">Example: {note.examples[0]}</p>
+                )}
+              </div>
+              <button
+                className="text-xs font-semibold text-custom-primary bg-white/70 border border-custom-primary/30 rounded-full px-2 py-1 hover:bg-custom-primary/10 transition-colors disabled:opacity-50"
+                onClick={() => saveNote(note)}
+                disabled={savingId === note.id}
+              >
+                {savingId === note.id ? "Saving..." : "Save"}
+              </button>
+            </div>
+
+            <div className="absolute left-0 right-0 top-full mt-2 hidden group-hover:block z-30">
+              <div className="rounded-2xl bg-white border border-custom-border shadow-xl p-4 space-y-2">
+                <p className="text-xs font-semibold text-custom-text-dark/60 uppercase">Explanation</p>
+                <p className="text-sm text-custom-text-dark">EN: {note.explanation.en || ""}</p>
+                <p className="text-sm text-custom-text-dark">ZH: {note.explanation.zh || ""}</p>
+                {note.examples.length > 0 && (
+                  <div className="space-y-1 pt-2">
+                    <p className="text-xs font-semibold text-custom-text-dark/60 uppercase">Examples</p>
+                    {note.examples.map((ex, idx) => (
+                      <p key={idx} className="text-sm text-custom-text-dark/80 leading-snug">• {ex}</p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+        {message && <p className="text-xs text-custom-text-dark/60">{message}</p>}
+      </div>
+    );
+  };
 
 export const CopilotPanel: React.FC<CopilotPanelProps> = ({
   mode = "standard",
@@ -197,7 +311,12 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({
               {loading ? "Working..." : "Distill this turn"}
             </button>
 
-            <InsightList title="Key Vocabulary" insights={distillInsights} badge={distillInsights.length ? "Stored" : undefined} />
+            <InsightList
+              title="Key Vocabulary"
+              insights={distillInsights}
+              badge={distillInsights.length ? "Stored" : undefined}
+              bubbleId={selectedBubble?.id}
+            />
           </div>
         ) : (
           <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
@@ -219,7 +338,12 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({
               </button>
             </div>
 
-            <InsightList title="Ideas" insights={inspirationInsights} badge={inspirationInsights.length ? "Saved" : undefined} />
+            <InsightList
+              title="Ideas"
+              insights={inspirationInsights}
+              badge={inspirationInsights.length ? "Saved" : undefined}
+              bubbleId={selectedBubble?.id}
+            />
           </div>
         )}
       </div>

@@ -102,6 +102,16 @@ Learner visits the Ask page, requests “How do I express X?”, receives multip
 - **FR-001**: System MUST provide at least one default scenario so new learners can launch a Stop-the-World session without prior setup.
 - **FR-002**: Stop-the-World conversations MUST display bubble-based transcripts with keyboard navigation (J/K) and keep only one active bubble that controls copilot content.
 - **FR-003**: Copilot panel MUST support Inspiration Burst and Distill modes for AI bubbles, each returning suggestions with meanings, notes, example sentences, and save-to-notebook actions.
+
+**Copilot Structured Notes (StW Distill/Inspiration)**
+
+- Output format is a JSON array of notebook-ready notes. Each item:
+  - `content`: phrase/idiom/collocation (avoid isolated single words; target B1+ learners).
+  - `explanation`: `{ en: string, zh: string }` (bilingual gloss).
+  - `examples`: 2–3 spoken-English sample sentences; for Inspiration, the first example must be a sentence the learner can say next in the current dialogue.
+- Distill: derive 0–N notes from the selected AI bubble; skip trivial vocabulary.
+- Inspiration: consider the full conversation history up to the active bubble and suggest next-turn ideas in the same format.
+- UI: show content + first example by default; reveal full explanation/examples on hover; each note has its own “Save to Notebook” control and uses a subtle background (no harsh contrast with its container).
 - **FR-004**: User bubbles MUST pass through a pre-send evaluation that surfaces pronunciation issues (with reference audio), grammar problems, and naturalness suggestions before Send becomes available.
 - **FR-005**: System MUST allow unlimited retries on pending user bubbles and retain a visible history of previous feedback for comparison.
 - **FR-006**: Conversation flow MUST enforce the defined state machine (Idle -> Recording -> Pending -> Evaluating -> Ready to Send -> Sent) and prevent jumps that would skip evaluation.

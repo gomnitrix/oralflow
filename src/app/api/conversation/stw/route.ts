@@ -108,6 +108,7 @@ async function handleCopilot(payload: unknown) {
   const insight = await runInspirationBurst(client, {
     bubbleId: parsed.bubbleId,
     topic: parsed.topic || parsed.bubbleText,
+    history: parsed.history ?? [],
   });
 
   return { insight, modelId: getAssignment("copilot_inspiration") };

@@ -45,6 +45,7 @@ export const stwCopilotRequestSchema = z.object({
   bubbleText: z.string().min(1, "bubbleText is required"),
   type: z.enum(["distill", "inspiration"]),
   topic: z.string().optional().nullable(),
+  history: z.array(stwHistoryMessageSchema).optional().default([]),
 });
 
 export type StwCopilotRequest = z.infer<typeof stwCopilotRequestSchema>;
