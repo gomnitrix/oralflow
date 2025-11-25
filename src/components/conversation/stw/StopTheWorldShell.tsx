@@ -63,6 +63,18 @@ const mapHistory = (bubbles: ConversationBubble[]) =>
     .filter((bubble) => bubble.state === "sent")
     .map((bubble) => ({ speaker: bubble.speaker, text: bubble.text }));
 
+const preferredMimeTypes = ["audio/wav", "audio/mp3", "audio/webm;codecs=pcm", "audio/webm;codecs=opus", "audio/ogg;codecs=opus"];
+
+const pickSupportedMimeType = (): string | undefined => {
+  if (typeof MediaRecorder === "undefined") return undefined;
+  for (const mime of preferredMimeTypes) {
+    if ((MediaRecorder as any).isTypeSupported?.(mime)) {
+      return mime;
+    }
+  }
+  return undefined;
+};
+
 export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
   scenarioId,
   scenarioTitle,
@@ -336,9 +348,10 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
           throw new Error("getUserMedia not available");
         };
 
-        const stream = await requestStream();
-        const recorder = new MediaRecorder(stream);
-        audioChunksRef.current = [];
+      const stream = await requestStream();
+      const mimeType = pickSupportedMimeType();
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      audioChunksRef.current = [];
 
         recorder.ondataavailable = (event) => {
           if (event.data.size > 0) {
@@ -349,7 +362,7 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
         recorder.onstop = () => {
           stream.getTracks().forEach((track) => track.stop());
           if (!audioChunksRef.current.length) return;
-          const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || "audio/webm" });
+        const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || "audio/wav" });
           void finalizeRecording(blob);
         };
 

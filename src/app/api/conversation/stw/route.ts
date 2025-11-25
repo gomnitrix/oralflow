@@ -161,6 +161,10 @@ async function transcribeWithOpenAI(audioBase64: string, mimeType?: string | nul
 
   const { provider, model } = resolveModelForCapability("stw_stt", { categoryOverride: "stt", fallbackModel: "whisper-1" });
   const fileType = mimeType || "audio/webm";
+  const isWebm = fileType.includes("webm");
+  if (isWebm) {
+    throw new Error("Audio format webm is not supported for transcription. Please record in wav or mp3.");
+  }
   const providerInfo = ProviderManager.getInstance().getProvider(provider);
 
   if (providerInfo?.id === "openai") {
@@ -199,14 +203,11 @@ async function transcribeWithOpenAI(audioBase64: string, mimeType?: string | nul
   const completion = await client.chat.completions.create({
     model,
     messages: [
+      { role: "system", content: "You are a speech-to-text engine. Return only the transcript." },
       {
         role: "user",
         content: [
-          {
-            type: "text", text: `Provide a verbatim transcription of the audio.
-          - Do not invent or add content
-          - Do not summarize
-          - Output only what is spoken in the audio` },
+          { type: "text", text: "Generate a transcript of the audio." },
           // @ts-expect-error openai sdk typings lag behind multimodal input_audio support for some providers
           { type: "input_audio", input_audio: { data: normalized, format } },
         ],
