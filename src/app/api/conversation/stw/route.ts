@@ -195,6 +195,7 @@ async function handleTranscribe(payload: unknown) {
       status: errObj?.status,
       cause: errObj?.cause,
       response: errObj?.response ? { status: errObj.response?.status, data: errObj.response?.data } : undefined,
+      provider: errObj?.providerId,
     });
     const fallback = "";
     let modelId = getAssignment("stw_stt");
@@ -205,7 +206,8 @@ async function handleTranscribe(payload: unknown) {
         modelId = null;
       }
     }
-    return { text: fallback, modelId, warning: (error as Error).message || "STT failed" };
+    const message = (error as Error).message || "STT failed";
+    return { text: fallback, modelId, warning: `${message}${modelId ? ` (model: ${modelId})` : ""}` };
   }
 }
 

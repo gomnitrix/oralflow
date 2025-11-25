@@ -47,8 +47,14 @@ export const resolveModelForCapability = (
   if (providerId) {
     const provider = providerManager.getProvider(providerId);
     if (!provider || !provider.isActive || !provider.apiKey) {
-      providerId = undefined;
+      throw new Error(
+        `Assigned provider ${providerId} is not active or configured for capability ${capability}. Check API key and model settings.`
+      );
     }
+  }
+
+  if (!providerId && assignedId) {
+    throw new Error(`Model ${assignedId} is assigned to ${capability} but not found in configured model list.`);
   }
 
   if (!providerId) {
