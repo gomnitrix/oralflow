@@ -12,6 +12,7 @@ import { synthesizePlaceholderSpeech } from "../../../../lib/audio/placeholder";
 import { synthesizeSpeech } from "../../../../services/ai/tts";
 import { createOpenAIClient, resolveModelForCapability } from "../../../../services/ai/model-routing";
 
+export const runtime = "nodejs";
 const settings = SettingsService.getInstance();
 
 const getAssignment = (capability: AssignmentCapability): string | null => {
@@ -138,7 +139,13 @@ async function transcribeWithOpenAI(audioBase64: string, mimeType?: string | nul
   const extension = fileType.includes("wav") ? "wav" : fileType.includes("mp3") ? "mp3" : "webm";
 
   const file = await toFile(buffer, `speech.${extension}`, { type: fileType });
-  console.log("[stw:transcribe] request", { provider, model, mimeType: fileType, size: buffer.byteLength });
+  console.log("[stw:transcribe] request", {
+    provider,
+    model,
+    mimeType: fileType,
+    size: buffer.byteLength,
+    hintPreview: hint ? `${hint.slice(0, 40)}${hint.length > 40 ? "…" : ""}` : null,
+  });
   const transcription = await client.audio.transcriptions.create({
     file,
     model,
@@ -163,10 +170,14 @@ async function handleTranscribe(payload: unknown) {
     }
     return { text: transcription.text, modelId: transcription.modelId };
   } catch (error) {
+    const errObj = error as any;
     console.error("[stw:transcribe] failed", {
-      error: (error as Error).message,
+      error: errObj?.message,
       mimeType: parsed.mimeType,
       size: parsed.audioBase64?.length ?? 0,
+      status: errObj?.status,
+      cause: errObj?.cause,
+      response: errObj?.response ? { status: errObj.response?.status, data: errObj.response?.data } : undefined,
     });
     const fallback = "";
     let modelId = getAssignment("stw_stt");
@@ -177,7 +188,7 @@ async function handleTranscribe(payload: unknown) {
         modelId = null;
       }
     }
-    return { text: fallback, modelId, warning: (error as Error).message };
+    return { text: fallback, modelId, warning: (error as Error).message || "STT failed" };
   }
 }
 

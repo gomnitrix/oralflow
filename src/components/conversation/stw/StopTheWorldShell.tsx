@@ -184,13 +184,16 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
 
   const transcribeAudio = useCallback(
     async (audioBase64: string, mimeType: string) => {
-      const data = await callAction<{ text: string }>({
+      const data = await callAction<{ text?: string; warning?: string }>({
         action: "transcribe",
         sessionId: sessionRef.current.id,
         audioBase64,
         mimeType,
         hint: mainGoal || scenarioTitle,
       });
+      if (data.warning) {
+        throw new Error(data.warning);
+      }
       if (!data.text) {
         throw new Error("Transcription unavailable. Please retry.");
       }
