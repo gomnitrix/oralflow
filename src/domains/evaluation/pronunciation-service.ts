@@ -158,12 +158,19 @@ const runAzurePronunciationAssessment = async (input: { audioBase64: string; tex
   await new Promise<void>((resolve, reject) => {
     const finish = () => recognizer.stopContinuousRecognitionAsync(() => resolve(), (err) => reject(err));
 
+    console.log("[azure:pronunciation] start", {
+      mimeType: input.audioMimeType,
+      byteLength: audioBuffer.byteLength,
+      textPreview: input.text.slice(0, 80),
+    });
+
     recognizer.recognized = (_s, e) => {
       if (e.result.reason === sdk.ResultReason.RecognizedSpeech) {
         results.push(e.result);
       }
     };
     recognizer.canceled = (_s, e) => {
+      console.error("[azure:pronunciation] canceled", { errorDetails: e.errorDetails, reason: e.reason });
       reject(new Error(e.errorDetails || "Azure pronunciation assessment canceled."));
       finish();
     };
