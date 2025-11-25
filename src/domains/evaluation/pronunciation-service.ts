@@ -51,56 +51,11 @@ const createSpeechConfig = () => {
   return speechConfig;
 };
 
-const parseWavHeader = (buffer: Buffer) => {
-  if (buffer.toString("ascii", 0, 4) !== "RIFF" || buffer.toString("ascii", 8, 12) !== "WAVE") {
-    return null;
-  }
-
-  let offset = 12;
-  let fmtChunkOffset = -1;
-  let dataOffset = -1;
-
-  while (offset < buffer.length - 8) {
-    const chunkId = buffer.toString("ascii", offset, offset + 4);
-    const chunkSize = buffer.readUInt32LE(offset + 4);
-    if (chunkId === "fmt ") fmtChunkOffset = offset;
-    if (chunkId === "data") {
-      dataOffset = offset + 8;
-      break;
-    }
-    offset += 8 + chunkSize;
-  }
-
-  if (fmtChunkOffset === -1 || dataOffset === -1) {
-    return null;
-  }
-
-  const audioFormat = buffer.readUInt16LE(fmtChunkOffset + 8);
-  const numChannels = buffer.readUInt16LE(fmtChunkOffset + 10);
-  const sampleRate = buffer.readUInt32LE(fmtChunkOffset + 12);
-  const bitsPerSample = buffer.readUInt16LE(fmtChunkOffset + 22);
-
-  if (audioFormat !== 1) return null; // PCM only
-
-  return { numChannels, sampleRate, bitsPerSample, dataOffset };
-};
-
 const createAudioStream = (audioBase64: string, mimeType?: string | null) => {
   const normalized = normalizeBase64Audio(audioBase64);
   const audioBuffer = Buffer.from(normalized, "base64");
   if (!audioBuffer.byteLength) {
     throw new Error("Invalid audio payload for pronunciation scoring.");
-  }
-
-  // Prefer WAV to ensure Azure can parse PCM payload
-  if (mimeType?.includes("wav")) {
-    const wavMeta = parseWavHeader(audioBuffer);
-    if (wavMeta) {
-      const pcmData = audioBuffer.subarray(wavMeta.dataOffset);
-      const format = sdk.AudioStreamFormat.getWaveFormatPCM(wavMeta.sampleRate, wavMeta.bitsPerSample, wavMeta.numChannels);
-      const pushStream = sdk.AudioInputStream.createPushStream(format);
-      return { pushStream, audioBuffer: pcmData };
-    }
   }
 
   const hasCompressed =
@@ -170,7 +125,11 @@ const runAzurePronunciationAssessment = async (input: { audioBase64: string; tex
       }
     };
     recognizer.canceled = (_s, e) => {
-      console.error("[azure:pronunciation] canceled", { errorDetails: e.errorDetails, reason: e.reason });
+      console.error("[azure:pronunciation] canceled", {
+        errorDetails: e.errorDetails,
+        reason: e.reason,
+        reasonText: sdk.CancellationReason[e.reason],
+      });
       reject(new Error(e.errorDetails || "Azure pronunciation assessment canceled."));
       finish();
     };
@@ -197,15 +156,35 @@ const runAzurePronunciationAssessment = async (input: { audioBase64: string; tex
       }
     );
     setTimeout(() => finish(), 15000);
-  }).finally(() => recognizer.close());
+  })
+    .then(() => {
+      console.log("[azure:pronunciation] recognition finished", {
+        results: results.length,
+        reasons: results.map((r) => r.reason),
+      });
+    })
+    .catch((err) => {
+      console.error("[azure:pronunciation] recognition error", { message: (err as Error).message });
+      throw err;
+    })
+    .finally(() => recognizer.close());
 
   const best = results.at(-1);
   if (!best) {
+    console.error("[azure:pronunciation] no speech recognized");
     throw new Error("No speech recognized for pronunciation assessment.");
   }
 
   const assessment = sdk.PronunciationAssessmentResult.fromResult(best);
   const rawDetail = best.properties.getProperty(sdk.PropertyId.SpeechServiceResponse_JsonResult);
+  console.log("[azure:pronunciation] best result", {
+    duration: best.duration,
+    offset: best.offset,
+    pronunciationScore: assessment?.pronunciationScore,
+    fluencyScore: assessment?.fluencyScore,
+    accuracyScore: assessment?.accuracyScore,
+    completenessScore: assessment?.completenessScore,
+  });
   const wordScores = parseWordScores(rawDetail);
 
   return {
