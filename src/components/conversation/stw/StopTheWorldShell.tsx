@@ -297,6 +297,7 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
           { base64: audioBase64, mimeType: blob.type, audioUrl }
         );
       } catch (err) {
+        console.error("[stw] transcription/evaluation failed", err);
         setError((err as Error).message);
       } finally {
         setIsTranscribing(false);
@@ -311,7 +312,7 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
       if (recordingStatus === "recording") return;
 
       const lastUser = latestUserBubble();
-      if (lastUser && ["recording", "pending", "evaluating"].includes(lastUser.state)) {
+      if (!reuseBubbleId && lastUser && ["recording", "pending", "evaluating"].includes(lastUser.state)) {
         setError("Finish the current attempt before starting a new one.");
         return;
       }
@@ -555,7 +556,7 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
         </div>
 
         {error && (
-          <div className="absolute bottom-24 left-6 right-6 bg-red-50 text-red-500 p-3 rounded-lg text-sm text-center border border-red-100">
+          <div className="fixed bottom-28 left-1/2 -translate-x-1/2 max-w-xl w-[90%] bg-red-50 text-red-600 p-3 rounded-lg text-sm text-center border border-red-100 shadow-md z-50">
             {error}
           </div>
         )}

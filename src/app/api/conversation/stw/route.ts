@@ -127,6 +127,7 @@ async function transcribeWithOpenAI(audioBase64: string, mimeType?: string | nul
   const normalized = cleanBase64Audio(audioBase64);
   const buffer = Buffer.from(normalized, "base64");
   if (!buffer.byteLength) {
+    console.error("[stw:transcribe] empty audio buffer");
     throw new Error("Invalid audio payload for transcription.");
   }
 
@@ -137,6 +138,7 @@ async function transcribeWithOpenAI(audioBase64: string, mimeType?: string | nul
   const extension = fileType.includes("wav") ? "wav" : fileType.includes("mp3") ? "mp3" : "webm";
 
   const file = await toFile(buffer, `speech.${extension}`, { type: fileType });
+  console.log("[stw:transcribe] request", { provider, model, mimeType: fileType, size: buffer.byteLength });
   const transcription = await client.audio.transcriptions.create({
     file,
     model,
@@ -156,8 +158,16 @@ async function handleTranscribe(payload: unknown) {
 
   try {
     const transcription = await transcribeWithOpenAI(parsed.audioBase64, parsed.mimeType, parsed.hint);
+    if (!transcription.text) {
+      throw new Error("Empty transcript returned from STT model.");
+    }
     return { text: transcription.text, modelId: transcription.modelId };
   } catch (error) {
+    console.error("[stw:transcribe] failed", {
+      error: (error as Error).message,
+      mimeType: parsed.mimeType,
+      size: parsed.audioBase64?.length ?? 0,
+    });
     const fallback = "";
     let modelId = getAssignment("stw_stt");
     if (!modelId) {
