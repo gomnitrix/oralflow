@@ -189,7 +189,6 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
         sessionId: sessionRef.current.id,
         audioBase64,
         mimeType,
-        hint: mainGoal || scenarioTitle,
       });
       if (data.warning) {
         throw new Error(data.warning);

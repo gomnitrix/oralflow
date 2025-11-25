@@ -56,7 +56,6 @@ export const stwTranscribeRequestSchema = z.object({
   sessionId: z.string().min(1, "sessionId is required"),
   audioBase64: z.string().min(1, "audioBase64 is required"),
   mimeType: z.string().optional().nullable(),
-  hint: z.string().optional().nullable(),
   durationMs: z.number().optional().nullable(),
 });
 

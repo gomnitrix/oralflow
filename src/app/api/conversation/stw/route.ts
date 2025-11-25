@@ -11,7 +11,7 @@ import { SettingsService, type AssignmentCapability } from "../../../../services
 import { synthesizePlaceholderSpeech } from "../../../../lib/audio/placeholder";
 import { synthesizeSpeech } from "../../../../services/ai/tts";
 import { createOpenAIClient, resolveModelForCapability } from "../../../../services/ai/model-routing";
-import { ProviderManager, type ProviderType } from "../../../../services/ai/provider-manager";
+import { ProviderManager } from "../../../../services/ai/provider-manager";
 
 export const runtime = "nodejs";
 const settings = SettingsService.getInstance();
@@ -125,7 +125,25 @@ async function handleCopilot(payload: unknown) {
   return { insight, modelId: getAssignment("copilot_inspiration") };
 }
 
-async function transcribeWithOpenAI(audioBase64: string, mimeType?: string | null, hint?: string | null) {
+const sanitizeTranscript = (text: string, provider: string, model: string): string => {
+  const trimmed = text.trim().replace(/^["“]|["”]$/g, "").trim();
+  if (!trimmed) {
+    throw new Error(`Empty transcript returned from provider ${provider} (model ${model}).`);
+  }
+  if (trimmed.toUpperCase().includes("TRANSCRIPTION_UNAVAILABLE")) {
+    throw new Error(`Provider ${provider} could not transcribe the audio (model ${model}).`);
+  }
+  const base64Like = trimmed.match(/[A-Za-z0-9+/=]{120,}/);
+  if (base64Like && base64Like[0].length > 200) {
+    throw new Error(`Provider ${provider} returned non-text content instead of transcript (model ${model}).`);
+  }
+  if (trimmed.length > 4000) {
+    throw new Error(`Provider ${provider} returned an unusually long response for transcript (model ${model}).`);
+  }
+  return trimmed;
+};
+
+async function transcribeWithOpenAI(audioBase64: string, mimeType?: string | null) {
   const normalized = cleanBase64Audio(audioBase64);
   const buffer = Buffer.from(normalized, "base64");
   if (!buffer.byteLength) {
@@ -134,7 +152,6 @@ async function transcribeWithOpenAI(audioBase64: string, mimeType?: string | nul
 
   const { provider, model } = resolveModelForCapability("stw_stt", { categoryOverride: "stt", fallbackModel: "whisper-1" });
   const fileType = mimeType || "audio/webm";
-  const audioSnippet = normalized.slice(0, 4000);
   const providerInfo = ProviderManager.getInstance().getProvider(provider);
 
   if (providerInfo?.id === "openai") {
@@ -144,54 +161,49 @@ async function transcribeWithOpenAI(audioBase64: string, mimeType?: string | nul
     const transcription = await client.audio.transcriptions.create({
       file,
       model,
-      ...(hint ? { prompt: hint } : {}),
     });
-    const text = transcription.text?.trim() ?? "";
-    if (!text) {
-      throw new Error("Empty transcript returned from STT model.");
-    }
+    const text = sanitizeTranscript(transcription.text ?? "", provider, model);
     return { text, modelId: model };
   }
+
+  const format =
+    fileType.includes("wav")
+      ? "wav"
+      : fileType.includes("mp3")
+        ? "mp3"
+        : fileType.includes("ogg")
+          ? "ogg"
+          : fileType.includes("webm")
+            ? "webm"
+            : "wav";
 
   const client = createOpenAIClient(provider);
   const completion = await client.chat.completions.create({
     model,
     messages: [
-      { role: "system", content: "You are a speech-to-text engine. Return only the clean transcript." },
-      { role: "user", content: `Audio (base64 ${fileType}, truncated): ${audioSnippet}` },
-      hint ? { role: "user", content: `Context: ${hint}` } : { role: "user", content: "If unclear, guess the likely transcript." },
+      {
+        role: "user",
+        content: [
+          { type: "text", text: "Generate a transcript of the speech." },
+          // @ts-expect-error openai sdk typings lag behind multimodal input_audio support for some providers
+          { type: "input_audio", input_audio: { data: normalized, format } },
+        ],
+      },
     ],
-    temperature: 0.2,
+    temperature: 0,
   });
-  const text = completion.choices?.[0]?.message?.content?.trim() ?? "";
-  if (!text) {
-    throw new Error(`Transcription failed for provider ${provider} (model ${model}).`);
-  }
+  const text = sanitizeTranscript(completion.choices?.[0]?.message?.content ?? "", provider, model);
   return { text, modelId: model };
 }
 
 async function handleTranscribe(payload: unknown) {
   const parsed = stwTranscribeRequestSchema.parse(payload);
 
-  try {
-    const transcription = await transcribeWithOpenAI(parsed.audioBase64, parsed.mimeType, parsed.hint);
-    if (!transcription.text) {
-      throw new Error("Empty transcript returned from STT model.");
-    }
-    return { text: transcription.text, modelId: transcription.modelId };
-  } catch (error) {
-    const fallback = "";
-    let modelId = getAssignment("stw_stt");
-    if (!modelId) {
-      try {
-        modelId = resolveModelForCapability("stw_stt", { categoryOverride: "stt", fallbackModel: "whisper-1" }).model;
-      } catch {
-        modelId = null;
-      }
-    }
-    const message = (error as Error).message || "STT failed";
-    return { text: fallback, modelId, warning: `${message}${modelId ? ` (model: ${modelId})` : ""}` };
+  const transcription = await transcribeWithOpenAI(parsed.audioBase64, parsed.mimeType);
+  if (!transcription.text) {
+    throw new Error("Empty transcript returned from STT model.");
   }
+  return { text: transcription.text, modelId: transcription.modelId };
 }
 
 export async function POST(request: Request) {
