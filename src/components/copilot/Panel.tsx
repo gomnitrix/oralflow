@@ -202,22 +202,6 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({
 }) => {
   const { context, updateContext } = useBubbleContext(selectedBubble?.id);
   const summary = selectedBubble?.evaluationSummary;
-  const [autoPlayed, setAutoPlayed] = useState(false);
-
-  useEffect(() => {
-    // Reset autoplay when reference audio or mode changes
-    setAutoPlayed(false);
-  }, [summary?.referenceAudioUrl, mode]);
-
-  useEffect(() => {
-    if (mode !== "assessment") return;
-    if (!summary?.referenceAudioUrl) return;
-    if (autoPlayed) return;
-    if (typeof Audio === "undefined") return;
-    const audio = new Audio(summary.referenceAudioUrl);
-    audio.play().catch(() => undefined);
-    setAutoPlayed(true);
-  }, [autoPlayed, mode, summary?.referenceAudioUrl]);
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {

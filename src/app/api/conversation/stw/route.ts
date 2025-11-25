@@ -158,7 +158,7 @@ async function handleTranscribe(payload: unknown) {
     const transcription = await transcribeWithOpenAI(parsed.audioBase64, parsed.mimeType, parsed.hint);
     return { text: transcription.text, modelId: transcription.modelId };
   } catch (error) {
-    const fallback = parsed.hint || "Recorded response";
+    const fallback = "";
     let modelId = getAssignment("stw_stt");
     if (!modelId) {
       try {

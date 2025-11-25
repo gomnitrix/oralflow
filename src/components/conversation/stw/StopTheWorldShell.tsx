@@ -191,7 +191,10 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
         mimeType,
         hint: mainGoal || scenarioTitle,
       });
-      return data.text || "Recorded response";
+      if (!data.text) {
+        throw new Error("Transcription unavailable. Please retry.");
+      }
+      return data.text;
     },
     [mainGoal, scenarioTitle]
   );
@@ -302,72 +305,99 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
     [evaluateBubble, latestUserBubble, transcribeAudio, updateSession]
   );
 
-  const handleRecord = useCallback(async () => {
-    setError(null);
-    if (recordingStatus === "recording") return;
+  const handleRecord = useCallback(
+    async (reuseBubbleId?: string) => {
+      setError(null);
+      if (recordingStatus === "recording") return;
 
-    const lastUser = latestUserBubble();
-    if (lastUser && ["recording", "pending", "evaluating"].includes(lastUser.state)) {
-      setError("Finish the current attempt before starting a new one.");
-      return;
-    }
+      const lastUser = latestUserBubble();
+      if (lastUser && ["recording", "pending", "evaluating"].includes(lastUser.state)) {
+        setError("Finish the current attempt before starting a new one.");
+        return;
+      }
 
-    try {
-      const requestStream = () => {
-        const navAny = navigator as any;
-        const legacy = navAny.getUserMedia || navAny.webkitGetUserMedia || navAny.mozGetUserMedia;
-        if (!navigator.mediaDevices) {
-          (navAny.mediaDevices as any) = {};
-        }
-        if (!navigator.mediaDevices.getUserMedia && legacy) {
-          navigator.mediaDevices.getUserMedia = (constraints: MediaStreamConstraints) =>
-            new Promise<MediaStream>((resolve, reject) => legacy.call(navigator, constraints, resolve, reject));
-        }
+      try {
+        const requestStream = () => {
+          const navAny = navigator as any;
+          const legacy = navAny.getUserMedia || navAny.webkitGetUserMedia || navAny.mozGetUserMedia;
+          if (!navigator.mediaDevices) {
+            (navAny.mediaDevices as any) = {};
+          }
+          if (!navigator.mediaDevices.getUserMedia && legacy) {
+            navigator.mediaDevices.getUserMedia = (constraints: MediaStreamConstraints) =>
+              new Promise<MediaStream>((resolve, reject) => legacy.call(navigator, constraints, resolve, reject));
+          }
 
-        if (navigator.mediaDevices?.getUserMedia) {
-          return navigator.mediaDevices.getUserMedia({ audio: true });
-        }
-        throw new Error("getUserMedia not available");
-      };
+          if (navigator.mediaDevices?.getUserMedia) {
+            return navigator.mediaDevices.getUserMedia({ audio: true });
+          }
+          throw new Error("getUserMedia not available");
+        };
 
-      const stream = await requestStream();
-      const recorder = new MediaRecorder(stream);
-      audioChunksRef.current = [];
+        const stream = await requestStream();
+        const recorder = new MediaRecorder(stream);
+        audioChunksRef.current = [];
 
-      recorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
-      };
+        recorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            audioChunksRef.current.push(event.data);
+          }
+        };
 
-      recorder.onstop = () => {
-        stream.getTracks().forEach((track) => track.stop());
-        if (!audioChunksRef.current.length) return;
-        const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || "audio/webm" });
-        void finalizeRecording(blob);
-      };
+        recorder.onstop = () => {
+          stream.getTracks().forEach((track) => track.stop());
+          if (!audioChunksRef.current.length) return;
+          const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || "audio/webm" });
+          void finalizeRecording(blob);
+        };
 
-      recorder.start();
-      mediaRecorderRef.current = recorder;
-      let newIndex = 0;
-      updateSession((prev) => {
-        const newBubble = createConversationBubble({ sessionId: prev.id, speaker: "user", state: "recording" });
-        const bubbles = [...prev.bubbles, newBubble];
-        newIndex = bubbles.length - 1;
-        return { ...prev, bubbles };
-      });
-      setActiveIndex(newIndex);
-      setRecordingStatus("recording");
-    } catch (err) {
-      console.error("Microphone access failed", err);
-      setRecordingStatus("idle");
-      setError(
-        err instanceof Error
-          ? `Microphone unavailable: ${err.message}. If on HTTP, allow insecure mic access or switch to HTTPS.`
-          : "Microphone unavailable. Please allow access and try again. If on HTTP, enable mic permissions."
-      );
-    }
-  }, [finalizeRecording, latestUserBubble, recordingStatus, updateSession]);
+        recorder.start();
+        mediaRecorderRef.current = recorder;
+
+        let targetIndex = 0;
+        const now = new Date().toISOString();
+        updateSession((prev) => {
+          const existing = reuseBubbleId
+            ? prev.bubbles.find((b) => b.id === reuseBubbleId && b.speaker === "user" && b.state !== "sent")
+            : null;
+
+          let bubbles: ConversationBubble[];
+          if (existing) {
+            bubbles = prev.bubbles.map((b) =>
+              b.id === existing.id
+                ? {
+                    ...b,
+                    text: "",
+                    audioUrl: null,
+                    state: "recording",
+                    evaluationId: null,
+                    evaluationSummary: null,
+                    updatedAt: now,
+                  }
+                : b
+            );
+            targetIndex = bubbles.findIndex((b) => b.id === existing.id);
+          } else {
+            const newBubble = createConversationBubble({ sessionId: prev.id, speaker: "user", state: "recording" });
+            bubbles = [...prev.bubbles, newBubble];
+            targetIndex = bubbles.length - 1;
+          }
+          return { ...prev, bubbles };
+        });
+        setActiveIndex(targetIndex);
+        setRecordingStatus("recording");
+      } catch (err) {
+        console.error("Microphone access failed", err);
+        setRecordingStatus("idle");
+        setError(
+          err instanceof Error
+            ? `Microphone unavailable: ${err.message}. If on HTTP, allow insecure mic access or switch to HTTPS.`
+            : "Microphone unavailable. Please allow access and try again. If on HTTP, enable mic permissions."
+        );
+      }
+    },
+    [finalizeRecording, latestUserBubble, recordingStatus, updateSession]
+  );
 
   const handleStop = useCallback(() => {
     if (recordingStatus !== "recording") return;
@@ -425,8 +455,9 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
 
   const handleRetry = useCallback(() => {
     setRecordingStatus("idle");
-    void handleRecord();
-  }, [handleRecord]);
+    const current = latestUserBubble();
+    void handleRecord(current?.id);
+  }, [handleRecord, latestUserBubble]);
 
   const handleCopilot = useCallback(
     async (type: "distill" | "inspiration", topic?: string) => {
