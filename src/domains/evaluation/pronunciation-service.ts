@@ -108,89 +108,64 @@ const runAzurePronunciationAssessment = async (input: { audioBase64: string; tex
   pronunciationConfig.enableProsodyAssessment = true;
   pronunciationConfig.applyTo(recognizer);
 
-  const results: sdk.SpeechRecognitionResult[] = [];
+  console.log("[azure:pronunciation] start", {
+    mimeType: input.audioMimeType,
+    byteLength: audioBuffer.byteLength,
+    textPreview: input.text.slice(0, 80),
+  });
 
-  await new Promise<void>((resolve, reject) => {
-    const finish = () => recognizer.stopContinuousRecognitionAsync(() => resolve(), (err) => reject(err));
+  try {
+    const result = await new Promise<sdk.SpeechRecognitionResult>((resolve, reject) => {
+      recognizer.recognizeOnceAsync(
+        (res) => {
+          resolve(res);
+        },
+        (err) => {
+          reject(err);
+        }
+      );
 
-    console.log("[azure:pronunciation] start", {
-      mimeType: input.audioMimeType,
-      byteLength: audioBuffer.byteLength,
-      textPreview: input.text.slice(0, 80),
+      try {
+        pushStream.write(audioBuffer.buffer.slice(audioBuffer.byteOffset, audioBuffer.byteOffset + audioBuffer.byteLength));
+        pushStream.close();
+      } catch (err) {
+        reject(err as Error);
+      }
+      setTimeout(() => reject(new Error("Azure pronunciation assessment timeout.")), 15000);
     });
 
-    recognizer.recognized = (_s, e) => {
-      if (e.result.reason === sdk.ResultReason.RecognizedSpeech) {
-        results.push(e.result);
-      }
-    };
-    recognizer.canceled = (_s, e) => {
+    if (result.reason === sdk.ResultReason.NoMatch) {
+      throw new Error("No speech recognized for pronunciation assessment.");
+    }
+    if (result.reason === sdk.ResultReason.Canceled) {
+      const cancellation = sdk.CancellationDetails.fromResult(result);
       console.error("[azure:pronunciation] canceled", {
-        errorDetails: e.errorDetails,
-        reason: e.reason,
-        reasonText: sdk.CancellationReason[e.reason],
+        reason: cancellation.reason,
+        reasonText: sdk.CancellationReason[cancellation.reason],
+        errorDetails: cancellation.errorDetails,
       });
-      reject(new Error(e.errorDetails || "Azure pronunciation assessment canceled."));
-      finish();
+      throw new Error(cancellation.errorDetails || "Azure pronunciation assessment canceled.");
+    }
+
+    const assessment = sdk.PronunciationAssessmentResult.fromResult(result);
+    const rawDetail = result.properties.getProperty(sdk.PropertyId.SpeechServiceResponse_JsonResult);
+    console.log("[azure:pronunciation] best result", {
+      duration: result.duration,
+      offset: result.offset,
+      pronunciationScore: assessment?.pronunciationScore,
+      fluencyScore: assessment?.fluencyScore,
+      accuracyScore: assessment?.accuracyScore,
+      completenessScore: assessment?.completenessScore,
+    });
+    const wordScores = parseWordScores(rawDetail);
+
+    return {
+      assessment,
+      wordScores,
     };
-    recognizer.sessionStopped = () => finish();
-
-    recognizer.startContinuousRecognitionAsync(
-      () => {
-        // Push audio after start to honor continuous mode semantics
-        try {
-          pushStream.write(audioBuffer.buffer.slice(audioBuffer.byteOffset, audioBuffer.byteOffset + audioBuffer.byteLength));
-          pushStream.close();
-        } catch (err) {
-          reject(err as Error);
-          finish();
-        }
-      },
-      (err: unknown) => {
-        const errorObj = err as any;
-        const normalized =
-          errorObj instanceof Error
-            ? errorObj
-            : new Error(typeof err === "string" ? err : "Failed to start Azure pronunciation assessment");
-        reject(normalized);
-      }
-    );
-    setTimeout(() => finish(), 15000);
-  })
-    .then(() => {
-      console.log("[azure:pronunciation] recognition finished", {
-        results: results.length,
-        reasons: results.map((r) => r.reason),
-      });
-    })
-    .catch((err) => {
-      console.error("[azure:pronunciation] recognition error", { message: (err as Error).message });
-      throw err;
-    })
-    .finally(() => recognizer.close());
-
-  const best = results.at(-1);
-  if (!best) {
-    console.error("[azure:pronunciation] no speech recognized");
-    throw new Error("No speech recognized for pronunciation assessment.");
+  } finally {
+    recognizer.close();
   }
-
-  const assessment = sdk.PronunciationAssessmentResult.fromResult(best);
-  const rawDetail = best.properties.getProperty(sdk.PropertyId.SpeechServiceResponse_JsonResult);
-  console.log("[azure:pronunciation] best result", {
-    duration: best.duration,
-    offset: best.offset,
-    pronunciationScore: assessment?.pronunciationScore,
-    fluencyScore: assessment?.fluencyScore,
-    accuracyScore: assessment?.accuracyScore,
-    completenessScore: assessment?.completenessScore,
-  });
-  const wordScores = parseWordScores(rawDetail);
-
-  return {
-    assessment,
-    wordScores,
-  };
 };
 
 const buildPronunciationIssues = (
