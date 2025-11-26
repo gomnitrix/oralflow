@@ -147,6 +147,7 @@ const StructuredGrid: React.FC<{
           <div
             key={note.id}
             className="group relative rounded-2xl bg-[#f9fafb] border border-custom-border/80 px-3 py-3 transition duration-200 hover:-translate-y-0.5 hover:shadow-md"
+            style={{ zIndex: 1 }}
           >
             <div className="flex items-start justify-between gap-2">
               <div>
@@ -164,8 +165,8 @@ const StructuredGrid: React.FC<{
               </button>
             </div>
 
-            <div className="absolute left-0 right-0 top-full mt-2 hidden group-hover:block z-30">
-              <div className="rounded-2xl bg-white border border-custom-border shadow-xl p-4 space-y-2 relative z-40">
+            <div className="absolute left-0 right-0 top-full mt-2 hidden group-hover:block z-50">
+              <div className="rounded-2xl bg-white border border-custom-border shadow-xl p-4 space-y-2 relative z-50">
                 <p className="text-xs font-semibold text-custom-text-dark/60 uppercase">Explanation</p>
                 <p className="text-sm text-custom-text-dark">EN: {note.explanation.en || ""}</p>
                 <p className="text-sm text-custom-text-dark">ZH: {note.explanation.zh || ""}</p>
@@ -264,7 +265,7 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({
                                 <div
                                   key={`${word.word}-${idx}`}
                                   className="relative group flex flex-col items-center min-w-[70px] px-1"
-                                  style={{ zIndex: 1 }}
+                                  style={{ zIndex: 10 }}
                                 >
                                   <div className="flex items-center gap-1 text-[11px]">
                                     <span className="text-custom-text-dark/50">/</span>
@@ -285,7 +286,7 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({
                                   >
                                     {word.word}
                                   </span>
-                                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 hidden group-hover:block whitespace-nowrap rounded-md bg-black text-white text-[11px] px-2 py-1 shadow z-20">
+                                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 hidden group-hover:block whitespace-nowrap rounded-md bg-black text-white text-[11px] px-2 py-1 shadow z-50">
                                     {`${word.word}: ${wordScore}/100${word.errorType && word.errorType !== "None" ? ` · ${word.errorType}` : ""}`}
                                   </div>
                                 </div>
