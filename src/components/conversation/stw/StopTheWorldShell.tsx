@@ -311,11 +311,16 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
     void bootstrapGreeting(freshSession, placeholder.id);
   }, [bootstrapGreeting, scenarioId, mainGoal, subGoals]);
 
+  const prevLengthRef = useRef(0);
   useEffect(() => {
     const endEl = transcriptEndRef.current;
     if (endEl && typeof endEl.scrollIntoView === "function") {
       endEl.scrollIntoView({ behavior: "smooth" });
     }
+    if (session.bubbles.length > prevLengthRef.current) {
+      setActiveIndex(session.bubbles.length - 1);
+    }
+    prevLengthRef.current = session.bubbles.length;
   }, [session.bubbles.length]);
 
   useEffect(() => {
@@ -575,6 +580,22 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
       return;
     }
 
+    // create placeholder AI bubble immediately
+    let placeholderId: string | null = null;
+    updateSession((prev) => {
+      const aiPlaceholder = createConversationBubble({
+        sessionId: prev.id,
+        speaker: "ai",
+        text: "",
+        state: "pending",
+      });
+      placeholderId = aiPlaceholder.id;
+      return { ...prev, bubbles: [...prev.bubbles, aiPlaceholder] };
+    });
+    if (placeholderId) {
+      setActiveIndex(sessionRef.current.bubbles.length); // will be adjusted by effect to last
+    }
+
     setIsReplying(true);
     try {
       const history = mapHistory(sessionRef.current.bubbles);
@@ -586,23 +607,23 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
         userText: pending.text,
       });
 
-      let newIndex = 0;
-      updateSession((prev) => {
-        const bubbles = prev.bubbles.map((b): ConversationBubble =>
-          b.id === pending.id ? { ...b, state: "sent", updatedAt: new Date().toISOString() } : b
-        );
-        const aiBubble = createConversationBubble({
-          sessionId: prev.id,
-          speaker: "ai",
-          text: data.reply,
-          audioUrl: data.audioUrl ?? null,
-          state: "sent",
-        });
-        const nextBubbles = [...bubbles, aiBubble];
-        newIndex = nextBubbles.length - 1;
-        return { ...prev, bubbles: nextBubbles };
-      });
-      setActiveIndex(newIndex);
+      updateSession((prev) => ({
+        ...prev,
+        bubbles: prev.bubbles.map((b): ConversationBubble =>
+          b.id === pending.id
+            ? { ...b, state: "sent", updatedAt: new Date().toISOString() }
+            : b.id === placeholderId
+              ? {
+                  ...b,
+                  text: data.reply,
+                  audioUrl: data.audioUrl ?? null,
+                  state: "sent",
+                  updatedAt: new Date().toISOString(),
+                }
+              : b
+        ),
+      }));
+
       if (data.goalStatus) {
         setGoalStatus(deriveGoalStatus(data.goalStatus, mainGoal, subGoals));
       }
@@ -679,16 +700,13 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
         <div className="col-span-10 lg:col-span-6 flex flex-col relative border-r border-custom-border bg-[#f8f6f6]">
           <header className="p-6 bg-transparent z-10 flex items-center justify-between gap-4">
             <div>
-              <h1 className="text-xl font-black text-custom-text-dark tracking-tight">{scenarioTitle}</h1>
-              <p className="text-sm text-custom-text-dark/60 mt-1">
-                {learnerRole ? `${learnerRole} ↔ ${aiRole ?? "AI Partner"}` : aiRole || "AI Partner"}
-              </p>
+              <h1 className="text-2xl font-black text-custom-text-dark tracking-tight">{scenarioTitle}</h1>
             </div>
 
           <div className="flex items-center gap-3">
             {mainGoal && (
               <div className="group relative">
-                <div className="bg-custom-primary/5 px-4 py-2 rounded-full border border-custom-primary/10 cursor-help flex items-center gap-2">
+                <div className="bg-custom-primary/5 px-3 py-1.5 rounded-full border border-custom-primary/10 cursor-help flex items-center gap-2">
                   <span
                     className={`material-symbols-outlined text-lg ${
                       goalStatus.main === "completed_all"
@@ -729,16 +747,20 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
               onClick={() => {
                 if (goalStatus.main === "completed_all") {
                   setIsEnding(true);
-                  router.push("/");
+                  setTimeout(() => router.push("/"), 400);
                 } else {
                   setShowEndConfirm(true);
                 }
               }}
-              className="flex items-center gap-2 bg-white border border-custom-border rounded-full px-3 py-2 text-sm font-semibold text-custom-text-dark shadow-sm hover:bg-gray-50 transition pointer-events-auto"
+              className="flex items-center justify-center bg-white border border-custom-border rounded-full w-10 h-10 text-custom-text-dark shadow-sm hover:shadow transition hover:-translate-y-0.5 pointer-events-auto"
               disabled={isEnding}
+              title="End session"
             >
-              <span className="material-symbols-outlined text-base">logout</span>
-              {isEnding ? "Ending..." : "End Session"}
+              {isEnding ? (
+                <span className="material-symbols-outlined text-base text-gray-400 animate-ping">logout</span>
+              ) : (
+                <span className="material-symbols-outlined text-base text-gray-500">logout</span>
+              )}
             </button>
           </div>
         </header>
@@ -746,6 +768,7 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
         <div className="flex-1 overflow-y-auto p-6 pb-32 scroll-smooth">
           <TranscriptList
             bubbles={bubblesWithActive as ConversationBubble[]}
+            speakerLabels={{ user: learnerRole || "User", ai: aiRole || "AI" }}
             onBubbleClick={(id) => {
               const idx = session.bubbles.findIndex((b) => b.id === id);
               if (idx !== -1) setActiveIndex(idx);
@@ -802,7 +825,7 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
               onClick={() => {
                 setIsEnding(true);
                 setShowEndConfirm(false);
-                router.push("/");
+                setTimeout(() => router.push("/"), 400);
               }}
             >
               End anyway

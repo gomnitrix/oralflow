@@ -4,12 +4,13 @@ import type { ConversationBubble } from "../../domains/conversation/models";
 export interface TranscriptListProps {
   bubbles: ConversationBubble[];
   onBubbleClick?: (id: string) => void;
+  speakerLabels?: { user: string; ai: string };
 }
 
 const AI_AVATAR_URL = "https://lh3.googleusercontent.com/aida-public/AB6AXuDKwpxleXsknFFucb_wNgxEnE3VXJ52Mv1-DrdF9VZI6Z76ngJm5DLDw4eBnD881E7M38dSacAKr76YZuBVhIKXwVomUeld1clqBoJikOknBiO88ButxebP7dWKLUlu9-szSq0S97Mn7TPLGDW9rp3gecAvCwnXLaO2Z6pZ6XFywRZiQrn8_zExjFYmHGWj94Oge-mzbEEaTEqqeywVGZCwrNFaZ2AWJLdr854orewqLDhQ4keLe-1lfXPTyMak8QoaTUWdYy-GPf0";
 const USER_AVATAR_URL = "https://lh3.googleusercontent.com/aida-public/AB6AXuDKwpxleXsknFFucb_wNgxEnE3VXJ52Mv1-DrdF9VZI6Z76ngJm5DLDw4eBnD881E7M38dSacAKr76YZuBVhIKXwVomUeld1clqBoJikOknBiO88ButxebP7dWKLUlu9-szSq0S97Mn7TPLGDW9rp3gecAvCwnXLaO2Z6pZ6XFywRZiQrn8_zExjFYmHGWj94Oge-mzbEEaTEqqeywVGZCwrNFaZ2AWJLdr854orewqLDhQ4keLe-1lfXPTyMak8QoaTUWdYy-GPf0";
 
-export const TranscriptList: React.FC<TranscriptListProps> = ({ bubbles, onBubbleClick }) => {
+export const TranscriptList: React.FC<TranscriptListProps> = ({ bubbles, onBubbleClick, speakerLabels }) => {
   const playAudio = (url: string) => {
     const audio = new Audio(url);
     audio.play().catch(e => console.error("Failed to play audio:", e));
@@ -40,7 +41,7 @@ export const TranscriptList: React.FC<TranscriptListProps> = ({ bubbles, onBubbl
               {/* Speaker Name */}
               <span className={`text-[10px] uppercase font-bold tracking-wider px-1 ${isUser ? "text-custom-primary/80" : "text-custom-text-dark/40"
                 }`}>
-                {bubble.speaker}
+                {bubble.speaker === "ai" ? speakerLabels?.ai ?? "AI" : speakerLabels?.user ?? "User"}
               </span>
 
               <div className="relative">
@@ -54,8 +55,10 @@ export const TranscriptList: React.FC<TranscriptListProps> = ({ bubbles, onBubbl
                       : "bg-white text-custom-text-dark border-custom-border rounded-bl-none"
                     }`}
                 >
-                  {bubble.text || (
-                    <span className="italic opacity-50">Preparing...</span>
+                  {bubble.text ? (
+                    bubble.text
+                  ) : (
+                    <span className="italic opacity-50 animate-pulse">...</span>
                   )}
                 </div>
 
