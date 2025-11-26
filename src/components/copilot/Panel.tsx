@@ -252,32 +252,38 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({
 
                       {(summary.wordScores ?? []).length > 0 && (
                         <div className="mt-4 space-y-2">
-                          <p className="text-xs font-semibold text-custom-text-dark/60 uppercase mb-1">Pronunciation detail</p>
-                          <div className="leading-7 text-sm flex flex-wrap gap-2">
+                          <p className="text-xs font-semibold text-custom-text-dark/60 uppercase mb-1">Pronunciation</p>
+                          <div className="leading-7 text-sm flex flex-wrap gap-3">
                             {(summary.wordScores ?? []).map((word, idx) => {
                               const wordScore = word.accuracy ?? 0;
                               const wordColor =
                                 wordScore >= 90 ? "text-green-700" : wordScore >= 75 ? "text-amber-700" : "text-red-700";
+                              const phonemes = word.phonemes ?? [];
+                              const ipaPieces = phonemes.map((p) => p.ipa || p.phoneme);
                               return (
-                                <div key={`${word.word}-${idx}`} className="flex flex-col items-start">
-                                  <div className="flex gap-1 text-[11px]">
-                                    {(word.phonemes ?? []).map((p, pIdx) => {
+                                <div key={`${word.word}-${idx}`} className="relative group flex flex-col items-center min-w-[90px]">
+                                  <div className="flex items-center gap-1 text-[11px]">
+                                    <span className="text-custom-text-dark/50">/</span>
+                                    {phonemes.map((p, pIdx) => {
                                       const score = p.accuracy ?? 0;
                                       const color =
                                         score >= 90 ? "text-green-600" : score >= 75 ? "text-amber-600" : "text-red-600";
                                       return (
                                         <span key={`${word.word}-phoneme-${p.phoneme}-${pIdx}`} className={`${color} font-semibold`}>
-                                          {p.phoneme}
+                                          {p.ipa || p.phoneme}
                                         </span>
                                       );
                                     })}
+                                    <span className="text-custom-text-dark/50">/</span>
                                   </div>
                                   <span
                                     className={`font-semibold ${wordColor}`}
-                                    title={`${word.word}: ${wordScore}/100${word.errorType && word.errorType !== "None" ? ` · ${word.errorType}` : ""}`}
                                   >
                                     {word.word}
                                   </span>
+                                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 hidden group-hover:block whitespace-nowrap rounded-md bg-black text-white text-[11px] px-2 py-1 shadow">
+                                    {`${word.word}: ${wordScore}/100${word.errorType && word.errorType !== "None" ? ` · ${word.errorType}` : ""}`}
+                                  </div>
                                 </div>
                               );
                             })}

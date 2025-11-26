@@ -42,6 +42,7 @@ export interface EvaluationRecord {
     phonemes?: {
       phoneme: string;
       accuracy: number;
+      ipa?: string;
     }[];
   }[];
   grammarIssues: string[];

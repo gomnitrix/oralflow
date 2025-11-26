@@ -76,7 +76,59 @@ const createAudioStream = (audioBase64: string, mimeType?: string | null) => {
   return { pushStream, audioBuffer };
 };
 
-const parseWordScores = (rawDetail: unknown): { word: string; accuracy: number; errorType?: string | null; phonemes?: { phoneme: string; accuracy: number }[] }[] => {
+const ARPABET_TO_IPA: Record<string, string> = {
+  AA: "ɑ",
+  AE: "æ",
+  AH: "ʌ",
+  AO: "ɔ",
+  AW: "aʊ",
+  AY: "aɪ",
+  B: "b",
+  CH: "tʃ",
+  D: "d",
+  DH: "ð",
+  EH: "ɛ",
+  ER: "ɝ",
+  EY: "eɪ",
+  F: "f",
+  G: "g",
+  HH: "h",
+  IH: "ɪ",
+  IY: "i",
+  JH: "dʒ",
+  K: "k",
+  L: "l",
+  M: "m",
+  N: "n",
+  NG: "ŋ",
+  OW: "oʊ",
+  OY: "ɔɪ",
+  P: "p",
+  R: "ɹ",
+  S: "s",
+  SH: "ʃ",
+  T: "t",
+  TH: "θ",
+  UH: "ʊ",
+  UW: "u",
+  V: "v",
+  W: "w",
+  Y: "j",
+  Z: "z",
+  ZH: "ʒ",
+};
+
+const toIPA = (phoneme: string): string => {
+  const base = phoneme.replace(/[0-2]$/g, "").toUpperCase();
+  return ARPABET_TO_IPA[base] ?? base.toLowerCase();
+};
+
+const parseWordScores = (rawDetail: unknown): {
+  word: string;
+  accuracy: number;
+  errorType?: string | null;
+  phonemes?: { phoneme: string; accuracy: number; ipa?: string }[];
+}[] => {
   try {
     const detail = typeof rawDetail === "string" ? JSON.parse(rawDetail) : (rawDetail as any);
     const words = detail?.NBest?.[0]?.Words;
@@ -90,6 +142,7 @@ const parseWordScores = (rawDetail: unknown): { word: string; accuracy: number; 
           ? w.Phonemes.map((p: any) => ({
               phoneme: p?.Phoneme ?? "",
               accuracy: Math.round(p?.PronunciationAssessment?.AccuracyScore ?? 0),
+              ipa: p?.Phoneme ? toIPA(p.Phoneme) : undefined,
             })).filter((p: { phoneme: string }) => !!p.phoneme)
           : [],
       }))
