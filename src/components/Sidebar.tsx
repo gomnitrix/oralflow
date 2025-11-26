@@ -9,7 +9,7 @@ const Sidebar = () => {
     const isActive = (path: string) => pathname === path;
 
     return (
-        <aside className="sticky top-0 flex h-screen flex-col justify-between border-r border-custom-border bg-white p-4 w-[260px] hidden lg:flex">
+        <aside className="sticky top-0 flex h-screen flex-col justify-between border-r border-custom-border bg-white p-5 w-[270px] hidden lg:flex text-[15px]">
             <div className="flex flex-col gap-8">
                 <div className="flex items-center gap-3 px-3">
                     <div
@@ -19,9 +19,9 @@ const Sidebar = () => {
                                 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuCIuu5MGLYKRPxdWpL2b9hpaMLb9B08w1B6TCzcOiJASraTFFzgbYAbJ0ctAA_hvm4J7WD2cFGHANLr5KwlwPEMrwO7G6twy04z1EtaoeRK39B3rg8ySBxCxeZ3Mv37FVBPIPKwLncNr85VA3Fq7-JjbWMZMBcIm2U69wmIZFW1FGcvthJOq0K-ZwvTV0QfEaVeW8LZYY2UWW06gtY0eX9ShL0kjEAQ6LgLH9OAsBf-jvMbxhVeEUTzxXVffJNTMi0AyqF8h2c2Byk")',
                         }}
                     ></div>
-                    <h1 className="text-custom-text-dark text-lg font-bold">OralFlow</h1>
+                    <h1 className="text-custom-text-dark text-xl font-bold">OralFlow</h1>
                 </div>
-                <nav className="flex flex-col gap-2">
+                <nav className="flex flex-col gap-2 text-[15px]">
                     <Link
                         href="/"
                         className={`flex items-center gap-3 px-4 py-2 rounded-full transition-colors ${isActive("/")

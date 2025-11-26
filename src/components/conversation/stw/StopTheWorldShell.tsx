@@ -302,7 +302,7 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
     const placeholder = createConversationBubble({
       sessionId: freshSession.id,
       speaker: "ai",
-      text: "Preparing reply…",
+      text: "",
       state: "pending",
     });
     setSession({ ...freshSession, bubbles: [placeholder] });

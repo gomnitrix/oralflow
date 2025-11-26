@@ -16,6 +16,14 @@ export const TranscriptList: React.FC<TranscriptListProps> = ({ bubbles, onBubbl
     audio.play().catch(e => console.error("Failed to play audio:", e));
   };
 
+  const TypingIndicator: React.FC = () => (
+    <span className="inline-flex items-center gap-1 text-sm opacity-60">
+      <span className="w-2 h-2 rounded-full bg-current animate-bounce [animation-delay:0ms]"></span>
+      <span className="w-2 h-2 rounded-full bg-current animate-bounce [animation-delay:120ms]"></span>
+      <span className="w-2 h-2 rounded-full bg-current animate-bounce [animation-delay:240ms]"></span>
+    </span>
+  );
+
   return (
     <div className="space-y-6">
       {bubbles.map((bubble) => {
@@ -55,11 +63,7 @@ export const TranscriptList: React.FC<TranscriptListProps> = ({ bubbles, onBubbl
                       : "bg-white text-custom-text-dark border-custom-border rounded-bl-none"
                     }`}
                 >
-                  {bubble.text ? (
-                    bubble.text
-                  ) : (
-                    <span className="italic opacity-50 animate-pulse">...</span>
-                  )}
+                  {bubble.text ? bubble.text : <TypingIndicator />}
                 </div>
 
                 {/* Audio Button (Floating) */}
