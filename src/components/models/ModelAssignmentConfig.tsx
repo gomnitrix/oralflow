@@ -56,6 +56,7 @@ export const ModelAssignmentConfig: React.FC<Props> = ({ settings, onUpdateAssig
                 <h2 className="text-lg font-semibold mb-4">Zen Mode</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-2">
                     {renderSelect('zen_realtime', 'Real-time Model', 'Used for Zen mode (First-party providers only)', availableModels.realtime_speech, false)}
+                    {renderSelect('zen_goal', 'Goal Completion', 'Assess completion of goals from conversation', availableModels.language)}
                 </div>
             </div>
 
@@ -68,6 +69,7 @@ export const ModelAssignmentConfig: React.FC<Props> = ({ settings, onUpdateAssig
                     {renderSelect('stw_stt', 'Speech-to-Text', 'Transcribe user audio', availableModels.stt, true)}
                     {renderSelect('stw_tts', 'Text-to-Speech', 'Generate AI voice', availableModels.tts, true)}
                     {renderSelect('stw_assessment_text', 'Assessment (Text Analysis)', 'Analyze user text for suggestions', availableModels.language)}
+                    {renderSelect('stw_goal', 'Goal Completion', 'Evaluate which goals are completed', availableModels.language)}
                 </div>
             </div>
 

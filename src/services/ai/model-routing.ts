@@ -9,6 +9,8 @@ const capabilityCategoryMap: Partial<Record<AssignmentCapability, ModelCategory>
   stw_tts: "tts",
   stw_stt: "stt",
   zen_realtime: "realtime_speech",
+  stw_goal: "language",
+  zen_goal: "language",
 };
 
 const defaultModelByCategory: Record<ModelCategory, string> = {

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import {
   createConversationBubble,
@@ -21,6 +22,12 @@ export interface StopTheWorldShellProps {
   subGoals?: string[];
   description?: string;
 }
+
+type GoalStatusValue = "pending" | "partial" | "completed" | "completed_all";
+type GoalStatus = {
+  main: GoalStatusValue;
+  subGoals: { text: string; status: "pending" | "completed" }[];
+};
 
 const blobToBase64 = async (blob: Blob): Promise<string> =>
   new Promise((resolve, reject) => {
@@ -165,6 +172,38 @@ const convertBlobToWav = async (blob: Blob): Promise<Blob> => {
   return new Blob([wavBuffer], { type: "audio/wav" });
 };
 
+const deriveGoalStatus = (
+  response: any,
+  mainGoal?: string,
+  subGoals?: string[]
+): GoalStatus => {
+  const sub = (subGoals ?? []).map((text) => ({ text, status: "pending" as const }));
+  if (!response) {
+    return { main: "pending", subGoals: sub };
+  }
+
+  const fromResponse = (response.subStatuses ?? response.subgoals ?? response.subGoals ?? []) as any[];
+  const mappedSubs: { text: string; status: "pending" | "completed" }[] = sub.map((sg) => {
+    const match = fromResponse.find((r) => typeof r?.text === "string" && r.text.trim().toLowerCase() === sg.text.trim().toLowerCase());
+    const status = typeof match?.status === "string" ? match.status.toLowerCase() : "pending";
+    return { text: sg.text, status: status === "completed" ? "completed" : "pending" };
+  });
+
+  const mainStatus = typeof response.mainStatus === "string" ? response.mainStatus.toLowerCase()
+    : typeof response.main_status === "string" ? response.main_status.toLowerCase()
+    : "not_started";
+
+  const allSubsCompleted = mappedSubs.every((sg) => sg.status === "completed");
+  let main: GoalStatusValue = "pending";
+  if (mainStatus === "completed") {
+    main = allSubsCompleted ? "completed_all" : "partial";
+  } else if (mainStatus === "in_progress") {
+    main = "partial";
+  }
+
+  return { main, subGoals: mappedSubs };
+};
+
 export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
   scenarioId,
   scenarioTitle,
@@ -174,6 +213,7 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
   subGoals,
   description,
 }) => {
+  const router = useRouter();
   const [session, setSession] = useState<ConversationSession>(() =>
     createConversationSession({ scenarioId, mode: "stw" })
   );
@@ -184,6 +224,11 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [isReplying, setIsReplying] = useState(false);
   const [copilotLoading, setCopilotLoading] = useState(false);
+  const [goalStatus, setGoalStatus] = useState<GoalStatus>(() =>
+    deriveGoalStatus(null, mainGoal, subGoals)
+  );
+  const [showEndConfirm, setShowEndConfirm] = useState(false);
+  const [isEnding, setIsEnding] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const transcriptEndRef = useRef<HTMLDivElement>(null);
@@ -224,7 +269,7 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
   const bootstrapGreeting = useCallback(
     async (targetSession: ConversationSession, placeholderId?: string) => {
       try {
-        const data = await callAction<{ reply: string; audioUrl?: string | null }>({
+        const data = await callAction<{ reply: string; audioUrl?: string | null; goalStatus?: any }>({
           action: "start",
           scenario,
         });
@@ -237,6 +282,9 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
               : b
           ),
         }));
+        if (data.goalStatus) {
+          setGoalStatus(deriveGoalStatus(data.goalStatus, mainGoal, subGoals));
+        }
         setActiveIndex(0);
         if (data.audioUrl && typeof Audio !== "undefined") {
           const audio = new Audio(data.audioUrl);
@@ -261,7 +309,7 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
     setActiveIndex(0);
     setRecordingStatus("idle");
     void bootstrapGreeting(freshSession, placeholder.id);
-  }, [bootstrapGreeting, scenarioId]);
+  }, [bootstrapGreeting, scenarioId, mainGoal, subGoals]);
 
   useEffect(() => {
     const endEl = transcriptEndRef.current;
@@ -530,7 +578,7 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
     setIsReplying(true);
     try {
       const history = mapHistory(sessionRef.current.bubbles);
-      const data = await callAction<{ reply: string; audioUrl?: string | null }>({
+      const data = await callAction<{ reply: string; audioUrl?: string | null; goalStatus?: any }>({
         action: "reply",
         sessionId: sessionRef.current.id,
         scenario,
@@ -555,6 +603,9 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
         return { ...prev, bubbles: nextBubbles };
       });
       setActiveIndex(newIndex);
+      if (data.goalStatus) {
+        setGoalStatus(deriveGoalStatus(data.goalStatus, mainGoal, subGoals));
+      }
       setRecordingStatus("idle");
 
       if (data.audioUrl && typeof Audio !== "undefined") {
@@ -620,42 +671,76 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
   const controlsDisabled = isTranscribing || isEvaluating || isReplying;
   const copilotMode: "standard" | "assessment" =
     activeBubble?.speaker === "user" && activeBubble.state !== "sent" ? "assessment" : "standard";
+  const goalsComplete = goalStatus.main === "completed_all";
 
   return (
-    <div className="grid grid-cols-10 h-screen overflow-hidden bg-[#f8f6f6]">
-      <div className="col-span-10 lg:col-span-6 flex flex-col relative border-r border-custom-border bg-[#f8f6f6]">
-        <header className="p-6 bg-transparent z-10 flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-black text-custom-text-dark tracking-tight">{scenarioTitle}</h1>
-            <p className="text-sm text-custom-text-dark/60 mt-1">
-              {learnerRole ? `${learnerRole} ↔ ${aiRole ?? "AI Partner"}` : aiRole || "AI Partner"}
-            </p>
-          </div>
-
-          {mainGoal && (
-            <div className="group relative">
-              <div className="bg-custom-primary/5 px-4 py-2 rounded-full border border-custom-primary/10 cursor-help">
-                <p className="text-sm text-custom-primary font-bold flex items-center gap-2">
-                  <span className="material-symbols-outlined text-lg">flag</span>
-                  {mainGoal}
-                </p>
-              </div>
-
-              {subGoals && subGoals.length > 0 && (
-                <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl shadow-xl border border-custom-border p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-                  <p className="text-xs font-bold text-custom-text-dark/60 uppercase tracking-wider mb-2">Subgoals</p>
-                  <ul className="space-y-2">
-                    {subGoals.map((goal, idx) => (
-                      <li key={idx} className="flex items-start gap-2 text-sm text-custom-text-dark">
-                        <span className="material-symbols-outlined text-green-500 text-base shrink-0">check_circle</span>
-                        {goal}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+    <>
+      <div className="grid grid-cols-10 h-screen overflow-hidden bg-[#f8f6f6]">
+        <div className="col-span-10 lg:col-span-6 flex flex-col relative border-r border-custom-border bg-[#f8f6f6]">
+          <header className="p-6 bg-transparent z-10 flex items-center justify-between gap-4">
+            <div>
+              <h1 className="text-xl font-black text-custom-text-dark tracking-tight">{scenarioTitle}</h1>
+              <p className="text-sm text-custom-text-dark/60 mt-1">
+                {learnerRole ? `${learnerRole} ↔ ${aiRole ?? "AI Partner"}` : aiRole || "AI Partner"}
+              </p>
             </div>
-          )}
+
+          <div className="flex items-center gap-3">
+            {mainGoal && (
+              <div className="group relative">
+                <div className="bg-custom-primary/5 px-4 py-2 rounded-full border border-custom-primary/10 cursor-help flex items-center gap-2">
+                  <span
+                    className={`material-symbols-outlined text-lg ${
+                      goalStatus.main === "completed_all"
+                        ? "text-green-600"
+                        : goalStatus.main === "partial"
+                          ? "text-amber-600"
+                          : "text-custom-text-dark/50"
+                    }`}
+                  >
+                    {goalStatus.main === "completed_all" ? "check_circle" : goalStatus.main === "partial" ? "task_alt" : "flag"}
+                  </span>
+                  <p className="text-sm text-custom-primary font-bold">{mainGoal}</p>
+                </div>
+
+                {subGoals && subGoals.length > 0 && (
+                  <div className="absolute right-0 top-full mt-2 w-72 bg-white rounded-xl shadow-xl border border-custom-border p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                    <p className="text-xs font-bold text-custom-text-dark/60 uppercase tracking-wider mb-2">Subgoals</p>
+                    <ul className="space-y-2">
+                      {goalStatus.subGoals.map((goal, idx) => (
+                        <li key={idx} className="flex items-start gap-2 text-sm text-custom-text-dark">
+                          <span
+                            className={`material-symbols-outlined text-base shrink-0 ${
+                              goal.status === "completed" ? "text-green-500" : "text-custom-text-dark/40"
+                            }`}
+                          >
+                            {goal.status === "completed" ? "check_circle" : "radio_button_unchecked"}
+                          </span>
+                          {goal.text}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <button
+              onClick={() => {
+                if (goalStatus.main === "completed_all") {
+                  setIsEnding(true);
+                  router.push("/");
+                } else {
+                  setShowEndConfirm(true);
+                }
+              }}
+              className="flex items-center gap-2 bg-white border border-custom-border rounded-full px-3 py-2 text-sm font-semibold text-custom-text-dark shadow-sm hover:bg-gray-50 transition pointer-events-auto"
+              disabled={isEnding}
+            >
+              <span className="material-symbols-outlined text-base">logout</span>
+              {isEnding ? "Ending..." : "End Session"}
+            </button>
+          </div>
         </header>
 
         <div className="flex-1 overflow-y-auto p-6 pb-32 scroll-smooth">
@@ -697,5 +782,35 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
         />
       </div>
     </div>
+
+    {showEndConfirm && (
+      <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
+        <div className="bg-white rounded-2xl shadow-xl border border-custom-border p-6 w-full max-w-md">
+          <h3 className="text-lg font-bold text-custom-text-dark mb-2">Goals not completed</h3>
+          <p className="text-sm text-custom-text-dark/70 mb-4">
+            Some goals are still pending. Are you sure you want to end this session now?
+          </p>
+          <div className="flex justify-end gap-3">
+            <button
+              className="px-4 py-2 text-sm font-semibold rounded-full border border-custom-border text-custom-text-dark hover:bg-gray-50"
+              onClick={() => setShowEndConfirm(false)}
+            >
+              Keep practicing
+            </button>
+            <button
+              className="px-4 py-2 text-sm font-semibold rounded-full bg-custom-primary text-white shadow hover:opacity-90"
+              onClick={() => {
+                setIsEnding(true);
+                setShowEndConfirm(false);
+                router.push("/");
+              }}
+            >
+              End anyway
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 };

@@ -253,7 +253,7 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({
                       {(summary.wordScores ?? []).length > 0 && (
                         <div className="mt-4 space-y-2">
                           <p className="text-xs font-semibold text-custom-text-dark/60 uppercase mb-1">Pronunciation</p>
-                          <div className="leading-7 text-sm flex flex-wrap gap-3">
+                          <div className="leading-7 text-sm flex flex-wrap gap-2">
                             {(summary.wordScores ?? []).map((word, idx) => {
                               const wordScore = word.accuracy ?? 0;
                               const wordColor =
@@ -261,7 +261,11 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({
                               const phonemes = word.phonemes ?? [];
                               const ipaPieces = phonemes.map((p) => p.ipa || p.phoneme);
                               return (
-                                <div key={`${word.word}-${idx}`} className="relative group flex flex-col items-center min-w-[90px]">
+                                <div
+                                  key={`${word.word}-${idx}`}
+                                  className="relative group flex flex-col items-center min-w-[70px] px-1"
+                                  style={{ zIndex: 1 }}
+                                >
                                   <div className="flex items-center gap-1 text-[11px]">
                                     <span className="text-custom-text-dark/50">/</span>
                                     {phonemes.map((p, pIdx) => {
@@ -281,7 +285,7 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({
                                   >
                                     {word.word}
                                   </span>
-                                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 hidden group-hover:block whitespace-nowrap rounded-md bg-black text-white text-[11px] px-2 py-1 shadow">
+                                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 hidden group-hover:block whitespace-nowrap rounded-md bg-black text-white text-[11px] px-2 py-1 shadow z-20">
                                     {`${word.word}: ${wordScore}/100${word.errorType && word.errorType !== "None" ? ` · ${word.errorType}` : ""}`}
                                   </div>
                                 </div>

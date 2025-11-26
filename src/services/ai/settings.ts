@@ -28,6 +28,7 @@ export interface AISettings {
         stw_stt: string | null;
         stw_tts: string | null;
         stw_assessment_text: string | null;
+        stw_goal: string | null;
 
         // Copilot
         copilot_distill: string | null;
@@ -37,6 +38,9 @@ export interface AISettings {
         scenario_draft: string | null;
         ask_ai: string | null;
         review_notes: string | null;
+
+        // Zen Mode
+        zen_goal: string | null;
     };
 }
 
@@ -55,11 +59,13 @@ const DEFAULT_SETTINGS: AISettings = {
         stw_stt: null,
         stw_tts: null,
         stw_assessment_text: null,
+        stw_goal: null,
         copilot_distill: null,
         copilot_inspiration: null,
         scenario_draft: null,
         ask_ai: null,
-        review_notes: null
+        review_notes: null,
+        zen_goal: null,
     }
 };
 

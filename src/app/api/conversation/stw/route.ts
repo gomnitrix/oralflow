@@ -51,6 +51,63 @@ const mapHistoryToMessages = (history: { speaker: "user" | "ai"; text: string }[
     content: entry.text,
   }));
 
+const evaluateGoals = async (payload: {
+  history: { speaker: "user" | "ai"; text: string }[];
+  lastUser?: string;
+  lastAi?: string;
+  mainGoal?: string | null;
+  subGoals?: string[] | null;
+}) => {
+  const client = new AIClient();
+  const { provider, model } = resolveModelForCapability("stw_goal", { categoryOverride: "language" });
+
+  const messages: ChatMessage[] = [
+    {
+      role: "system",
+      content: `You are a goal completion evaluator. Return JSON with keys: main_status ("completed"|"in_progress"|"not_started") and subgoals (array of {text,status}). Use ONLY the conversation to decide.`,
+    },
+    {
+      role: "user",
+      content: [
+        `Main goal: ${payload.mainGoal || "N/A"}`,
+        `Sub-goals: ${(payload.subGoals ?? []).join("; ") || "None"}`,
+        "Conversation:",
+        ...payload.history.map((h) => `${h.speaker === "ai" ? "Assistant" : "User"}: ${h.text}`),
+        payload.lastUser ? `User: ${payload.lastUser}` : null,
+        payload.lastAi ? `Assistant: ${payload.lastAi}` : null,
+      ]
+        .filter(Boolean)
+        .join("\n"),
+    },
+  ];
+
+  const completion = await client.completeChat({ messages }, "stw_goal");
+  const raw = completion.message.trim();
+  const jsonMatch = raw.match(/\{[\s\S]*\}/);
+  const candidate = jsonMatch ? jsonMatch[0] : raw;
+
+  try {
+    const parsed = JSON.parse(candidate);
+    const main = typeof parsed.main_status === "string" ? parsed.main_status.toLowerCase() : "not_started";
+    const sub = Array.isArray(parsed.subgoals)
+      ? parsed.subgoals.map((g: any) => ({
+          text: typeof g?.text === "string" ? g.text : "",
+          status: typeof g?.status === "string" ? g.status.toLowerCase() : "not_started",
+        }))
+      : [];
+
+    return {
+      mainStatus: main,
+      subStatuses: sub,
+      provider,
+      model,
+    };
+  } catch (err) {
+    console.error("[stw:goal] failed to parse", { raw });
+    throw new Error("Goal evaluation failed.");
+  }
+};
+
 const ttsForText = async (text: string): Promise<string | null> => {
   if (!text.trim()) return null;
   try {
@@ -81,6 +138,7 @@ async function handleStart(payload: unknown) {
     provider: turn.provider,
     modelId: getAssignment("stw_chat"),
     audioUrl: await ttsForText(turn.reply),
+    goalStatus: null,
   };
 }
 
@@ -99,11 +157,33 @@ async function handleReply(payload: unknown) {
     "stw_chat"
   );
 
+  const aiBubbleCount = parsed.history.filter((h) => h.speaker === "ai").length + 1; // include new reply
+  const shouldEvaluateGoals = aiBubbleCount >= 5;
+
   return {
     reply: turn.reply,
     provider: turn.provider,
     modelId: getAssignment("stw_chat"),
     audioUrl: await ttsForText(turn.reply),
+    goalStatus: shouldEvaluateGoals
+      ? await (async () => {
+      try {
+        const history: { speaker: "user" | "ai"; text: string }[] = [
+          ...parsed.history.map((h) => ({ speaker: h.speaker, text: h.text })),
+          { speaker: "user", text: parsed.userText },
+          { speaker: "ai", text: turn.reply },
+        ];
+        return await evaluateGoals({
+          history,
+          mainGoal: parsed.scenario.mainGoal,
+          subGoals: parsed.scenario.subGoals ?? [],
+        });
+          } catch (error) {
+            console.error("[stw:goal] evaluation error", error);
+            return null;
+          }
+        })()
+      : null,
   };
 }
 
