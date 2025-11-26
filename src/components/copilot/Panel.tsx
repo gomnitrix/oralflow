@@ -165,7 +165,7 @@ const StructuredGrid: React.FC<{
             </div>
 
             <div className="absolute left-0 right-0 top-full mt-2 hidden group-hover:block z-30">
-              <div className="rounded-2xl bg-white border border-custom-border shadow-xl p-4 space-y-2">
+              <div className="rounded-2xl bg-white border border-custom-border shadow-xl p-4 space-y-2 relative z-40">
                 <p className="text-xs font-semibold text-custom-text-dark/60 uppercase">Explanation</p>
                 <p className="text-sm text-custom-text-dark">EN: {note.explanation.en || ""}</p>
                 <p className="text-sm text-custom-text-dark">ZH: {note.explanation.zh || ""}</p>
