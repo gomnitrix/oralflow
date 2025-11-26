@@ -146,7 +146,7 @@ const StructuredGrid: React.FC<{
         {notes.map((note) => (
           <div
             key={note.id}
-            className="group relative rounded-2xl bg-[#f9fafb] border border-custom-border/80 px-3 py-3"
+            className="group relative rounded-2xl bg-[#f9fafb] border border-custom-border/80 px-3 py-3 transition duration-200 hover:-translate-y-0.5 hover:shadow-md"
           >
             <div className="flex items-start justify-between gap-2">
               <div>
