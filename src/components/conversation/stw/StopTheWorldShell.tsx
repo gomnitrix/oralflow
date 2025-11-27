@@ -331,6 +331,7 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
       if (lastBubble.speaker === "user" && lastBubble.state !== "recording") {
         setActiveIndex(session.bubbles.length - 1);
       }
+      // For AI bubbles, only jump when they have text content
       if (lastBubble.speaker === "ai" && lastBubble.text) {
         setActiveIndex(session.bubbles.length - 1);
       }
@@ -606,9 +607,6 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
       placeholderId = aiPlaceholder.id;
       return { ...prev, bubbles: [...prev.bubbles, aiPlaceholder] };
     });
-    if (placeholderId) {
-      setActiveIndex(sessionRef.current.bubbles.length); // will be adjusted by effect to last
-    }
 
     setIsReplying(true);
     try {
