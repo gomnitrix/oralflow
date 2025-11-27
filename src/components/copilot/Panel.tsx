@@ -207,13 +207,13 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({
     if (runs.length > 0) return runs;
     return summary
       ? [
-          {
-            id: selectedBubble?.evaluationId ?? "legacy",
-            createdAt: selectedBubble?.updatedAt ?? "",
-            status: "completed" as const,
-            summary,
-          },
-        ]
+        {
+          id: selectedBubble?.evaluationId ?? "legacy",
+          createdAt: selectedBubble?.updatedAt ?? "",
+          status: "completed" as const,
+          summary,
+        },
+      ]
       : [];
   }, [selectedBubble?.evaluationId, selectedBubble?.evaluationRuns, selectedBubble?.updatedAt, summary]);
   const selectedTextRaw = selectedBubble?.text ?? "";
@@ -351,7 +351,7 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({
 
     return (
       <div className="flex flex-col h-full bg-white border-l border-custom-border">
-        <div className="sticky top-0 z-20 bg-white border-b border-custom-border/50 shadow-sm">
+        <div className="sticky top-0 z-20 bg-white/95 backdrop-blur shadow-sm">
           <div className="p-6 pb-4">
             <h2 className="text-xl font-black text-custom-text-dark tracking-tight">Copilot Coach</h2>
           </div>
@@ -396,8 +396,8 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({
 
   return (
     <div className="flex flex-col h-full bg-white border-l border-custom-border">
-      <div className="sticky top-0 z-20 bg-white shadow-sm">
-        <div className="p-6 pb-4 border-b border-custom-border/50">
+      <div className="sticky top-0 z-20 bg-white/95 backdrop-blur shadow-sm">
+        <div className="p-6 pb-4">
           <h2 className="text-xl font-black text-custom-text-dark tracking-tight">Copilot Coach</h2>
         </div>
 

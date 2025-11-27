@@ -102,9 +102,9 @@ const pickSupportedMimeType = (): string | undefined => {
 };
 
 const generateRunId = () =>
-  (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
-    ? crypto.randomUUID()
-    : `run_${Math.random().toString(36).slice(2, 10)}`);
+(typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+  ? crypto.randomUUID()
+  : `run_${Math.random().toString(36).slice(2, 10)}`);
 
 const floatTo16BitPCM = (buffer: Float32Array): Int16Array => {
   const output = new Int16Array(buffer.length);
@@ -215,7 +215,7 @@ const deriveGoalStatus = (
 
   const mainStatus = typeof response.mainStatus === "string" ? response.mainStatus.toLowerCase()
     : typeof response.main_status === "string" ? response.main_status.toLowerCase()
-    : "not_started";
+      : "not_started";
 
   const allSubsCompleted = mappedSubs.every((sg) => sg.status === "completed");
   let main: GoalStatusValue = "pending";
@@ -411,11 +411,11 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
         bubbles: prev.bubbles.map((b) =>
           b.id === bubble.id
             ? {
-                ...b,
-                state: "evaluating",
-                updatedAt: now,
-                evaluationRuns: [...(b.evaluationRuns ?? []), { id: runId, status: "pending", createdAt: now }],
-              }
+              ...b,
+              state: "evaluating",
+              updatedAt: now,
+              evaluationRuns: [...(b.evaluationRuns ?? []), { id: runId, status: "pending", createdAt: now }],
+            }
             : b
         ),
       }));
@@ -455,23 +455,23 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
           bubbles: prev.bubbles.map((b) =>
             b.id === bubble.id
               ? {
-                  ...b,
-                  state: "readyToSend",
-                  evaluationId: data.evaluationId,
-                  evaluationSummary: summary,
-                  evaluationRuns: (b.evaluationRuns ?? []).map((run): EvaluationRun =>
-                    run.id === runId
-                      ? {
-                          ...run,
-                          status: "completed",
-                          summary,
-                          evaluationId: data.evaluationId,
-                          errorMessage: null,
-                        }
-                      : run
-                  ),
-                  updatedAt: new Date().toISOString(),
-                }
+                ...b,
+                state: "readyToSend",
+                evaluationId: data.evaluationId,
+                evaluationSummary: summary,
+                evaluationRuns: (b.evaluationRuns ?? []).map((run): EvaluationRun =>
+                  run.id === runId
+                    ? {
+                      ...run,
+                      status: "completed",
+                      summary,
+                      evaluationId: data.evaluationId,
+                      errorMessage: null,
+                    }
+                    : run
+                ),
+                updatedAt: new Date().toISOString(),
+              }
               : b
           ),
         }));
@@ -482,13 +482,13 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
           bubbles: prev.bubbles.map((b) =>
             b.id === bubble.id
               ? {
-                  ...b,
-                  state: "pending",
-                  updatedAt: new Date().toISOString(),
-                  evaluationRuns: (b.evaluationRuns ?? []).map((run) =>
-                    run.id === runId ? { ...run, status: "error", errorMessage: (err as Error).message } : run
-                  ),
-                }
+                ...b,
+                state: "pending",
+                updatedAt: new Date().toISOString(),
+                evaluationRuns: (b.evaluationRuns ?? []).map((run) =>
+                  run.id === runId ? { ...run, status: "error", errorMessage: (err as Error).message } : run
+                ),
+              }
               : b
           ),
         }));
@@ -620,14 +620,14 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
             bubbles = prev.bubbles.map((b) =>
               b.id === existing.id
                 ? {
-                    ...b,
-                    text: "",
-                    audioUrl: null,
-                    state: "recording",
-                    evaluationId: null,
-                    evaluationSummary: null,
-                    updatedAt: now,
-                  }
+                  ...b,
+                  text: "",
+                  audioUrl: null,
+                  state: "recording",
+                  evaluationId: null,
+                  evaluationSummary: null,
+                  updatedAt: now,
+                }
                 : b
             );
           } else {
@@ -735,12 +735,12 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
             ? { ...b, state: "sent", updatedAt: new Date().toISOString() }
             : b.id === placeholderId
               ? {
-                  ...b,
-                  text: data.reply,
-                  audioUrl: data.audioUrl ?? null,
-                  state: "sent",
-                  updatedAt: new Date().toISOString(),
-                }
+                ...b,
+                text: data.reply,
+                audioUrl: data.audioUrl ?? null,
+                state: "sent",
+                updatedAt: new Date().toISOString(),
+              }
               : b
         ),
       }));
@@ -867,7 +867,7 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
     <>
       <div className="grid grid-cols-10 h-screen bg-[#f8f6f6]">
         <div className="col-span-10 lg:col-span-6 flex flex-col relative border-r border-custom-border bg-[#f8f6f6] overflow-hidden">
-          <header className="sticky top-0 z-30 p-6 bg-[#f8f6f6]/95 backdrop-blur border-b border-custom-border flex items-center justify-between gap-4">
+          <header className="sticky top-0 z-30 p-6 bg-[#f8f6f6]/95 backdrop-blur shadow-sm flex items-center justify-between gap-4">
             <div>
               <h1 className="text-2xl font-black text-custom-text-dark tracking-tight">{scenarioTitle}</h1>
             </div>
@@ -877,13 +877,12 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
                 <div className="group relative">
                   <div className="bg-custom-primary/5 px-3 py-1.5 rounded-full border border-custom-primary/10 cursor-help flex items-center gap-2">
                     <span
-                      className={`material-symbols-outlined text-lg ${
-                        goalStatus.main === "completed_all"
+                      className={`material-symbols-outlined text-lg ${goalStatus.main === "completed_all"
                           ? "text-green-600"
                           : goalStatus.main === "partial"
                             ? "text-amber-600"
                             : "text-custom-text-dark/50"
-                      }`}
+                        }`}
                     >
                       {goalStatus.main === "completed_all" ? "check_circle" : goalStatus.main === "partial" ? "task_alt" : "flag"}
                     </span>
@@ -897,9 +896,8 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
                         {goalStatus.subGoals.map((goal, idx) => (
                           <li key={idx} className="flex items-start gap-2 text-sm text-custom-text-dark">
                             <span
-                              className={`material-symbols-outlined text-base shrink-0 ${
-                                goal.status === "completed" ? "text-green-500" : "text-custom-text-dark/40"
-                              }`}
+                              className={`material-symbols-outlined text-base shrink-0 ${goal.status === "completed" ? "text-green-500" : "text-custom-text-dark/40"
+                                }`}
                             >
                               {goal.status === "completed" ? "check_circle" : "radio_button_unchecked"}
                             </span>
@@ -976,34 +974,34 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
         </div>
       </div>
 
-    {showEndConfirm && (
-      <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
-        <div className="bg-white rounded-2xl shadow-xl border border-custom-border p-6 w-full max-w-md">
-          <h3 className="text-lg font-bold text-custom-text-dark mb-2">Goals not completed</h3>
-          <p className="text-sm text-custom-text-dark/70 mb-4">
-            Some goals are still pending. Are you sure you want to end this session now?
-          </p>
-          <div className="flex justify-end gap-3">
-            <button
-              className="px-4 py-2 text-sm font-semibold rounded-full border border-custom-border text-custom-text-dark hover:bg-gray-50"
-              onClick={() => setShowEndConfirm(false)}
-            >
-              Keep practicing
-            </button>
-            <button
-              className="px-4 py-2 text-sm font-semibold rounded-full bg-custom-primary text-white shadow hover:opacity-90"
-              onClick={() => {
-                setIsEnding(true);
-                setShowEndConfirm(false);
-                setTimeout(() => router.push("/"), 400);
-              }}
-            >
-              End anyway
-            </button>
+      {showEndConfirm && (
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-xl border border-custom-border p-6 w-full max-w-md">
+            <h3 className="text-lg font-bold text-custom-text-dark mb-2">Goals not completed</h3>
+            <p className="text-sm text-custom-text-dark/70 mb-4">
+              Some goals are still pending. Are you sure you want to end this session now?
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                className="px-4 py-2 text-sm font-semibold rounded-full border border-custom-border text-custom-text-dark hover:bg-gray-50"
+                onClick={() => setShowEndConfirm(false)}
+              >
+                Keep practicing
+              </button>
+              <button
+                className="px-4 py-2 text-sm font-semibold rounded-full bg-custom-primary text-white shadow hover:opacity-90"
+                onClick={() => {
+                  setIsEnding(true);
+                  setShowEndConfirm(false);
+                  setTimeout(() => router.push("/"), 400);
+                }}
+              >
+                End anyway
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-    )}
+      )}
     </>
   );
 };

@@ -6,8 +6,10 @@
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200');
 
 body {
-  background: #FDFBF8; /* custom-bg */
-  color: #4E4A47; /* custom-text-dark */
+  background: #FDFBF8;
+  /* custom-bg */
+  color: #4E4A47;
+  /* custom-text-dark */
   font-family: 'Lexend', sans-serif;
 }
 
@@ -19,7 +21,27 @@ body {
     'opsz' 24;
 }
 
+
 .material-symbols-outlined.fill {
   font-variation-settings:
     'FILL' 1;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
 }
