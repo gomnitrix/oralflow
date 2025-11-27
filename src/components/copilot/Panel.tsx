@@ -202,6 +202,10 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({
 }) => {
   const { context, updateContext } = useBubbleContext(selectedBubble?.id);
   const summary = selectedBubble?.evaluationSummary;
+  const selectedTextRaw = selectedBubble?.text ?? "";
+  const selectedTextDisplay = selectedTextRaw.trim()
+    ? `“${selectedTextRaw}”`
+    : "AI is preparing a response...";
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
@@ -377,7 +381,7 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({
           <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
             <div className="bg-[#f8f6f6] p-6 rounded-3xl shadow-sm border border-custom-border">
               <p className="text-xs font-bold text-custom-text-dark/40 uppercase tracking-wider mb-3">Selected Text</p>
-              <p className="text-custom-text-dark text-sm font-medium leading-relaxed">“{selectedBubble.text}”</p>
+              <p className="text-custom-text-dark text-sm font-medium leading-relaxed">{selectedTextDisplay}</p>
             </div>
 
             <button

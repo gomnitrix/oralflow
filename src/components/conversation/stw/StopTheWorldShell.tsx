@@ -70,6 +70,13 @@ const mapHistory = (bubbles: ConversationBubble[]) =>
     .filter((bubble) => bubble.state === "sent")
     .map((bubble) => ({ speaker: bubble.speaker, text: bubble.text }));
 
+const cloneSession = (session: ConversationSession): ConversationSession => {
+  if (typeof structuredClone === "function") {
+    return structuredClone(session);
+  }
+  return JSON.parse(JSON.stringify(session)) as ConversationSession;
+};
+
 const preferredMimeTypes = ["audio/wav", "audio/mp3", "audio/webm;codecs=pcm", "audio/webm;codecs=opus", "audio/ogg;codecs=opus"];
 
 const pickSupportedMimeType = (): string | undefined => {
@@ -234,6 +241,8 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
   const transcriptEndRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<BlobPart[]>([]);
+  const recordingCheckpointRef = useRef<{ session: ConversationSession; activeIndex: number } | null>(null);
+  const recordingCancelledRef = useRef(false);
 
   const scenario = useMemo(
     () => scenarioPayload({ scenarioId, scenarioTitle, learnerRole, aiRole, mainGoal, subGoals, description }),
@@ -308,6 +317,8 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
     setSession({ ...freshSession, bubbles: [placeholder] });
     setActiveIndex(0);
     setRecordingStatus("idle");
+    recordingCheckpointRef.current = null;
+    recordingCancelledRef.current = false;
     void bootstrapGreeting(freshSession, placeholder.id);
   }, [bootstrapGreeting, scenarioId, mainGoal, subGoals]);
 
@@ -442,6 +453,7 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
 
   const finalizeRecording = useCallback(
     async (blob: Blob) => {
+      recordingCheckpointRef.current = null;
       const recordingBubble = latestUserBubble();
       if (!recordingBubble) return;
 
@@ -484,7 +496,7 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
   const handleRecord = useCallback(
     async (reuseBubbleId?: string) => {
       setError(null);
-      if (recordingStatus === "recording") return;
+      if (recordingStatus === "recording" || isTranscribing || isEvaluating || isReplying) return;
 
       const lastUser = latestUserBubble();
       if (!reuseBubbleId && lastUser && ["recording", "pending", "evaluating"].includes(lastUser.state)) {
@@ -510,10 +522,12 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
           throw new Error("getUserMedia not available");
         };
 
-      const stream = await requestStream();
-      const mimeType = pickSupportedMimeType();
-      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
-      audioChunksRef.current = [];
+        const stream = await requestStream();
+        recordingCancelledRef.current = false;
+        recordingCheckpointRef.current = { session: cloneSession(sessionRef.current), activeIndex };
+        const mimeType = pickSupportedMimeType();
+        const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+        audioChunksRef.current = [];
 
         recorder.ondataavailable = (event) => {
           if (event.data.size > 0) {
@@ -522,21 +536,27 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
         };
 
         recorder.onstop = () => {
-        stream.getTracks().forEach((track) => track.stop());
-        if (!audioChunksRef.current.length) return;
-        const rawBlob = new Blob(audioChunksRef.current, { type: recorder.mimeType || "audio/wav" });
-        void (async () => {
-          let processed = rawBlob;
-          if (rawBlob.type.includes("webm") || rawBlob.type.includes("ogg")) {
-            try {
-              processed = await convertBlobToWav(rawBlob);
-            } catch (err) {
-              console.warn("Failed to convert audio to wav, using raw blob", err);
-            }
+          stream.getTracks().forEach((track) => track.stop());
+          mediaRecorderRef.current = null;
+          if (recordingCancelledRef.current) {
+            audioChunksRef.current = [];
+            recordingCancelledRef.current = false;
+            return;
           }
-          await finalizeRecording(processed);
-        })();
-      };
+          if (!audioChunksRef.current.length) return;
+          const rawBlob = new Blob(audioChunksRef.current, { type: recorder.mimeType || "audio/wav" });
+          void (async () => {
+            let processed = rawBlob;
+            if (rawBlob.type.includes("webm") || rawBlob.type.includes("ogg")) {
+              try {
+                processed = await convertBlobToWav(rawBlob);
+              } catch (err) {
+                console.warn("Failed to convert audio to wav, using raw blob", err);
+              }
+            }
+            await finalizeRecording(processed);
+          })();
+        };
 
         recorder.start();
         mediaRecorderRef.current = recorder;
@@ -572,6 +592,9 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
       } catch (err) {
         console.error("Microphone access failed", err);
         setRecordingStatus("idle");
+        recordingCheckpointRef.current = null;
+        recordingCancelledRef.current = false;
+        audioChunksRef.current = [];
         setError(
           err instanceof Error
             ? `Microphone unavailable: ${err.message}. If on HTTP, allow insecure mic access or switch to HTTPS.`
@@ -579,13 +602,40 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
         );
       }
     },
-    [finalizeRecording, latestUserBubble, recordingStatus, updateSession]
+    [activeIndex, finalizeRecording, isEvaluating, isReplying, isTranscribing, latestUserBubble, recordingStatus, updateSession]
   );
 
   const handleStop = useCallback(() => {
     if (recordingStatus !== "recording") return;
     mediaRecorderRef.current?.stop();
   }, [recordingStatus]);
+
+  const handleCancelRecording = useCallback(() => {
+    if (recordingStatus !== "recording") return;
+    const hasRecorder = Boolean(mediaRecorderRef.current);
+    recordingCancelledRef.current = true;
+    audioChunksRef.current = [];
+    setError(null);
+    mediaRecorderRef.current?.stop();
+
+    const snapshot = recordingCheckpointRef.current;
+    if (snapshot) {
+      updateSession(() => cloneSession(snapshot.session));
+      setActiveIndex(snapshot.activeIndex);
+    } else {
+      updateSession((prev) => ({ ...prev, bubbles: prev.bubbles.filter((b) => b.state !== "recording") }));
+      setActiveIndex((prev) => Math.max(0, prev - 1));
+    }
+
+    setRecordingStatus("idle");
+    setIsTranscribing(false);
+    setIsEvaluating(false);
+    setIsReplying(false);
+    recordingCheckpointRef.current = null;
+    if (!hasRecorder) {
+      recordingCancelledRef.current = false;
+    }
+  }, [recordingStatus, updateSession]);
 
   const handleSend = useCallback(async () => {
     setError(null);
@@ -704,7 +754,40 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
   const controlsDisabled = isTranscribing || isEvaluating || isReplying;
   const copilotMode: "standard" | "assessment" =
     activeBubble?.speaker === "user" && activeBubble.state !== "sent" ? "assessment" : "standard";
-  const goalsComplete = goalStatus.main === "completed_all";
+
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const isTypingTarget = target?.closest("input, textarea, [contenteditable='true']");
+      if (isTypingTarget) return;
+
+      const key = event.key.toLowerCase();
+      const isSpace = event.code === "Space" || event.key === " ";
+
+      if (isSpace && recordingStatus === "idle" && !controlsDisabled) {
+        event.preventDefault();
+        void handleRecord();
+      }
+
+      if (key === "escape" && recordingStatus === "recording") {
+        event.preventDefault();
+        handleCancelRecording();
+      }
+
+      if (key === "enter" && recordingStatus === "review" && !controlsDisabled) {
+        event.preventDefault();
+        void handleSend();
+      }
+
+      if (key === "r" && recordingStatus === "review" && !controlsDisabled) {
+        event.preventDefault();
+        handleRetry();
+      }
+    };
+
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [controlsDisabled, handleCancelRecording, handleRecord, handleRetry, handleSend, recordingStatus]);
 
   return (
     <>
@@ -800,6 +883,7 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
             status={recordingStatus}
             onRecord={handleRecord}
             onStop={handleStop}
+            onCancel={handleCancelRecording}
             onSend={handleSend}
             onRetry={handleRetry}
             disabled={controlsDisabled}

@@ -7,6 +7,7 @@ interface ControlBarProps {
     status: ControlBarStatus;
     onRecord: () => void;
     onStop: () => void;
+    onCancel: () => void;
     onSend: () => void;
     onRetry: () => void;
     disabled?: boolean;
@@ -16,6 +17,7 @@ export const ControlBar: React.FC<ControlBarProps> = ({
     status,
     onRecord,
     onStop,
+    onCancel,
     onSend,
     onRetry,
     disabled = false,
@@ -37,15 +39,26 @@ export const ControlBar: React.FC<ControlBarProps> = ({
                 )}
 
                 {status === "recording" && (
-                    <button
-                        onClick={onStop}
-                        className="group flex items-center gap-4 transition-all"
-                    >
-                        <div className="w-14 h-14 rounded-full bg-red-500 flex items-center justify-center shadow-lg shadow-red-500/30 group-hover:scale-110 transition-all animate-pulse">
-                            <span className="material-symbols-outlined text-white text-3xl">stop</span>
-                        </div>
-                        <span className="text-lg font-bold text-red-500 pr-2">Recording...</span>
-                    </button>
+                    <div className="flex items-center gap-6">
+                        <button
+                            onClick={onStop}
+                            className="group flex items-center gap-4 transition-all"
+                        >
+                            <div className="w-14 h-14 rounded-full bg-red-500 flex items-center justify-center shadow-lg shadow-red-500/30 group-hover:scale-110 transition-all animate-pulse">
+                                <span className="material-symbols-outlined text-white text-3xl">stop</span>
+                            </div>
+                            <span className="text-lg font-bold text-red-500 pr-2">Recording...</span>
+                        </button>
+
+                        <button
+                            onClick={onCancel}
+                            disabled={disabled}
+                            className="flex items-center gap-2 px-4 py-2 rounded-full bg-white text-custom-text-dark border border-custom-border shadow-sm hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <span className="material-symbols-outlined text-xl text-custom-text-dark/80">close</span>
+                            <span className="text-sm font-bold">Cancel</span>
+                        </button>
+                    </div>
                 )}
 
                 {status === "review" && (
