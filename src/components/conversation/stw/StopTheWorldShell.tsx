@@ -458,13 +458,15 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
       setRecordingStatus("review");
       setIsTranscribing(true);
       try {
-        const transcript = await transcribeAudio(audioBase64, blob.type || "audio/webm");
+        const transcript = await transcribeAudio(audioBase64, blob.type || "audio/wav");
         updateSession((prev) => ({
           ...prev,
           bubbles: prev.bubbles.map((b) =>
             b.id === recordingBubble.id ? { ...b, text: transcript, state: "pending" } : b
           ),
         }));
+        const idx = sessionRef.current.bubbles.findIndex((b) => b.id === recordingBubble.id);
+        if (idx >= 0) setActiveIndex(idx);
         await evaluateBubble(
           { ...recordingBubble, text: transcript, audioUrl },
           { base64: audioBase64, mimeType: blob.type, audioUrl }
@@ -538,7 +540,6 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
         recorder.start();
         mediaRecorderRef.current = recorder;
 
-        let targetIndex = 0;
         const now = new Date().toISOString();
         updateSession((prev) => {
           const existing = reuseBubbleId
@@ -560,15 +561,12 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
                   }
                 : b
             );
-            targetIndex = bubbles.findIndex((b) => b.id === existing.id);
           } else {
             const newBubble = createConversationBubble({ sessionId: prev.id, speaker: "user", state: "recording" });
             bubbles = [...prev.bubbles, newBubble];
-            targetIndex = bubbles.length - 1;
           }
           return { ...prev, bubbles };
         });
-        setActiveIndex(targetIndex);
         setRecordingStatus("recording");
       } catch (err) {
         console.error("Microphone access failed", err);
