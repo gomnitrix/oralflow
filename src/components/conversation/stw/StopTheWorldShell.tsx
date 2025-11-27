@@ -311,17 +311,33 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
     void bootstrapGreeting(freshSession, placeholder.id);
   }, [bootstrapGreeting, scenarioId, mainGoal, subGoals]);
 
-  const prevLengthRef = useRef(0);
+  const prevLastBubbleRef = useRef<{ id: string; state: string; textLen: number }>({ id: "", state: "", textLen: 0 });
   useEffect(() => {
     const endEl = transcriptEndRef.current;
     if (endEl && typeof endEl.scrollIntoView === "function") {
       endEl.scrollIntoView({ behavior: "smooth" });
     }
-    if (session.bubbles.length > prevLengthRef.current) {
-      setActiveIndex(session.bubbles.length - 1);
+
+    const lastBubble = session.bubbles[session.bubbles.length - 1];
+    if (!lastBubble) {
+      prevLastBubbleRef.current = { id: "", state: "", textLen: 0 };
+      return;
     }
-    prevLengthRef.current = session.bubbles.length;
-  }, [session.bubbles.length]);
+
+    const prev = prevLastBubbleRef.current;
+    const changed = lastBubble.id !== prev.id || lastBubble.state !== prev.state || (lastBubble.text?.length ?? 0) !== prev.textLen;
+
+    if (changed) {
+      if (lastBubble.speaker === "user" && lastBubble.state !== "recording") {
+        setActiveIndex(session.bubbles.length - 1);
+      }
+      if (lastBubble.speaker === "ai" && lastBubble.text) {
+        setActiveIndex(session.bubbles.length - 1);
+      }
+    }
+
+    prevLastBubbleRef.current = { id: lastBubble.id, state: lastBubble.state, textLen: lastBubble.text?.length ?? 0 };
+  }, [session.bubbles]);
 
   useEffect(() => {
     if (session.bubbles.length === 0) {
