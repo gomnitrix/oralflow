@@ -820,8 +820,9 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
 
   const activeBubble = session.bubbles[activeIndex];
   const controlsDisabled = isTranscribing || isEvaluating || isReplying;
+  const userHasAssessment = activeBubble?.speaker === "user" && Boolean(activeBubble?.evaluationRuns?.length || activeBubble?.evaluationSummary);
   const copilotMode: "standard" | "assessment" =
-    activeBubble?.speaker === "user" && activeBubble.state !== "sent" ? "assessment" : "standard";
+    activeBubble?.speaker === "user" && (activeBubble.state !== "sent" || userHasAssessment) ? "assessment" : "standard";
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
@@ -864,116 +865,116 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
 
   return (
     <>
-      <div className="grid grid-cols-10 h-screen overflow-hidden bg-[#f8f6f6]">
-        <div className="col-span-10 lg:col-span-6 flex flex-col relative border-r border-custom-border bg-[#f8f6f6]">
-          <header className="p-6 bg-transparent z-10 flex items-center justify-between gap-4">
+      <div className="grid grid-cols-10 h-screen bg-[#f8f6f6]">
+        <div className="col-span-10 lg:col-span-6 flex flex-col relative border-r border-custom-border bg-[#f8f6f6] overflow-hidden">
+          <header className="sticky top-0 z-30 p-6 bg-[#f8f6f6]/95 backdrop-blur border-b border-custom-border flex items-center justify-between gap-4">
             <div>
               <h1 className="text-2xl font-black text-custom-text-dark tracking-tight">{scenarioTitle}</h1>
             </div>
 
-          <div className="flex items-center gap-3">
-            {mainGoal && (
-              <div className="group relative">
-                <div className="bg-custom-primary/5 px-3 py-1.5 rounded-full border border-custom-primary/10 cursor-help flex items-center gap-2">
-                  <span
-                    className={`material-symbols-outlined text-lg ${
-                      goalStatus.main === "completed_all"
-                        ? "text-green-600"
-                        : goalStatus.main === "partial"
-                          ? "text-amber-600"
-                          : "text-custom-text-dark/50"
-                    }`}
-                  >
-                    {goalStatus.main === "completed_all" ? "check_circle" : goalStatus.main === "partial" ? "task_alt" : "flag"}
-                  </span>
-                  <p className="text-sm text-custom-primary font-bold">{mainGoal}</p>
-                </div>
-
-                {subGoals && subGoals.length > 0 && (
-                  <div className="absolute right-0 top-full mt-2 w-72 bg-white rounded-xl shadow-xl border border-custom-border p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-                    <p className="text-xs font-bold text-custom-text-dark/60 uppercase tracking-wider mb-2">Subgoals</p>
-                    <ul className="space-y-2">
-                      {goalStatus.subGoals.map((goal, idx) => (
-                        <li key={idx} className="flex items-start gap-2 text-sm text-custom-text-dark">
-                          <span
-                            className={`material-symbols-outlined text-base shrink-0 ${
-                              goal.status === "completed" ? "text-green-500" : "text-custom-text-dark/40"
-                            }`}
-                          >
-                            {goal.status === "completed" ? "check_circle" : "radio_button_unchecked"}
-                          </span>
-                          {goal.text}
-                        </li>
-                      ))}
-                    </ul>
+            <div className="flex items-center gap-3">
+              {mainGoal && (
+                <div className="group relative">
+                  <div className="bg-custom-primary/5 px-3 py-1.5 rounded-full border border-custom-primary/10 cursor-help flex items-center gap-2">
+                    <span
+                      className={`material-symbols-outlined text-lg ${
+                        goalStatus.main === "completed_all"
+                          ? "text-green-600"
+                          : goalStatus.main === "partial"
+                            ? "text-amber-600"
+                            : "text-custom-text-dark/50"
+                      }`}
+                    >
+                      {goalStatus.main === "completed_all" ? "check_circle" : goalStatus.main === "partial" ? "task_alt" : "flag"}
+                    </span>
+                    <p className="text-sm text-custom-primary font-bold">{mainGoal}</p>
                   </div>
-                )}
-              </div>
-            )}
 
-            <button
-              onClick={() => {
-                if (goalStatus.main === "completed_all") {
-                  setIsEnding(true);
-                  setTimeout(() => router.push("/"), 400);
-                } else {
-                  setShowEndConfirm(true);
-                }
-              }}
-              className="flex items-center justify-center bg-white border border-custom-border rounded-full w-10 h-10 text-custom-text-dark shadow-sm hover:shadow transition hover:-translate-y-0.5 pointer-events-auto"
-              disabled={isEnding}
-              title="End session"
-            >
-              {isEnding ? (
-                <span className="material-symbols-outlined text-base text-gray-400 animate-ping">logout</span>
-              ) : (
-                <span className="material-symbols-outlined text-base text-gray-500">logout</span>
+                  {subGoals && subGoals.length > 0 && (
+                    <div className="absolute right-0 top-full mt-2 w-72 bg-white rounded-xl shadow-xl border border-custom-border p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                      <p className="text-xs font-bold text-custom-text-dark/60 uppercase tracking-wider mb-2">Subgoals</p>
+                      <ul className="space-y-2">
+                        {goalStatus.subGoals.map((goal, idx) => (
+                          <li key={idx} className="flex items-start gap-2 text-sm text-custom-text-dark">
+                            <span
+                              className={`material-symbols-outlined text-base shrink-0 ${
+                                goal.status === "completed" ? "text-green-500" : "text-custom-text-dark/40"
+                              }`}
+                            >
+                              {goal.status === "completed" ? "check_circle" : "radio_button_unchecked"}
+                            </span>
+                            {goal.text}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
               )}
-            </button>
-          </div>
-        </header>
 
-        <div className="flex-1 overflow-y-auto p-6 pb-32 scroll-smooth">
-          <TranscriptList
-            bubbles={bubblesWithActive as ConversationBubble[]}
-            speakerLabels={{ user: learnerRole || "User", ai: aiRole || "AI" }}
-            onBubbleClick={(id) => {
-              const idx = session.bubbles.findIndex((b) => b.id === id);
-              if (idx !== -1) setActiveIndex(idx);
-            }}
-          />
-          <div ref={transcriptEndRef} />
+              <button
+                onClick={() => {
+                  if (goalStatus.main === "completed_all") {
+                    setIsEnding(true);
+                    setTimeout(() => router.push("/"), 400);
+                  } else {
+                    setShowEndConfirm(true);
+                  }
+                }}
+                className="flex items-center justify-center bg-white border border-custom-border rounded-full w-10 h-10 text-custom-text-dark shadow-sm hover:shadow transition hover:-translate-y-0.5 pointer-events-auto"
+                disabled={isEnding}
+                title="End session"
+              >
+                {isEnding ? (
+                  <span className="material-symbols-outlined text-base text-gray-400 animate-ping">logout</span>
+                ) : (
+                  <span className="material-symbols-outlined text-base text-gray-500">logout</span>
+                )}
+              </button>
+            </div>
+          </header>
+
+          <div className="flex-1 overflow-y-auto p-6 pb-32 scroll-smooth">
+            <TranscriptList
+              bubbles={bubblesWithActive as ConversationBubble[]}
+              speakerLabels={{ user: learnerRole || "User", ai: aiRole || "AI" }}
+              onBubbleClick={(id) => {
+                const idx = session.bubbles.findIndex((b) => b.id === id);
+                if (idx !== -1) setActiveIndex(idx);
+              }}
+            />
+            <div ref={transcriptEndRef} />
+          </div>
+
+          {error && (
+            <div className="fixed bottom-28 left-1/2 -translate-x-1/2 max-w-xl w-[90%] bg-red-50 text-red-600 p-3 rounded-lg text-sm text-center border border-red-100 shadow-md z-50">
+              {error}
+            </div>
+          )}
+
+          <div className="absolute bottom-0 left-0 right-0 flex justify-center pointer-events-none">
+            <ControlBar
+              status={recordingStatus}
+              onRecord={handleRecord}
+              onStop={handleStop}
+              onCancel={handleCancelRecording}
+              onSend={handleSend}
+              onRetry={handleRetry}
+              disabled={controlsDisabled}
+            />
+          </div>
         </div>
 
-        {error && (
-          <div className="fixed bottom-28 left-1/2 -translate-x-1/2 max-w-xl w-[90%] bg-red-50 text-red-600 p-3 rounded-lg text-sm text-center border border-red-100 shadow-md z-50">
-            {error}
-          </div>
-        )}
-
-        <div className="absolute bottom-0 left-0 right-0 flex justify-center pointer-events-none">
-          <ControlBar
-            status={recordingStatus}
-            onRecord={handleRecord}
-            onStop={handleStop}
-            onCancel={handleCancelRecording}
-            onSend={handleSend}
-            onRetry={handleRetry}
-            disabled={controlsDisabled}
+        <div className="hidden lg:flex col-span-4 bg-[#ffffff] flex-col h-screen overflow-hidden z-20">
+          <CopilotPanel
+            mode={copilotMode}
+            selectedBubble={activeBubble}
+            onDistill={() => handleCopilot("distill")}
+            onInspiration={(prompt) => handleCopilot("inspiration", prompt)}
+            loading={copilotLoading}
           />
         </div>
       </div>
-
-      <div className="hidden lg:flex col-span-4 bg-[#ffffff] flex-col h-full overflow-hidden z-20">
-        <CopilotPanel
-          mode={copilotMode}
-          selectedBubble={activeBubble}
-          onDistill={() => handleCopilot("distill")}
-          onInspiration={(prompt) => handleCopilot("inspiration", prompt)}
-          loading={copilotLoading}
-        />
-      </div>
-    </div>
 
     {showEndConfirm && (
       <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">

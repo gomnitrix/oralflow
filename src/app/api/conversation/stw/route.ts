@@ -39,7 +39,8 @@ const buildSystemPrompt = (input: {
     input.description ? `Scenario background: ${input.description}` : null,
     input.mainGoal ? `Primary goal: ${input.mainGoal}` : null,
     input.subGoals && input.subGoals.length ? `Sub-goals: ${input.subGoals.join("; ")}` : null,
-    `The learner is acting as ${input.learnerRole || "the learner"}. Keep replies concise, supportive, and on-topic.`,
+    `The learner is acting as ${input.learnerRole || "the learner"}. Keep replies supportive, on-topic, and conversational.`,
+    `Use a natural, conversational speaking style: short turns, simple phrasing, and direct answers. Avoid monologues.`,
   ].filter(Boolean);
 
   return parts.join("\n");
@@ -91,9 +92,9 @@ const evaluateGoals = async (payload: {
     const main = typeof parsed.main_status === "string" ? parsed.main_status.toLowerCase() : "not_started";
     const sub = Array.isArray(parsed.subgoals)
       ? parsed.subgoals.map((g: any) => ({
-          text: typeof g?.text === "string" ? g.text : "",
-          status: typeof g?.status === "string" ? g.status.toLowerCase() : "not_started",
-        }))
+        text: typeof g?.text === "string" ? g.text : "",
+        status: typeof g?.status === "string" ? g.status.toLowerCase() : "not_started",
+      }))
       : [];
 
     return {
@@ -175,22 +176,22 @@ async function handleReply(payload: unknown) {
     audioUrl: await ttsForText(turn.reply),
     goalStatus: shouldEvaluateGoals
       ? await (async () => {
-      try {
-        const history: { speaker: "user" | "ai"; text: string }[] = [
-          ...parsed.history.map((h) => ({ speaker: h.speaker, text: h.text })),
-          { speaker: "user", text: parsed.userText },
-          { speaker: "ai", text: turn.reply },
-        ];
-        return await evaluateGoals({
-          history,
-          mainGoal: parsed.scenario.mainGoal,
-          subGoals: parsed.scenario.subGoals ?? [],
-        });
-          } catch (error) {
-            console.error("[stw:goal] evaluation error", error);
-            return null;
-          }
-        })()
+        try {
+          const history: { speaker: "user" | "ai"; text: string }[] = [
+            ...parsed.history.map((h) => ({ speaker: h.speaker, text: h.text })),
+            { speaker: "user", text: parsed.userText },
+            { speaker: "ai", text: turn.reply },
+          ];
+          return await evaluateGoals({
+            history,
+            mainGoal: parsed.scenario.mainGoal,
+            subGoals: parsed.scenario.subGoals ?? [],
+          });
+        } catch (error) {
+          console.error("[stw:goal] evaluation error", error);
+          return null;
+        }
+      })()
       : null,
   };
 }

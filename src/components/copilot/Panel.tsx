@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { ConversationBubble } from "../../domains/conversation/models";
 import type { StructuredNote } from "../../domains/copilot/models";
@@ -233,6 +233,14 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({
 
   const distillInsights = (selectedBubble?.copilotInsights ?? []).filter((i) => i.type === "distill");
   const inspirationInsights = (selectedBubble?.copilotInsights ?? []).filter((i) => i.type === "inspiration");
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const lastRunStatus = assessmentRuns[assessmentRuns.length - 1]?.status;
+
+  useEffect(() => {
+    if (!scrollRef.current) return;
+    if (!selectedBubble) return;
+    scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+  }, [assessmentRuns.length, lastRunStatus, selectedBubble]);
 
   if (mode === "assessment") {
     const renderAssessmentSummary = (runSummary: NonNullable<ConversationBubble["evaluationSummary"]>) => (
@@ -343,10 +351,12 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({
 
     return (
       <div className="flex flex-col h-full bg-white border-l border-custom-border">
-        <div className="p-6 pb-4 border-b border-custom-border/50">
-          <h2 className="text-xl font-black text-custom-text-dark tracking-tight">Copilot Coach</h2>
+        <div className="sticky top-0 z-20 bg-white border-b border-custom-border/50 shadow-sm">
+          <div className="p-6 pb-4">
+            <h2 className="text-xl font-black text-custom-text-dark tracking-tight">Copilot Coach</h2>
+          </div>
         </div>
-        <div className="flex-1 p-6 overflow-y-auto">
+        <div className="flex-1 p-6 overflow-y-auto" ref={scrollRef}>
           {assessmentRuns.length > 0 ? (
             <div className="space-y-4">
               {assessmentRuns.map((run, idx) => (
@@ -386,30 +396,32 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({
 
   return (
     <div className="flex flex-col h-full bg-white border-l border-custom-border">
-      <div className="p-6 pb-4 border-b border-custom-border/50">
-        <h2 className="text-xl font-black text-custom-text-dark tracking-tight">Copilot Coach</h2>
-      </div>
+      <div className="sticky top-0 z-20 bg-white shadow-sm">
+        <div className="p-6 pb-4 border-b border-custom-border/50">
+          <h2 className="text-xl font-black text-custom-text-dark tracking-tight">Copilot Coach</h2>
+        </div>
 
-      <div className="px-6 py-4">
-        <div className="grid grid-cols-2 gap-2 p-1 bg-gray-100 rounded-full">
-          <button
-            onClick={() => updateContext({ activeTab: "distill" })}
-            className={`py-2 px-4 rounded-full text-sm font-bold transition-all ${context.activeTab === "distill"
-              ? "bg-white text-custom-text-dark shadow-sm"
-              : "text-custom-text-dark/60 hover:text-custom-text-dark"
-              }`}
-          >
-            Distill
-          </button>
-          <button
-            onClick={() => updateContext({ activeTab: "inspiration" })}
-            className={`py-2 px-4 rounded-full text-sm font-bold transition-all ${context.activeTab === "inspiration"
-              ? "bg-white text-custom-text-dark shadow-sm"
-              : "text-custom-text-dark/60 hover:text-custom-text-dark"
-              }`}
-          >
-            Inspiration Burst
-          </button>
+        <div className="px-6 py-4">
+          <div className="grid grid-cols-2 gap-2 p-1 bg-gray-100 rounded-full">
+            <button
+              onClick={() => updateContext({ activeTab: "distill" })}
+              className={`py-2 px-4 rounded-full text-sm font-bold transition-all ${context.activeTab === "distill"
+                ? "bg-white text-custom-text-dark shadow-sm"
+                : "text-custom-text-dark/60 hover:text-custom-text-dark"
+                }`}
+            >
+              Distill
+            </button>
+            <button
+              onClick={() => updateContext({ activeTab: "inspiration" })}
+              className={`py-2 px-4 rounded-full text-sm font-bold transition-all ${context.activeTab === "inspiration"
+                ? "bg-white text-custom-text-dark shadow-sm"
+                : "text-custom-text-dark/60 hover:text-custom-text-dark"
+                }`}
+            >
+              Inspiration Burst
+            </button>
+          </div>
         </div>
       </div>
 

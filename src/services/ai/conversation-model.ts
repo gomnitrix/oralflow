@@ -15,6 +15,9 @@ export interface ConversationTurnResult {
 }
 
 export const buildConversationPrompt = (input: ConversationTurnInput): ChatPrompt => {
+  if (!input.systemPrompt) {
+    console.warn("[buildConversationPrompt] No system prompt provided, using default");
+  }
   const baseSystem: ChatMessage = {
     role: "system",
     content:
