@@ -51,6 +51,26 @@ export interface EvaluationRecord {
   referenceAudioUrl: string | null;
 }
 
+export type EvaluationSummary = {
+  pronunciationIssues: string[];
+  pronunciationScores?: EvaluationRecord["pronunciationScores"];
+  wordScores?: EvaluationRecord["wordScores"];
+  grammarIssues: string[];
+  naturalnessNotes: string[];
+  nativeLikeSuggestion: string;
+  referenceAudioUrl: string | null;
+  pronunciationEnabled?: boolean;
+};
+
+export interface EvaluationRun {
+  id: string;
+  createdAt: ISODateString;
+  status: "pending" | "completed" | "error";
+  evaluationId?: string | null;
+  summary?: EvaluationSummary | null;
+  errorMessage?: string | null;
+}
+
 export interface ConversationBubble {
   id: string;
   sessionId: string;
@@ -62,16 +82,8 @@ export interface ConversationBubble {
   updatedAt: ISODateString;
   copilotInsights: CopilotInsight[];
   evaluationId: string | null;
-  evaluationSummary?: {
-    pronunciationIssues: string[];
-    pronunciationScores?: EvaluationRecord["pronunciationScores"];
-    wordScores?: EvaluationRecord["wordScores"];
-    grammarIssues: string[];
-    naturalnessNotes: string[];
-    nativeLikeSuggestion: string;
-    referenceAudioUrl: string | null;
-    pronunciationEnabled?: boolean;
-  } | null;
+  evaluationSummary?: EvaluationSummary | null;
+  evaluationRuns?: EvaluationRun[];
 }
 
 export interface ConversationSession {
@@ -128,6 +140,7 @@ export const createConversationBubble = (
     copilotInsights: input.copilotInsights ?? [],
     evaluationId: input.evaluationId ?? null,
     evaluationSummary: input.evaluationSummary ?? null,
+    evaluationRuns: input.evaluationRuns ?? [],
   };
 };
 

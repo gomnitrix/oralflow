@@ -202,6 +202,20 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({
 }) => {
   const { context, updateContext } = useBubbleContext(selectedBubble?.id);
   const summary = selectedBubble?.evaluationSummary;
+  const assessmentRuns = useMemo(() => {
+    const runs = selectedBubble?.evaluationRuns ?? [];
+    if (runs.length > 0) return runs;
+    return summary
+      ? [
+          {
+            id: selectedBubble?.evaluationId ?? "legacy",
+            createdAt: selectedBubble?.updatedAt ?? "",
+            status: "completed" as const,
+            summary,
+          },
+        ]
+      : [];
+  }, [selectedBubble?.evaluationId, selectedBubble?.evaluationRuns, selectedBubble?.updatedAt, summary]);
   const selectedTextRaw = selectedBubble?.text ?? "";
   const selectedTextDisplay = selectedTextRaw.trim()
     ? `“${selectedTextRaw}”`
@@ -221,116 +235,144 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({
   const inspirationInsights = (selectedBubble?.copilotInsights ?? []).filter((i) => i.type === "inspiration");
 
   if (mode === "assessment") {
+    const renderAssessmentSummary = (runSummary: NonNullable<ConversationBubble["evaluationSummary"]>) => (
+      <div className="space-y-3">
+        <div>
+          <p className="text-sm font-bold text-custom-text-dark flex items-center gap-2">
+            <span className="material-symbols-outlined text-green-500 text-base">mic</span>
+            Pronunciation
+          </p>
+          {!runSummary.pronunciationEnabled && (
+            <p className="text-sm text-custom-text-dark/60 mt-1">
+              {runSummary.pronunciationIssues[0] || "Pronunciation assessment not enabled."}
+            </p>
+          )}
+          {runSummary.pronunciationEnabled && (
+            <>
+              <div className="grid grid-cols-2 gap-3 mt-2">
+                <ScorePill label="Pronunciation" value={runSummary.pronunciationScores?.overall} />
+                <ScorePill label="Accuracy" value={runSummary.pronunciationScores?.accuracy} />
+                <ScorePill label="Fluency" value={runSummary.pronunciationScores?.fluency} />
+                <ScorePill label="Completeness" value={runSummary.pronunciationScores?.completeness} />
+                {runSummary.pronunciationScores?.prosody !== undefined && (
+                  <ScorePill label="Prosody" value={runSummary.pronunciationScores?.prosody} />
+                )}
+              </div>
+
+              {(runSummary.wordScores ?? []).length > 0 && (
+                <div className="mt-4 space-y-2">
+                  <p className="text-xs font-semibold text-custom-text-dark/60 uppercase mb-1">Pronunciation</p>
+                  <div className="leading-7 text-sm flex flex-wrap gap-2">
+                    {(runSummary.wordScores ?? []).map((word, idx) => {
+                      const wordScore = word.accuracy ?? 0;
+                      const wordColor =
+                        wordScore >= 90 ? "text-green-700" : wordScore >= 75 ? "text-amber-700" : "text-red-700";
+                      const phonemes = word.phonemes ?? [];
+                      return (
+                        <div
+                          key={`${word.word}-${idx}`}
+                          className="relative group flex flex-col items-center min-w-[70px] px-1 hover:z-50"
+                        >
+                          <div className="flex items-center gap-1 text-[11px]">
+                            <span className="text-custom-text-dark/50">/</span>
+                            {phonemes.map((p, pIdx) => {
+                              const score = p.accuracy ?? 0;
+                              const color =
+                                score >= 90 ? "text-green-600" : score >= 75 ? "text-amber-600" : "text-red-600";
+                              return (
+                                <span key={`${word.word}-phoneme-${p.phoneme}-${pIdx}`} className={`${color} font-semibold`}>
+                                  {p.ipa || p.phoneme}
+                                </span>
+                              );
+                            })}
+                            <span className="text-custom-text-dark/50">/</span>
+                          </div>
+                          <span className={`font-semibold ${wordColor}`}>
+                            {word.word}
+                          </span>
+                          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 hidden group-hover:block whitespace-nowrap rounded-md bg-black text-white text-[11px] px-2 py-1 shadow z-50">
+                            {`${word.word}: ${wordScore}/100${word.errorType && word.errorType !== "None" ? ` · ${word.errorType}` : ""}`}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {runSummary.referenceAudioUrl && (
+                <button
+                  className="mt-3 text-xs font-semibold text-custom-primary bg-white border border-custom-primary/30 rounded-full px-3 py-1 hover:bg-custom-primary/10 transition-colors"
+                  onClick={() => {
+                    if (typeof Audio === "undefined") return;
+                    const audio = new Audio(runSummary.referenceAudioUrl || "");
+                    void audio.play().catch(() => undefined);
+                  }}
+                >
+                  Replay reference audio
+                </button>
+              )}
+            </>
+          )}
+        </div>
+
+        <div>
+          <p className="text-sm font-bold text-custom-text-dark flex items-center gap-2">
+            <span className="material-symbols-outlined text-amber-500 text-base">auto_fix</span>
+            Grammar & Naturalness
+          </p>
+          <ul className="text-sm text-custom-text-dark/70 list-disc list-inside mt-1 space-y-1">
+            {[...(runSummary.grammarIssues ?? []), ...(runSummary.naturalnessNotes ?? [])].map((issue, idx) => (
+              <li key={idx}>{issue}</li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="bg-white rounded-2xl border border-custom-border px-4 py-3">
+          <p className="text-xs font-bold text-custom-text-dark/60 uppercase">A native speaker would say</p>
+          <p className="text-sm text-custom-text-dark mt-1">{runSummary.nativeLikeSuggestion}</p>
+        </div>
+      </div>
+    );
+
+    const statusBadge = (status: "pending" | "completed" | "error") => {
+      if (status === "completed") return "bg-green-100 text-green-700";
+      if (status === "pending") return "bg-amber-100 text-amber-700";
+      return "bg-red-100 text-red-700";
+    };
+
     return (
       <div className="flex flex-col h-full bg-white border-l border-custom-border">
         <div className="p-6 pb-4 border-b border-custom-border/50">
           <h2 className="text-xl font-black text-custom-text-dark tracking-tight">Copilot Coach</h2>
         </div>
         <div className="flex-1 p-6 overflow-y-auto">
-          {summary ? (
-            <div className="bg-[#f8f6f6] p-6 rounded-3xl shadow-sm border border-custom-border space-y-4">
-              <p className="text-xs font-bold text-custom-text-dark/60 uppercase tracking-wider">Pre-send Evaluation</p>
+          {assessmentRuns.length > 0 ? (
+            <div className="space-y-4">
+              {assessmentRuns.map((run, idx) => (
+                <div key={run.id ?? idx} className="bg-[#f8f6f6] p-6 rounded-3xl shadow-sm border border-custom-border space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-bold text-custom-text-dark/60 uppercase tracking-wider">Attempt {idx + 1}</p>
+                    <span className={`text-[11px] font-semibold px-2 py-1 rounded-full ${statusBadge(run.status)}`}>
+                      {run.status === "completed" ? "Completed" : run.status === "pending" ? "Evaluating" : "Error"}
+                    </span>
+                  </div>
 
-              <div className="space-y-3">
-                <div>
-                  <p className="text-sm font-bold text-custom-text-dark flex items-center gap-2">
-                    <span className="material-symbols-outlined text-green-500 text-base">mic</span>
-                    Pronunciation
-                  </p>
-                  {!summary.pronunciationEnabled && (
-                    <p className="text-sm text-custom-text-dark/60 mt-1">
-                      {summary.pronunciationIssues[0] || "Pronunciation assessment not enabled."}
-                    </p>
+                  {run.status === "pending" && (
+                    <div className="bg-white rounded-2xl border border-dashed border-custom-border text-center p-4">
+                      <p className="text-sm font-medium text-custom-text-dark/70">Evaluating your response...</p>
+                    </div>
                   )}
-                  {summary.pronunciationEnabled && (
-                    <>
-                      <div className="grid grid-cols-2 gap-3 mt-2">
-                        <ScorePill label="Pronunciation" value={summary.pronunciationScores?.overall} />
-                        <ScorePill label="Accuracy" value={summary.pronunciationScores?.accuracy} />
-                        <ScorePill label="Fluency" value={summary.pronunciationScores?.fluency} />
-                        <ScorePill label="Completeness" value={summary.pronunciationScores?.completeness} />
-                        {summary.pronunciationScores?.prosody !== undefined && (
-                          <ScorePill label="Prosody" value={summary.pronunciationScores?.prosody} />
-                        )}
-                      </div>
 
-                      {(summary.wordScores ?? []).length > 0 && (
-                        <div className="mt-4 space-y-2">
-                          <p className="text-xs font-semibold text-custom-text-dark/60 uppercase mb-1">Pronunciation</p>
-                          <div className="leading-7 text-sm flex flex-wrap gap-2">
-                            {(summary.wordScores ?? []).map((word, idx) => {
-                              const wordScore = word.accuracy ?? 0;
-                              const wordColor =
-                                wordScore >= 90 ? "text-green-700" : wordScore >= 75 ? "text-amber-700" : "text-red-700";
-                              const phonemes = word.phonemes ?? [];
-                              const ipaPieces = phonemes.map((p) => p.ipa || p.phoneme);
-                              return (
-                                <div
-                                  key={`${word.word}-${idx}`}
-                                  className="relative group flex flex-col items-center min-w-[70px] px-1 hover:z-50"
-                                >
-                                  <div className="flex items-center gap-1 text-[11px]">
-                                    <span className="text-custom-text-dark/50">/</span>
-                                    {phonemes.map((p, pIdx) => {
-                                      const score = p.accuracy ?? 0;
-                                      const color =
-                                        score >= 90 ? "text-green-600" : score >= 75 ? "text-amber-600" : "text-red-600";
-                                      return (
-                                        <span key={`${word.word}-phoneme-${p.phoneme}-${pIdx}`} className={`${color} font-semibold`}>
-                                          {p.ipa || p.phoneme}
-                                        </span>
-                                      );
-                                    })}
-                                    <span className="text-custom-text-dark/50">/</span>
-                                  </div>
-                                  <span
-                                    className={`font-semibold ${wordColor}`}
-                                  >
-                                    {word.word}
-                                  </span>
-                                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 hidden group-hover:block whitespace-nowrap rounded-md bg-black text-white text-[11px] px-2 py-1 shadow z-50">
-                                    {`${word.word}: ${wordScore}/100${word.errorType && word.errorType !== "None" ? ` · ${word.errorType}` : ""}`}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-
-                      {summary.referenceAudioUrl && (
-                        <button
-                          className="mt-3 text-xs font-semibold text-custom-primary bg-white border border-custom-primary/30 rounded-full px-3 py-1 hover:bg-custom-primary/10 transition-colors"
-                          onClick={() => {
-                            if (typeof Audio === "undefined") return;
-                            const audio = new Audio(summary.referenceAudioUrl || "");
-                            void audio.play().catch(() => undefined);
-                          }}
-                        >
-                          Replay reference audio
-                        </button>
-                      )}
-                    </>
+                  {run.status === "error" && (
+                    <div className="bg-red-50 text-red-700 border border-red-100 rounded-xl p-3 text-sm">
+                      {run.errorMessage ?? "Evaluation failed. Please retry."}
+                    </div>
                   )}
-                </div>
 
-                <div>
-                  <p className="text-sm font-bold text-custom-text-dark flex items-center gap-2">
-                    <span className="material-symbols-outlined text-amber-500 text-base">auto_fix</span>
-                    Grammar & Naturalness
-                  </p>
-                  <ul className="text-sm text-custom-text-dark/70 list-disc list-inside mt-1 space-y-1">
-                    {[...summary.grammarIssues, ...summary.naturalnessNotes].map((issue, idx) => (
-                      <li key={idx}>{issue}</li>
-                    ))}
-                  </ul>
+                  {run.status === "completed" && run.summary && renderAssessmentSummary(run.summary)}
                 </div>
-
-                <div className="bg-white rounded-2xl border border-custom-border px-4 py-3">
-                  <p className="text-xs font-bold text-custom-text-dark/60 uppercase">A native speaker would say</p>
-                  <p className="text-sm text-custom-text-dark mt-1">{summary.nativeLikeSuggestion}</p>
-                </div>
-              </div>
+              ))}
             </div>
           ) : (
             <div className="bg-[#f8f6f6] p-6 rounded-3xl border border-dashed border-custom-border text-center">

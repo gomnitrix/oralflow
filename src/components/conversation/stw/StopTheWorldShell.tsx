@@ -8,6 +8,7 @@ import {
   createConversationSession,
   type ConversationBubble,
   type ConversationSession,
+  type EvaluationRun,
 } from "../../../domains/conversation/models";
 import { TranscriptList } from "../../shared/TranscriptList";
 import { CopilotPanel } from "../../copilot/Panel";
@@ -77,6 +78,17 @@ const cloneSession = (session: ConversationSession): ConversationSession => {
   return JSON.parse(JSON.stringify(session)) as ConversationSession;
 };
 
+const deriveControlBarStatus = (session: ConversationSession): ControlBarStatus => {
+  const lastUser = [...session.bubbles].reverse().find((b) => b.speaker === "user");
+  if (lastUser && ["pending", "evaluating", "readyToSend"].includes(lastUser.state)) {
+    return "review";
+  }
+  if (lastUser?.state === "recording") {
+    return "recording";
+  }
+  return "idle";
+};
+
 const preferredMimeTypes = ["audio/wav", "audio/mp3", "audio/webm;codecs=pcm", "audio/webm;codecs=opus", "audio/ogg;codecs=opus"];
 
 const pickSupportedMimeType = (): string | undefined => {
@@ -88,6 +100,11 @@ const pickSupportedMimeType = (): string | undefined => {
   }
   return undefined;
 };
+
+const generateRunId = () =>
+  (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+    ? crypto.randomUUID()
+    : `run_${Math.random().toString(36).slice(2, 10)}`);
 
 const floatTo16BitPCM = (buffer: Float32Array): Int16Array => {
   const output = new Int16Array(buffer.length);
@@ -303,7 +320,7 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
         setError((err as Error).message);
       }
     },
-    [scenario, updateSession]
+    [mainGoal, scenario, subGoals, updateSession]
   );
 
   useEffect(() => {
@@ -381,16 +398,25 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
       }
       return data.text;
     },
-    [mainGoal, scenarioTitle]
+    []
   );
 
   const evaluateBubble = useCallback(
     async (bubble: ConversationBubble, audio: { base64?: string; mimeType?: string; audioUrl?: string | null }) => {
       setIsEvaluating(true);
+      const runId = generateRunId();
+      const now = new Date().toISOString();
       updateSession((prev) => ({
         ...prev,
         bubbles: prev.bubbles.map((b) =>
-          b.id === bubble.id ? { ...b, state: "evaluating", updatedAt: new Date().toISOString() } : b
+          b.id === bubble.id
+            ? {
+                ...b,
+                state: "evaluating",
+                updatedAt: now,
+                evaluationRuns: [...(b.evaluationRuns ?? []), { id: runId, status: "pending", createdAt: now }],
+              }
+            : b
         ),
       }));
 
@@ -413,6 +439,17 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
           throw new Error(data?.error || "Failed to evaluate");
         }
 
+        const summary = {
+          pronunciationIssues: data.pronunciationIssues ?? [],
+          pronunciationScores: data.pronunciationScores ?? null,
+          wordScores: data.wordScores ?? [],
+          grammarIssues: data.grammarIssues ?? [],
+          naturalnessNotes: data.naturalnessNotes ?? [],
+          nativeLikeSuggestion: data.nativeLikeSuggestion ?? "",
+          referenceAudioUrl: data.referenceAudioUrl ?? audio.audioUrl ?? bubble.audioUrl ?? null,
+          pronunciationEnabled: data.pronunciationEnabled ?? false,
+        };
+
         updateSession((prev) => ({
           ...prev,
           bubbles: prev.bubbles.map((b) =>
@@ -421,16 +458,18 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
                   ...b,
                   state: "readyToSend",
                   evaluationId: data.evaluationId,
-                  evaluationSummary: {
-                    pronunciationIssues: data.pronunciationIssues ?? [],
-                    pronunciationScores: data.pronunciationScores ?? null,
-                    wordScores: data.wordScores ?? [],
-                    grammarIssues: data.grammarIssues ?? [],
-                    naturalnessNotes: data.naturalnessNotes ?? [],
-                    nativeLikeSuggestion: data.nativeLikeSuggestion ?? "",
-                    referenceAudioUrl: data.referenceAudioUrl ?? b.audioUrl ?? null,
-                    pronunciationEnabled: data.pronunciationEnabled ?? false,
-                  },
+                  evaluationSummary: summary,
+                  evaluationRuns: (b.evaluationRuns ?? []).map((run): EvaluationRun =>
+                    run.id === runId
+                      ? {
+                          ...run,
+                          status: "completed",
+                          summary,
+                          evaluationId: data.evaluationId,
+                          errorMessage: null,
+                        }
+                      : run
+                  ),
                   updatedAt: new Date().toISOString(),
                 }
               : b
@@ -441,7 +480,16 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
         updateSession((prev) => ({
           ...prev,
           bubbles: prev.bubbles.map((b) =>
-            b.id === bubble.id ? { ...b, state: "pending", updatedAt: new Date().toISOString() } : b
+            b.id === bubble.id
+              ? {
+                  ...b,
+                  state: "pending",
+                  updatedAt: new Date().toISOString(),
+                  evaluationRuns: (b.evaluationRuns ?? []).map((run) =>
+                    run.id === runId ? { ...run, status: "error", errorMessage: (err as Error).message } : run
+                  ),
+                }
+              : b
           ),
         }));
       } finally {
@@ -618,16 +666,23 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
     setError(null);
     mediaRecorderRef.current?.stop();
 
+    let restoredStatus: ControlBarStatus = "idle";
     const snapshot = recordingCheckpointRef.current;
     if (snapshot) {
-      updateSession(() => cloneSession(snapshot.session));
+      const restored = cloneSession(snapshot.session);
+      updateSession(() => restored);
       setActiveIndex(snapshot.activeIndex);
+      restoredStatus = deriveControlBarStatus(restored);
     } else {
-      updateSession((prev) => ({ ...prev, bubbles: prev.bubbles.filter((b) => b.state !== "recording") }));
+      updateSession((prev) => {
+        const nextSession = { ...prev, bubbles: prev.bubbles.filter((b) => b.state !== "recording") };
+        restoredStatus = deriveControlBarStatus(nextSession);
+        return nextSession;
+      });
       setActiveIndex((prev) => Math.max(0, prev - 1));
     }
 
-    setRecordingStatus("idle");
+    setRecordingStatus(restoredStatus);
     setIsTranscribing(false);
     setIsEvaluating(false);
     setIsReplying(false);
@@ -645,8 +700,10 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
       return;
     }
 
+    const history = mapHistory(sessionRef.current.bubbles);
     // create placeholder AI bubble immediately
     let placeholderId: string | null = null;
+    const sentAt = new Date().toISOString();
     updateSession((prev) => {
       const aiPlaceholder = createConversationBubble({
         sessionId: prev.id,
@@ -655,12 +712,14 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
         state: "pending",
       });
       placeholderId = aiPlaceholder.id;
-      return { ...prev, bubbles: [...prev.bubbles, aiPlaceholder] };
+      const bubbles = prev.bubbles.map((b): ConversationBubble =>
+        b.id === pending.id ? { ...b, state: "sent", updatedAt: sentAt } : b
+      );
+      return { ...prev, bubbles: [...bubbles, aiPlaceholder] };
     });
 
     setIsReplying(true);
     try {
-      const history = mapHistory(sessionRef.current.bubbles);
       const data = await callAction<{ reply: string; audioUrl?: string | null; goalStatus?: any }>({
         action: "reply",
         sessionId: sessionRef.current.id,
@@ -697,10 +756,19 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
       }
     } catch (err) {
       setError((err as Error).message);
+      updateSession((prev) => ({
+        ...prev,
+        bubbles: prev.bubbles
+          .filter((b) => b.id !== placeholderId)
+          .map((b): ConversationBubble =>
+            b.id === pending.id ? { ...b, state: "readyToSend", updatedAt: sentAt } : b
+          ),
+      }));
+      setRecordingStatus("review");
     } finally {
       setIsReplying(false);
     }
-  }, [latestUserBubble, scenario, updateSession]);
+  }, [latestUserBubble, mainGoal, scenario, subGoals, updateSession]);
 
   const handleRetry = useCallback(() => {
     setRecordingStatus("idle");
