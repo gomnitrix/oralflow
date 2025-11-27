@@ -98,9 +98,9 @@ const StructuredGrid: React.FC<{
   bubbleId?: string;
 }>
   = ({ notes, fallback, origin, bubbleId }) => {
-  const [savingId, setSavingId] = useState<string | null>(null);
-  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
-  const [message, setMessage] = useState<string | null>(null);
+    const [savingId, setSavingId] = useState<string | null>(null);
+    const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+    const [message, setMessage] = useState<string | null>(null);
 
     const saveNote = async (note: StructuredNote) => {
       setSavingId(note.id);
@@ -146,8 +146,7 @@ const StructuredGrid: React.FC<{
         {notes.map((note) => (
           <div
             key={note.id}
-            className="group relative rounded-2xl bg-[#f9fafb] border border-custom-border/80 px-3 py-3 transition duration-200 hover:-translate-y-0.5 hover:shadow-md"
-            style={{ zIndex: 1 }}
+            className="group relative rounded-2xl bg-[#f9fafb] border border-custom-border/80 px-3 py-3 transition duration-200 hover:-translate-y-0.5 hover:shadow-md hover:z-50"
           >
             <div className="flex items-start justify-between gap-2">
               <div>
@@ -264,8 +263,7 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({
                               return (
                                 <div
                                   key={`${word.word}-${idx}`}
-                                  className="relative group flex flex-col items-center min-w-[70px] px-1"
-                                  style={{ zIndex: 10 }}
+                                  className="relative group flex flex-col items-center min-w-[70px] px-1 hover:z-50"
                                 >
                                   <div className="flex items-center gap-1 text-[11px]">
                                     <span className="text-custom-text-dark/50">/</span>
