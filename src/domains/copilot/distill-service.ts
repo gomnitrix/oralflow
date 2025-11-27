@@ -6,6 +6,7 @@ import { createExpressionSuggestion, type ExpressionSuggestion } from "../notes/
 export interface DistillInput {
   bubbleId: string;
   transcript: string;
+  difficultyLevel?: string;
 }
 
 const parseStructuredNotes = (raw: string): StructuredNote[] => {
@@ -48,13 +49,14 @@ const notesToSuggestions = (notes: StructuredNote[]): ExpressionSuggestion[] =>
   );
 
 export const runDistill = async (client: AIClient, input: DistillInput): Promise<CopilotInsight> => {
+  const level = input.difficultyLevel || "B1+";
   const completion = await client.completeChat(
     {
       messages: [
         {
           role: "system",
           content: [
-            "Extract advanced (B1+) spoken-English notes from the learner-selected text.",
+            `Extract advanced (${level}) spoken-English notes from the learner-selected text.`,
             "Prefer phrases/chunks/idioms over single words; skip trivial vocabulary.",
             "Return ONLY JSON array. Each item: {",
             "  content: string (phrase/idiom/collocation),",
@@ -66,7 +68,7 @@ export const runDistill = async (client: AIClient, input: DistillInput): Promise
         },
         {
           role: "user",
-          content: `Selected text:\n${input.transcript}\nReturn JSON array; omit items if nothing strong enough for B1+ level.`,
+          content: `Selected text:\n${input.transcript}\nReturn JSON array; omit items if nothing strong enough for ${level} level.`,
         },
       ],
     },
@@ -80,7 +82,7 @@ export const runDistill = async (client: AIClient, input: DistillInput): Promise
     bubbleId: input.bubbleId,
     type: "distill",
     title: "Distilled Notes",
-    description: "B1+ phrases and chunks distilled from the selected text.",
+    description: `${level} phrases and chunks distilled from the selected text.`,
     suggestedExpressions: suggestions,
     structuredNotes: notes,
   });

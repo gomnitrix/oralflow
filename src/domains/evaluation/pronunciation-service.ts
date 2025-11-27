@@ -3,6 +3,7 @@ import * as sdk from "microsoft-cognitiveservices-speech-sdk";
 
 import { createEvaluationRecord, type EvaluationRecord } from "../conversation/models";
 import { synthesizeSpeech } from "../../services/ai/tts";
+import { SettingsService } from "../../services/ai/settings";
 
 const AZURE_SPEECH_KEY = process.env.AZURE_SPEECH_KEY;
 const AZURE_SPEECH_REGION = process.env.AZURE_SPEECH_REGION;
@@ -153,9 +154,10 @@ const parseWordScores = (rawDetail: unknown): {
 };
 
 const resolveGranularity = (): sdk.PronunciationAssessmentGranularity => {
-  const env = process.env.AZURE_PRONUNCIATION_GRANULARITY?.toLowerCase();
-  if (env === "word") return sdk.PronunciationAssessmentGranularity.Word;
-  if (env === "fulltext") return sdk.PronunciationAssessmentGranularity.FullText;
+  const settings = SettingsService.getInstance().getSettings();
+  const configured = settings.config.pronunciation.granularity?.toLowerCase();
+  if (configured === "word") return sdk.PronunciationAssessmentGranularity.Word;
+  if (configured === "fulltext") return sdk.PronunciationAssessmentGranularity.FullText;
   return sdk.PronunciationAssessmentGranularity.Phoneme;
 };
 

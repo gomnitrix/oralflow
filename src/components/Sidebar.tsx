@@ -87,6 +87,18 @@ const Sidebar = () => {
                             Models
                         </p>
                     </Link>
+                    <Link
+                        href="/settings"
+                        className={`flex items-center gap-3 px-4 py-2 rounded-full transition-colors ${isActive("/settings")
+                            ? "bg-custom-primary/20 text-custom-primary"
+                            : "hover:bg-custom-primary/10 text-custom-text-dark"
+                            }`}
+                    >
+                        <span className="material-symbols-outlined">tune</span>
+                        <p className={`text-sm ${isActive("/settings") ? "font-bold" : "font-medium"}`}>
+                            Settings
+                        </p>
+                    </Link>
                 </nav>
             </div>
             <div className="flex flex-col gap-2">

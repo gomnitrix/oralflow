@@ -158,7 +158,15 @@ async function handleReply(payload: unknown) {
   );
 
   const aiBubbleCount = parsed.history.filter((h) => h.speaker === "ai").length + 1; // include new reply
-  const shouldEvaluateGoals = aiBubbleCount >= 5;
+  const startTurn = (() => {
+    const configured = settings.getSettings().config.stw.goalEvaluationStartTurn;
+    const asNumber = typeof configured === "number" ? configured : Number(configured);
+    if (Number.isFinite(asNumber)) {
+      return Math.min(10, Math.max(1, Math.round(asNumber)));
+    }
+    return 5;
+  })();
+  const shouldEvaluateGoals = aiBubbleCount >= startTurn;
 
   return {
     reply: turn.reply,
@@ -192,7 +200,11 @@ async function handleCopilot(payload: unknown) {
   const client = new AIClient();
 
   if (parsed.type === "distill") {
-    const insight = await runDistill(client, { bubbleId: parsed.bubbleId, transcript: parsed.bubbleText });
+    const insight = await runDistill(client, {
+      bubbleId: parsed.bubbleId,
+      transcript: parsed.bubbleText,
+      difficultyLevel: settings.getSettings().config.copilot.distillLevel,
+    });
     return { insight, modelId: getAssignment("copilot_distill") };
   }
 
@@ -200,6 +212,7 @@ async function handleCopilot(payload: unknown) {
     bubbleId: parsed.bubbleId,
     topic: parsed.topic || parsed.bubbleText,
     history: parsed.history ?? [],
+    difficultyLevel: settings.getSettings().config.copilot.inspirationLevel,
   });
 
   return { insight, modelId: getAssignment("copilot_inspiration") };

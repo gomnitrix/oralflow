@@ -769,6 +769,11 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
         void handleRecord();
       }
 
+      if (isSpace && recordingStatus === "recording") {
+        event.preventDefault();
+        handleStop();
+      }
+
       if (key === "escape" && recordingStatus === "recording") {
         event.preventDefault();
         handleCancelRecording();
@@ -787,7 +792,7 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
 
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [controlsDisabled, handleCancelRecording, handleRecord, handleRetry, handleSend, recordingStatus]);
+  }, [controlsDisabled, handleCancelRecording, handleRecord, handleRetry, handleSend, handleStop, recordingStatus]);
 
   return (
     <>

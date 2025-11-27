@@ -50,8 +50,9 @@ const notesToSuggestions = (notes: StructuredNote[]): ExpressionSuggestion[] =>
 
 export const runInspirationBurst = async (
   client: AIClient,
-  input: InspirationInput
+  input: InspirationInput & { difficultyLevel?: string }
 ): Promise<CopilotInsight> => {
+  const level = input.difficultyLevel || "B1+";
   const historyText = (input.history ?? [])
     .map((turn, idx) => `${idx + 1}. ${turn.speaker === "ai" ? "Coach" : "You"}: ${turn.text}`)
     .join("\n");
@@ -62,7 +63,7 @@ export const runInspirationBurst = async (
         {
           role: "system",
           content: [
-            "Suggest reusable speaking notes (phrase/idiom/collocation) at B1+ level.",
+            `Suggest reusable speaking notes (phrase/idiom/collocation) at ${level} level.`,
             "content should be context-agnostic (not half sentences), suitable for general use.",
             "Return ONLY JSON array. Each item: {",
             "  content: string (phrase/idiom/collocation, context-free),",
@@ -88,7 +89,7 @@ export const runInspirationBurst = async (
     bubbleId: input.bubbleId,
     type: "inspiration",
     title: "Inspiration Burst",
-    description: "Next-turn ideas you can say now.",
+    description: `${level} ideas you can say next.`,
     suggestedExpressions: suggestions,
     structuredNotes: notes,
   });

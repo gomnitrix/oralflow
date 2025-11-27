@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { SettingsService } from '@/services/ai/settings';
+import { SettingsService, type AIConfigUpdate } from '@/services/ai/settings';
 
 export async function GET() {
     const settings = SettingsService.getInstance().getSettings();
@@ -16,6 +16,8 @@ export async function POST(request: Request) {
         settingsService.addModel(body.category, body.model);
     } else if (body.type === 'removeModel') {
         settingsService.removeModel(body.category, body.modelId);
+    } else if (body.type === 'config') {
+        settingsService.updateConfig(body.data as AIConfigUpdate);
     }
 
     return NextResponse.json(settingsService.getSettings());

@@ -42,9 +42,26 @@ export interface AISettings {
         // Zen Mode
         zen_goal: string | null;
     };
+    config: {
+        copilot: {
+            distillLevel: string;
+            inspirationLevel: string;
+        };
+        stw: {
+            goalEvaluationStartTurn: number;
+        };
+        pronunciation: {
+            granularity: "phoneme" | "word" | "fulltext";
+        };
+    };
 }
 
 export type AssignmentCapability = keyof AISettings['assignments'];
+export type AIConfigUpdate = {
+    copilot?: Partial<AISettings['config']['copilot']>;
+    stw?: Partial<AISettings['config']['stw']>;
+    pronunciation?: Partial<AISettings['config']['pronunciation']>;
+};
 
 const DEFAULT_SETTINGS: AISettings = {
     models: {
@@ -66,7 +83,19 @@ const DEFAULT_SETTINGS: AISettings = {
         ask_ai: null,
         review_notes: null,
         zen_goal: null,
-    }
+    },
+    config: {
+        copilot: {
+            distillLevel: "B1+",
+            inspirationLevel: "B1+",
+        },
+        stw: {
+            goalEvaluationStartTurn: 5,
+        },
+        pronunciation: {
+            granularity: "phoneme",
+        },
+    },
 };
 
 export class SettingsService {
@@ -92,6 +121,35 @@ export class SettingsService {
 
                 const parsedModels = (parsed.models ?? {}) as Partial<AISettings['models']>;
                 const parsedAssignments = (parsed.assignments ?? {}) as Partial<AISettings['assignments']>;
+                const parsedConfig = (parsed as Partial<AISettings>).config ?? {};
+
+                const mergedConfig = {
+                    copilot: {
+                        ...DEFAULT_SETTINGS.config.copilot,
+                        ...(parsedConfig as any)?.copilot,
+                    },
+                    stw: {
+                        ...DEFAULT_SETTINGS.config.stw,
+                        ...(parsedConfig as any)?.stw,
+                    },
+                    pronunciation: {
+                        ...DEFAULT_SETTINGS.config.pronunciation,
+                        ...(parsedConfig as any)?.pronunciation,
+                    },
+                };
+
+                const normalizedStartTurn = (() => {
+                    const value = (mergedConfig as any)?.stw?.goalEvaluationStartTurn;
+                    const num = typeof value === 'number' ? value : Number(value);
+                    if (!Number.isFinite(num)) return DEFAULT_SETTINGS.config.stw.goalEvaluationStartTurn;
+                    return Math.min(10, Math.max(1, Math.round(num)));
+                })();
+
+                const normalizedGranularity = (() => {
+                    const value = (mergedConfig as any)?.pronunciation?.granularity?.toLowerCase?.();
+                    if (value === "word" || value === "fulltext") return value;
+                    return DEFAULT_SETTINGS.config.pronunciation.granularity;
+                })();
 
                 return {
                     ...DEFAULT_SETTINGS,
@@ -106,7 +164,18 @@ export class SettingsService {
                     assignments: {
                         ...DEFAULT_SETTINGS.assignments,
                         ...parsedAssignments,
-                    }
+                    },
+                    config: {
+                        copilot: mergedConfig.copilot,
+                        stw: {
+                            ...mergedConfig.stw,
+                            goalEvaluationStartTurn: normalizedStartTurn,
+                        },
+                        pronunciation: {
+                            ...mergedConfig.pronunciation,
+                            granularity: normalizedGranularity as AISettings['config']['pronunciation']['granularity'],
+                        },
+                    },
                 };
             }
         } catch (error) {
@@ -129,6 +198,40 @@ export class SettingsService {
 
     public updateAssignments(assignments: Partial<AISettings['assignments']>): void {
         this.settings.assignments = { ...this.settings.assignments, ...assignments };
+        this.saveSettings();
+    }
+
+    public updateConfig(config: AIConfigUpdate): void {
+        const clampTurn = (value?: number) => {
+            if (typeof value !== 'number' || Number.isNaN(value)) return this.settings.config.stw.goalEvaluationStartTurn;
+            return Math.min(10, Math.max(1, Math.round(value)));
+        };
+
+        const normalizeGranularity = (value?: string): AISettings['config']['pronunciation']['granularity'] => {
+            if (!value) return this.settings.config.pronunciation.granularity;
+            const normalized = value.toLowerCase() as AISettings['config']['pronunciation']['granularity'];
+            if (normalized === "word" || normalized === "fulltext") return normalized;
+            return "phoneme";
+        };
+
+        this.settings.config = {
+            copilot: {
+                ...this.settings.config.copilot,
+                ...(config.copilot ?? {}),
+            },
+            stw: {
+                ...this.settings.config.stw,
+                ...(config.stw ?? {}),
+                goalEvaluationStartTurn: config.stw?.goalEvaluationStartTurn !== undefined
+                    ? clampTurn(config.stw.goalEvaluationStartTurn)
+                    : this.settings.config.stw.goalEvaluationStartTurn,
+            },
+            pronunciation: {
+                ...this.settings.config.pronunciation,
+                ...(config.pronunciation ?? {}),
+                granularity: normalizeGranularity(config.pronunciation?.granularity),
+            },
+        };
         this.saveSettings();
     }
 
