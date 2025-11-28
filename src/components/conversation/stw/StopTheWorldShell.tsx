@@ -867,7 +867,7 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
     <>
       <div className="grid grid-cols-10 h-screen bg-[#f8f6f6]">
         <div className="col-span-10 lg:col-span-6 flex flex-col relative border-r border-custom-border bg-[#f8f6f6] overflow-hidden">
-          <header className="sticky top-0 z-30 p-6 bg-[#f8f6f6]/95 backdrop-blur shadow-sm flex items-center justify-between gap-4">
+          <header className="sticky top-0 z-30 p-6 bg-[#f8f6f6]/95 backdrop-blur flex items-center justify-between gap-4">
             <div>
               <h1 className="text-2xl font-black text-custom-text-dark tracking-tight">{scenarioTitle}</h1>
             </div>
@@ -878,10 +878,10 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
                   <div className="bg-custom-primary/5 px-3 py-1.5 rounded-full border border-custom-primary/10 cursor-help flex items-center gap-2">
                     <span
                       className={`material-symbols-outlined text-lg ${goalStatus.main === "completed_all"
-                          ? "text-green-600"
-                          : goalStatus.main === "partial"
-                            ? "text-amber-600"
-                            : "text-custom-text-dark/50"
+                        ? "text-green-600"
+                        : goalStatus.main === "partial"
+                          ? "text-amber-600"
+                          : "text-custom-text-dark/50"
                         }`}
                     >
                       {goalStatus.main === "completed_all" ? "check_circle" : goalStatus.main === "partial" ? "task_alt" : "flag"}

@@ -351,7 +351,7 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({
 
     return (
       <div className="flex flex-col h-full bg-white border-l border-custom-border">
-        <div className="sticky top-0 z-20 bg-white/95 backdrop-blur shadow-sm">
+        <div className="sticky top-0 z-20 bg-white/95 backdrop-blur">
           <div className="p-6 pb-4">
             <h2 className="text-xl font-black text-custom-text-dark tracking-tight">Copilot Coach</h2>
           </div>
@@ -396,7 +396,7 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({
 
   return (
     <div className="flex flex-col h-full bg-white border-l border-custom-border">
-      <div className="sticky top-0 z-20 bg-white/95 backdrop-blur shadow-sm">
+      <div className="sticky top-0 z-20 bg-white/95 backdrop-blur">
         <div className="p-6 pb-4">
           <h2 className="text-xl font-black text-custom-text-dark tracking-tight">Copilot Coach</h2>
         </div>
