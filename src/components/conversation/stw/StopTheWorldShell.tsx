@@ -912,14 +912,9 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
 
   const handleEndSession = () => {
     const scores = calculateScores();
-    if (scores) {
-      setSessionScores(scores);
-      setShowSummary(true);
-      setShowEndConfirm(false);
-    } else {
-      setIsEnding(true);
-      setTimeout(() => router.push("/"), 400);
-    }
+    setSessionScores(scores);
+    setShowSummary(true);
+    setShowEndConfirm(false);
   };
 
   return (

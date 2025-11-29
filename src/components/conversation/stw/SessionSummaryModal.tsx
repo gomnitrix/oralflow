@@ -12,7 +12,7 @@ export interface SessionScores {
 
 interface SessionSummaryModalProps {
     isOpen: boolean;
-    scores: SessionScores;
+    scores: SessionScores | null;
     onHome: () => void;
 }
 
@@ -50,7 +50,8 @@ export const SessionSummaryModal: React.FC<SessionSummaryModalProps> = ({
 
     if (!isOpen) return null;
 
-    const isHighScore = scores.overall >= 80;
+    const hasScores = scores !== null;
+    const isHighScore = hasScores && scores.overall >= 80;
     const imageSrc = isHighScore ? "/images/cheers.png" : "/images/try-next-time.png";
 
     return (
@@ -61,30 +62,40 @@ export const SessionSummaryModal: React.FC<SessionSummaryModalProps> = ({
                         <div className="relative h-40 w-40 flex-shrink-0">
                             <img
                                 alt={isHighScore ? "Cheers!" : "Keep trying!"}
-                                className="h-full w-full object-contain"
+                                className="h-full w-full object-contain mix-blend-multiply"
                                 src={imageSrc}
                             />
                         </div>
                         <div className="flex flex-1 flex-col items-center gap-2 rounded-2xl bg-custom-primary/10 p-6 sm:items-start w-full sm:w-auto">
                             <p className="text-custom-text-dark text-base font-medium leading-normal">
-                                Overall Speaking Quality
+                                {hasScores ? "Overall Speaking Quality" : "Assessment Unavailable"}
                             </p>
                             <p className="text-custom-primary tracking-tight text-5xl font-bold leading-tight">
-                                {Math.round(scores.overall)}%
+                                {hasScores ? `${Math.round(scores.overall)}%` : "--"}
                             </p>
                         </div>
                     </div>
 
                     <div className="w-full">
-                        <div className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
-                            <ScoreBar label="Accuracy" value={scores.accuracy} />
-                            <ScoreBar label="Fluency" value={scores.fluency} />
-                            <ScoreBar label="Prosody" value={scores.prosody} />
-                            <ScoreBar label="Completeness" value={scores.completeness} />
-                            <div className="sm:col-span-2">
-                                <ScoreBar label="Pronunciation" value={scores.pronunciation} />
+                        {hasScores ? (
+                            <div className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
+                                <ScoreBar label="Accuracy" value={scores.accuracy} />
+                                <ScoreBar label="Fluency" value={scores.fluency} />
+                                <ScoreBar label="Prosody" value={scores.prosody} />
+                                <ScoreBar label="Completeness" value={scores.completeness} />
+                                <div className="sm:col-span-2">
+                                    <ScoreBar label="Pronunciation" value={scores.pronunciation} />
+                                </div>
                             </div>
-                        </div>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center py-8 text-center space-y-2">
+                                <span className="material-symbols-outlined text-4xl text-custom-text-dark/20">mic_off</span>
+                                <p className="text-custom-text-dark/60 text-sm">
+                                    No speech detected in this session. <br />
+                                    Speak up next time to get your personalized assessment!
+                                </p>
+                            </div>
+                        )}
                     </div>
 
                     <div className="flex w-full pt-4">
