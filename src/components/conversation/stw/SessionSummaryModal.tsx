@@ -59,10 +59,10 @@ export const SessionSummaryModal: React.FC<SessionSummaryModalProps> = ({
             <div className="relative w-full max-w-xl p-4 animate-in zoom-in-95 duration-300">
                 <div className="flex w-full flex-col items-center gap-6 rounded-3xl bg-[#f8f6f6] p-6 sm:p-8 md:p-10 shadow-2xl border border-white/20">
                     <div className="flex w-full flex-col items-center gap-6 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="relative h-40 w-40 flex-shrink-0">
+                        <div className="relative h-64 w-64 flex-shrink-0">
                             <img
                                 alt={isHighScore ? "Cheers!" : "Keep trying!"}
-                                className="h-full w-full object-contain mix-blend-multiply"
+                                className="h-full w-full object-contain mix-blend-darken"
                                 src={imageSrc}
                             />
                         </div>

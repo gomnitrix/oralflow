@@ -1054,7 +1054,7 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
         </div>
       )}
 
-      {showSummary && sessionScores && (
+      {showSummary && (
         <SessionSummaryModal
           isOpen={showSummary}
           scores={sessionScores}
