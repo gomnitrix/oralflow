@@ -13,6 +13,7 @@ import {
 import { TranscriptList } from "../../shared/TranscriptList";
 import { CopilotPanel } from "../../copilot/Panel";
 import { ControlBar, type ControlBarStatus } from "./ControlBar";
+import { SessionSummaryModal, type SessionScores } from "./SessionSummaryModal";
 
 export interface StopTheWorldShellProps {
   scenarioId: string;
@@ -253,6 +254,8 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
   );
   const [showEndConfirm, setShowEndConfirm] = useState(false);
   const [isEnding, setIsEnding] = useState(false);
+  const [showSummary, setShowSummary] = useState(false);
+  const [sessionScores, setSessionScores] = useState<SessionScores | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const transcriptEndRef = useRef<HTMLDivElement>(null);
@@ -863,6 +866,62 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
     return () => window.removeEventListener("keydown", handler);
   }, [controlsDisabled, handleCancelRecording, handleRecord, handleRetry, handleSend, handleStop, recordingStatus]);
 
+  const calculateScores = useCallback(() => {
+    const userBubbles = sessionRef.current.bubbles.filter(
+      (b) => b.speaker === "user" && b.state === "sent" && b.evaluationSummary
+    );
+
+    if (userBubbles.length === 0) return null;
+
+    const totals = userBubbles.reduce(
+      (acc, b) => {
+        const scores = b.evaluationSummary?.pronunciationScores;
+        if (!scores) return acc;
+        return {
+          accuracy: acc.accuracy + (scores.accuracy ?? 0),
+          fluency: acc.fluency + (scores.fluency ?? 0),
+          prosody: acc.prosody + (scores.prosody ?? 0),
+          completeness: acc.completeness + (scores.completeness ?? 0),
+          pronunciation: acc.pronunciation + (scores.overall ?? 0), // Using overall for pronunciation score
+          count: acc.count + 1,
+        };
+      },
+      { accuracy: 0, fluency: 0, prosody: 0, completeness: 0, pronunciation: 0, count: 0 }
+    );
+
+    if (totals.count === 0) return null;
+
+    const averages = {
+      accuracy: totals.accuracy / totals.count,
+      fluency: totals.fluency / totals.count,
+      prosody: totals.prosody / totals.count,
+      completeness: totals.completeness / totals.count,
+      pronunciation: totals.pronunciation / totals.count,
+    };
+
+    const overall =
+      (averages.accuracy +
+        averages.fluency +
+        averages.prosody +
+        averages.completeness +
+        averages.pronunciation) /
+      5;
+
+    return { ...averages, overall };
+  }, []);
+
+  const handleEndSession = () => {
+    const scores = calculateScores();
+    if (scores) {
+      setSessionScores(scores);
+      setShowSummary(true);
+      setShowEndConfirm(false);
+    } else {
+      setIsEnding(true);
+      setTimeout(() => router.push("/"), 400);
+    }
+  };
+
   return (
     <>
       <div className="grid grid-cols-10 h-screen bg-[#f8f6f6]">
@@ -913,8 +972,7 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
               <button
                 onClick={() => {
                   if (goalStatus.main === "completed_all") {
-                    setIsEnding(true);
-                    setTimeout(() => router.push("/"), 400);
+                    handleEndSession();
                   } else {
                     setShowEndConfirm(true);
                   }
@@ -991,9 +1049,7 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
               <button
                 className="px-4 py-2 text-sm font-semibold rounded-full bg-custom-primary text-white shadow hover:opacity-90"
                 onClick={() => {
-                  setIsEnding(true);
-                  setShowEndConfirm(false);
-                  setTimeout(() => router.push("/"), 400);
+                  handleEndSession();
                 }}
               >
                 End anyway
@@ -1001,6 +1057,14 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {showSummary && sessionScores && (
+        <SessionSummaryModal
+          isOpen={showSummary}
+          scores={sessionScores}
+          onHome={() => router.push("/")}
+        />
       )}
     </>
   );
