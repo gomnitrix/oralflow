@@ -24,8 +24,8 @@ export default function FreeChatPage() {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [context, setContext] = useState("");
-  const [userRole, setUserRole] = useState(defaultUserRole);
-  const [aiRole, setAiRole] = useState(defaultAiRole);
+  const [userRole, setUserRole] = useState("");
+  const [aiRole, setAiRole] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [draft, setDraft] = useState<DraftResult | null>(null);
   const [isPreparing, setIsPreparing] = useState(false);
@@ -66,7 +66,7 @@ export default function FreeChatPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           context: cleanContext,
-          title: title || null,
+          title: title || undefined,
           userRole,
           aiRole,
         }),
@@ -149,25 +149,25 @@ export default function FreeChatPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="block text-sm font-bold text-custom-text-dark">Your role</label>
-                  <input
-                    type="text"
-                    value={userRole}
-                    onChange={(e) => setUserRole(e.target.value)}
-                    placeholder="e.g., Author, presenter, reader"
-                    className="w-full rounded-xl border border-custom-border bg-white px-4 py-3 text-custom-text-dark placeholder:text-custom-text-dark/30 focus:border-custom-primary focus:outline-none focus:ring-1 focus:ring-custom-primary transition-all"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-sm font-bold text-custom-text-dark">AI role</label>
-                  <input
-                    type="text"
-                    value={aiRole}
-                    onChange={(e) => setAiRole(e.target.value)}
-                    placeholder="e.g., Reviewer, brainstorm partner"
-                    className="w-full rounded-xl border border-custom-border bg-white px-4 py-3 text-custom-text-dark placeholder:text-custom-text-dark/30 focus:border-custom-primary focus:outline-none focus:ring-1 focus:ring-custom-primary transition-all"
-                  />
-                </div>
+                <input
+                  type="text"
+                  value={userRole}
+                  onChange={(e) => setUserRole(e.target.value)}
+                  placeholder={defaultUserRole}
+                  className="w-full rounded-xl border border-custom-border bg-white px-4 py-3 text-custom-text-dark placeholder:text-custom-text-dark/30 focus:border-custom-primary focus:outline-none focus:ring-1 focus:ring-custom-primary transition-all"
+                />
               </div>
+              <div className="space-y-2">
+                <label className="block text-sm font-bold text-custom-text-dark">AI role</label>
+                <input
+                  type="text"
+                  value={aiRole}
+                  onChange={(e) => setAiRole(e.target.value)}
+                  placeholder={defaultAiRole}
+                  className="w-full rounded-xl border border-custom-border bg-white px-4 py-3 text-custom-text-dark placeholder:text-custom-text-dark/30 focus:border-custom-primary focus:outline-none focus:ring-1 focus:ring-custom-primary transition-all"
+                />
+              </div>
+            </div>
 
               <button
                 onClick={ensureDraft}
