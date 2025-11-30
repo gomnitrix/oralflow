@@ -9,7 +9,8 @@
     "start": "next start",
     "lint": "next lint",
     "test": "jest --runInBand",
-    "postinstall": "echo \"postinstall: no-op\""
+    "postinstall": "echo \"postinstall: no-op\"",
+    "migrate:sqlite": "node scripts/migrate-json-to-sqlite.js"
   },
   "dependencies": {
     "better-sqlite3": "^12.5.0",

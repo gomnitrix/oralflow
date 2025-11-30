@@ -1,22 +1,22 @@
-import fs from "fs/promises";
-import path from "path";
-// Use require to avoid missing type declarations for better-sqlite3
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const Database = require("better-sqlite3") as any;
-import type { ScenarioTemplate } from "../src/domains/scenario/models";
-import type { NotebookItem } from "../src/domains/notes/models";
+#!/usr/bin/env node
+
+const fs = require("fs/promises");
+const fsSync = require("fs");
+const path = require("path");
+const Database = require("better-sqlite3");
 
 const storageRoot = process.env.LOCAL_STORAGE_PATH || path.join(process.cwd(), "local_storage");
 const scenarioFile = path.join(storageRoot, "scenarios.json");
 const notebookFile = path.join(storageRoot, "notebookItems.json");
 const dbPath = path.join(storageRoot, "oralflow.db");
+fsSync.mkdirSync(storageRoot, { recursive: true });
 const db = new Database(dbPath);
 
-const loadJson = async <T>(filePath: string): Promise<T[]> => {
+const loadJson = async (filePath) => {
   try {
     const raw = await fs.readFile(filePath, "utf-8");
-    return JSON.parse(raw) as T[];
-  } catch (error: any) {
+    return JSON.parse(raw);
+  } catch (error) {
     if (error?.code === "ENOENT") {
       console.warn(`[migrate] File not found, skipping: ${filePath}`);
       return [];
@@ -25,20 +25,20 @@ const loadJson = async <T>(filePath: string): Promise<T[]> => {
   }
 };
 
-const ensureStringArray = (value: unknown, fallback: string[] = []): string[] => {
+const ensureStringArray = (value, fallback = []) => {
   if (Array.isArray(value)) {
     return value.map((v) => (typeof v === "string" ? v : String(v))).filter(Boolean);
   }
   return fallback;
 };
 
-const ensureText = (value: unknown): string | null => {
+const ensureText = (value) => {
   if (value === null || value === undefined) return null;
   if (typeof value === "string") return value;
   return String(value);
 };
 
-const ensureDateText = (value: unknown): string => {
+const ensureDateText = (value) => {
   if (typeof value === "string") return value;
   if (value instanceof Date) return value.toISOString();
   return new Date().toISOString();
@@ -82,7 +82,7 @@ const initTables = () => {
   `);
 };
 
-const migrateScenarios = (records: ScenarioTemplate[]): number => {
+const migrateScenarios = (records) => {
   if (!records.length) return 0;
   const stmt = db.prepare(
     `INSERT INTO scenarios (id, title, emoji, description, learnerRole, aiRole, mainGoal, subGoals, sourceType, sourceText, lastPracticedAt, tags, createdAt, updatedAt)
@@ -102,14 +102,14 @@ const migrateScenarios = (records: ScenarioTemplate[]): number => {
       updatedAt=excluded.updatedAt`
   );
 
-  const run = db.transaction((rows: ScenarioTemplate[]) => {
+  const run = db.transaction((rows) => {
     for (const scenario of rows) {
       stmt.run({
         ...scenario,
         subGoals: JSON.stringify(ensureStringArray(scenario.subGoals)),
         sourceText: ensureText(scenario.sourceText),
-        lastPracticedAt: ensureText((scenario as any).lastPracticedAt),
-        tags: JSON.stringify(ensureStringArray((scenario as any).tags ?? [])),
+        lastPracticedAt: ensureText(scenario.lastPracticedAt),
+        tags: JSON.stringify(ensureStringArray(scenario.tags ?? [])),
         createdAt: ensureDateText(scenario.createdAt),
         updatedAt: ensureDateText(scenario.updatedAt),
       });
@@ -120,7 +120,7 @@ const migrateScenarios = (records: ScenarioTemplate[]): number => {
   return records.length;
 };
 
-const migrateNotebookItems = (records: NotebookItem[]): number => {
+const migrateNotebookItems = (records) => {
   if (!records.length) return 0;
   const stmt = db.prepare(
     `INSERT INTO notebook_items (id, phrase, meaning, usageNotes, variants, exampleSentences, contextSentence, ipa, spokenNotes, source, sourceDetails, tags, locale, createdAt, updatedAt)
@@ -141,14 +141,14 @@ const migrateNotebookItems = (records: NotebookItem[]): number => {
       updatedAt=excluded.updatedAt`
   );
 
-  const run = db.transaction((rows: NotebookItem[]) => {
+  const run = db.transaction((rows) => {
     for (const item of rows) {
       stmt.run({
         ...item,
         variants: JSON.stringify(ensureStringArray(item.variants)),
         exampleSentences: JSON.stringify(ensureStringArray(item.exampleSentences)),
-        tags: JSON.stringify(ensureStringArray((item as any).tags ?? [])),
-        locale: ensureText((item as any).locale),
+        tags: JSON.stringify(ensureStringArray(item.tags ?? [])),
+        locale: ensureText(item.locale),
         createdAt: ensureDateText(item.createdAt),
         updatedAt: ensureDateText(item.updatedAt),
       });
@@ -163,8 +163,8 @@ async function main() {
   console.log(`[migrate] Using storage root: ${storageRoot}`);
   initTables();
 
-  const scenarios = await loadJson<ScenarioTemplate>(scenarioFile);
-  const notebookItems = await loadJson<NotebookItem>(notebookFile);
+  const scenarios = await loadJson(scenarioFile);
+  const notebookItems = await loadJson(notebookFile);
 
   const migratedScenarios = migrateScenarios(scenarios);
   const migratedNotebook = migrateNotebookItems(notebookItems);
