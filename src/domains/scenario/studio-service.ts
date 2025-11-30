@@ -2,7 +2,7 @@ import { AIClient } from "../../services/ai/client";
 import { generateScenario, type ScenarioGenerationResult } from "../../services/ai/content-model";
 import type { ScenarioGenerateRequest } from "../../lib/validation/scenario";
 import type { ScenarioTemplate } from "./models";
-import { ScenarioRepository } from "../../services/persistence/repositories";
+import type { ScenarioRepository } from "../../services/persistence/repositories";
 
 export interface ScenarioStudioDeps {
   aiClient: AIClient;

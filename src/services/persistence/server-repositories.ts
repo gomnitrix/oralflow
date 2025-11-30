@@ -10,21 +10,32 @@ import {
 } from "./repositories";
 
 export const createServerRepositories = (adapter?: StorageAdapter) => {
+    let persistentAdapter = adapter;
+    let volatileAdapter = adapter;
+
     if (!adapter) {
         const storagePath = process.env.LOCAL_STORAGE_PATH;
         if (storagePath) {
-            adapter = new JsonFileStorageAdapter(storagePath);
+            persistentAdapter = new JsonFileStorageAdapter(storagePath);
         } else {
-            adapter = new InMemoryStorageAdapter();
+            persistentAdapter = new InMemoryStorageAdapter();
         }
+        // Always use in-memory for evaluations as they don't need long-term persistence
+        volatileAdapter = new InMemoryStorageAdapter();
+    }
+
+    // Fallback for TypeScript if adapter was passed (volatileAdapter is same as persistent)
+    if (!persistentAdapter || !volatileAdapter) {
+        throw new Error("Failed to initialize adapters");
     }
 
     return {
-        scenarios: new ScenarioRepository(adapter),
-        sessions: new ConversationSessionRepository(adapter),
-        evaluationRecords: new EvaluationRecordRepository(adapter),
-        evaluationReports: new SessionEvaluationReportRepository(adapter),
-        notebook: new NotebookRepository(adapter),
-        reviewTasks: new ReviewTaskRepository(adapter),
+        // Scenarios and notebook now use SQLite-backed repo when no adapter is provided.
+        scenarios: adapter ? new ScenarioRepository(adapter) : new ScenarioRepository(),
+        sessions: new ConversationSessionRepository(persistentAdapter),
+        evaluationRecords: new EvaluationRecordRepository(volatileAdapter),
+        evaluationReports: new SessionEvaluationReportRepository(volatileAdapter),
+        notebook: adapter ? new NotebookRepository(adapter) : new NotebookRepository(),
+        reviewTasks: new ReviewTaskRepository(persistentAdapter),
     };
 };

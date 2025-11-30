@@ -1,5 +1,5 @@
 import type { ScenarioTemplate } from "./models";
-import { ScenarioRepository } from "../../services/persistence/repositories";
+import type { ScenarioRepository } from "../../services/persistence/repositories";
 
 export interface ScenarioLibraryDeps {
   repository: ScenarioRepository;
@@ -8,14 +8,13 @@ export interface ScenarioLibraryDeps {
 export class ScenarioLibraryService {
   constructor(private readonly deps: ScenarioLibraryDeps) {}
 
-  async list(params?: { query?: string; mode?: "stw" | "zen" }): Promise<ScenarioTemplate[]> {
+  async list(params?: { query?: string }): Promise<ScenarioTemplate[]> {
     const all = await this.deps.repository.list();
     return all.filter((scenario) => {
       const matchesQuery = params?.query
         ? scenario.title.toLowerCase().includes(params.query.toLowerCase())
         : true;
-      const matchesMode = params?.mode ? scenario.preferredMode === params.mode : true;
-      return matchesQuery && matchesMode;
+      return matchesQuery;
     });
   }
 

@@ -35,6 +35,7 @@ export interface NotebookItem {
   createdAt: ISODateString;
   updatedAt: ISODateString;
   locale?: string;
+  tags: string[];
 }
 
 const nowIso = (): ISODateString => new Date().toISOString();
@@ -69,6 +70,7 @@ export const createNotebookItem = (
   spokenNotes: input.spokenNotes ?? "",
   source: input.source,
   sourceDetails: input.sourceDetails ?? "",
+  tags: input.tags ?? [],
   createdAt: input.createdAt ?? nowIso(),
   updatedAt: input.updatedAt ?? nowIso(),
 });

@@ -86,6 +86,7 @@ const mapStructuredToNotebook = (
     spokenNotes: "",
     source: "stw",
     sourceDetails: `${source}:${bubbleId ?? ""}`,
+    tags: [],
     createdAt: now,
     updatedAt: now,
   };

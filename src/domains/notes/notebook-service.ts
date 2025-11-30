@@ -1,8 +1,13 @@
 import { createNotebookItem, type ExpressionSuggestion, type NotebookItem } from "./models";
-import { NotebookRepository } from "../../services/persistence/repositories";
+
+export interface NotebookRepositoryPort {
+  list(): Promise<NotebookItem[]>;
+  upsert(item: NotebookItem): Promise<NotebookItem>;
+  delete(id: string): Promise<void>;
+}
 
 export interface NotebookServiceDeps {
-  repository: NotebookRepository;
+  repository: NotebookRepositoryPort;
 }
 
 export class NotebookService {
@@ -25,6 +30,7 @@ export class NotebookService {
       spokenNotes: "",
       source: suggestion.origin === "askPage" ? "ask" : "stw",
       sourceDetails: suggestion.origin,
+      tags: [],
       locale: "en",
     });
     await this.deps.repository.upsert(item);

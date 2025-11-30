@@ -11,7 +11,7 @@ export const expressionSuggestionSchema = z.object({
     .enum(["stwInspiration", "stwDistill", "zenReport", "askPage", "adHocText"])
     .optional()
     .default("askPage"),
-  linkedNotebookItemId: z.string().optional().nullable(),
+  linkedNotebookItemId: z.string().nullable().default(null),
 });
 
 export const notebookItemSchema = z.object({
@@ -26,6 +26,8 @@ export const notebookItemSchema = z.object({
   spokenNotes: z.string().optional().default(""),
   source: z.enum(["stw", "zen", "ask", "training", "manual"]),
   sourceDetails: z.string().optional().default(""),
+  tags: z.array(z.string()).default([]),
+  locale: z.string().optional(),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
 });

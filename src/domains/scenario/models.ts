@@ -1,6 +1,5 @@
 export {};
 export type ScenarioSourceType = "manual" | "ai" | "import";
-export type ScenarioPreferredMode = "stw" | "zen" | null;
 type ISODateString = string;
 
 export interface ScenarioTemplate {
@@ -15,7 +14,7 @@ export interface ScenarioTemplate {
   sourceType: ScenarioSourceType;
   sourceText: string | null;
   lastPracticedAt: ISODateString | null;
-  preferredMode: ScenarioPreferredMode;
+  tags: string[];
   createdAt: ISODateString;
   updatedAt: ISODateString;
 }
@@ -39,7 +38,7 @@ export const createScenarioTemplate = (
   sourceType: input.sourceType,
   sourceText: input.sourceText ?? null,
   lastPracticedAt: input.lastPracticedAt ?? null,
-  preferredMode: input.preferredMode ?? null,
+  tags: input.tags ?? [],
   createdAt: input.createdAt ?? nowIso(),
   updatedAt: input.updatedAt ?? nowIso(),
 });

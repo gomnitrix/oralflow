@@ -14,7 +14,6 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const parsed = scenarioCrudListSchema.safeParse({
     query: searchParams.get("query") ?? undefined,
-    mode: searchParams.get("mode") ?? undefined,
   });
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });

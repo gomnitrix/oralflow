@@ -12,7 +12,7 @@ export const scenarioTemplateSchema = z.object({
   sourceType: z.enum(["manual", "ai", "import"]),
   sourceText: z.string().nullable().default(null),
   lastPracticedAt: z.string().nullable().default(null),
-  preferredMode: z.enum(["stw", "zen"]).nullable().default(null),
+  tags: z.array(z.string()).default([]),
   createdAt: z.string().default(() => new Date().toISOString()),
   updatedAt: z.string().default(() => new Date().toISOString()),
 });
@@ -30,7 +30,6 @@ export type ScenarioGenerateRequest = z.infer<typeof scenarioGenerateSchema>;
 
 export const scenarioCrudListSchema = z.object({
   query: z.string().optional(),
-  mode: z.enum(["stw", "zen"]).optional(),
 });
 
 export type ScenarioCrudListQuery = z.infer<typeof scenarioCrudListSchema>;

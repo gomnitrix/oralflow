@@ -2,12 +2,7 @@
 
 import React, { useState } from "react";
 import { ExpressionPreview } from "../../../components/ask/ExpressionPreview";
-import { NotebookService } from "../../../domains/notes/notebook-service";
-import { createInMemoryRepositories } from "../../../services/persistence/repositories";
 import type { ExpressionSuggestion } from "../../../domains/notes/models";
-
-const repositories = createInMemoryRepositories();
-const notebookService = new NotebookService({ repository: repositories.notebook });
 
 interface AskResponse {
   suggestions: ExpressionSuggestion[];
@@ -53,7 +48,15 @@ export default function AskPage() {
   const save = async (suggestion: ExpressionSuggestion) => {
     try {
       setError(null);
-      await notebookService.saveSuggestion(suggestion);
+      const response = await fetch("/api/ask/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(suggestion),
+      });
+      const data = (await response.json().catch(() => null)) as { item?: unknown; error?: string } | null;
+      if (!response.ok || !data?.item) {
+        throw new Error(data?.error ?? "Failed to save suggestion.");
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save suggestion.");
     }

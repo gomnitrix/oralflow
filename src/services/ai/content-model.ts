@@ -30,8 +30,7 @@ export const buildScenarioPrompt = (input: ScenarioGenerationInput): string => {
     "learnerRole": "string",
     "aiRole": "string",
     "mainGoal": "string",
-    "subGoals": ["string", "string", "string"],
-    "preferredMode": "zen" | "stw"
+    "subGoals": ["string", "string", "string"]
   }
   IMPORTANT: The content of the JSON (values) MUST be in English, regardless of the input language.
   ROLE DESCRIPTIONS:
@@ -101,7 +100,7 @@ export const generateScenario = async (
     subGoals: parsed.subGoals || [],
     sourceType: input.mode,
     sourceText: input.sourceText ?? null,
-    preferredMode: parsed.preferredMode || "zen",
+    tags: [],
   });
 
   return { provider: completion.provider, scenario };

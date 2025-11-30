@@ -10,7 +10,7 @@ export const defaultScenario = createScenarioTemplate({
   subGoals: ["Practice small talk", "Ask clarifying questions"],
   sourceType: "manual",
   sourceText: null,
-  preferredMode: "stw",
+  tags: [],
 });
 
 export const seedScenarios = () => [defaultScenario];
