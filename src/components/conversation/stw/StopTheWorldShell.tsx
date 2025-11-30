@@ -23,6 +23,8 @@ export interface StopTheWorldShellProps {
   mainGoal?: string;
   subGoals?: string[];
   description?: string;
+  freeContext?: { fullText: string; snippet: string; summary: string };
+  disableGoalEvaluation?: boolean;
 }
 
 type GoalStatusValue = "pending" | "partial" | "completed" | "completed_all";
@@ -237,6 +239,8 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
   mainGoal,
   subGoals,
   description,
+  freeContext,
+  disableGoalEvaluation = false,
 }) => {
   const router = useRouter();
   const [session, setSession] = useState<ConversationSession>(() =>
@@ -311,7 +315,7 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
               : b
           ),
         }));
-        if (data.goalStatus) {
+        if (!disableGoalEvaluation && data.goalStatus) {
           setGoalStatus(deriveGoalStatus(data.goalStatus, mainGoal, subGoals));
         }
         setActiveIndex(0);
@@ -728,6 +732,7 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
         sessionId: sessionRef.current.id,
         scenario,
         history,
+        skipGoalEvaluation: disableGoalEvaluation,
         userText: pending.text,
       });
 
@@ -748,7 +753,7 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
         ),
       }));
 
-      if (data.goalStatus) {
+      if (!disableGoalEvaluation && data.goalStatus) {
         setGoalStatus(deriveGoalStatus(data.goalStatus, mainGoal, subGoals));
       }
       setRecordingStatus("idle");
@@ -927,7 +932,20 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
             </div>
 
             <div className="flex items-center gap-3">
-              {mainGoal && (
+              {freeContext ? (
+                <div className="group relative">
+                  <div className="bg-custom-primary/5 px-3 py-1.5 rounded-full border border-custom-primary/10 cursor-help flex items-center gap-2">
+                    <span className="material-symbols-outlined text-lg text-custom-primary">segment</span>
+                    <p className="text-sm text-custom-primary font-bold truncate max-w-[320px]">
+                      {freeContext.snippet}
+                    </p>
+                  </div>
+                  <div className="absolute right-0 top-full mt-2 w-96 bg-white rounded-xl shadow-xl border border-custom-border p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                    <p className="text-xs font-bold text-custom-text-dark/60 uppercase tracking-wider mb-2">Context</p>
+                    <p className="text-sm text-custom-text-dark whitespace-pre-wrap leading-relaxed">{freeContext.fullText}</p>
+                  </div>
+                </div>
+              ) : mainGoal ? (
                 <div className="group relative">
                   <div className="bg-custom-primary/5 px-3 py-1.5 rounded-full border border-custom-primary/10 cursor-help flex items-center gap-2">
                     <span
@@ -962,7 +980,7 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
                     </div>
                   )}
                 </div>
-              )}
+              ) : null}
 
               <button
                 onClick={() => {

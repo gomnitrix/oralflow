@@ -37,6 +37,7 @@ export const stwReplyRequestSchema = z.object({
   scenario: scenarioContextSchema,
   history: z.array(stwHistoryMessageSchema).default([]),
   userText: z.string().min(1, "userText is required"),
+  skipGoalEvaluation: z.boolean().optional().default(false),
 });
 
 export type StwReplyRequest = z.infer<typeof stwReplyRequestSchema>;

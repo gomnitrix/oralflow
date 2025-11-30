@@ -167,7 +167,7 @@ async function handleReply(payload: unknown) {
     }
     return 5;
   })();
-  const shouldEvaluateGoals = aiBubbleCount >= startTurn;
+  const shouldEvaluateGoals = !parsed.skipGoalEvaluation && aiBubbleCount >= startTurn && !!parsed.scenario.mainGoal;
 
   return {
     reply: turn.reply,

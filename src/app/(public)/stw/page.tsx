@@ -16,13 +16,16 @@ export default async function StopTheWorldPage({ searchParams }: PageProps) {
   const summary = typeof searchParams.summary === "string" ? searchParams.summary : null;
 
   if (context) {
+    const words = context.trim().split(/\s+/).filter(Boolean);
+    const snippet = words.slice(0, 10).join(" ") + (words.length > 10 ? " ..." : "");
+
     const scenario = {
       id: contextId || `context-${Date.now()}`,
       title: contextTitle?.slice(0, 140) || "Free Chat",
       learnerRole: learnerRole || "You",
       aiRole: aiRole || "AI Partner",
-      mainGoal: summary || null,
-      subGoals: context ? [context] : [],
+      mainGoal: null,
+      subGoals: [],
       description: context,
     };
 
@@ -36,6 +39,8 @@ export default async function StopTheWorldPage({ searchParams }: PageProps) {
           mainGoal={scenario.mainGoal ?? undefined}
           subGoals={scenario.subGoals}
           description={scenario.description}
+          freeContext={{ fullText: context, snippet, summary: summary || snippet }}
+          disableGoalEvaluation
         />
       </main>
     );
