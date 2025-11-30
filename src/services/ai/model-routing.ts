@@ -11,6 +11,7 @@ const capabilityCategoryMap: Partial<Record<AssignmentCapability, ModelCategory>
   zen_realtime: "realtime_speech",
   stw_goal: "language",
   zen_goal: "language",
+  free_chat_draft: "language",
 };
 
 const defaultModelByCategory: Record<ModelCategory, string> = {

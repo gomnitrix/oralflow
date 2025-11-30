@@ -13,6 +13,7 @@ function ZenModeContent() {
   const title = searchParams.get("title")?.trim() || "Zen Mode";
   const learnerRole = searchParams.get("userRole")?.trim() || "You";
   const aiRole = searchParams.get("aiRole")?.trim() || "AI Partner";
+  const summary = searchParams.get("summary")?.trim() || "";
   const isFreeChat = Boolean(context);
 
   const [isListening, setIsListening] = useState(true);
@@ -61,6 +62,11 @@ function ZenModeContent() {
             <p className="text-custom-text-dark/60 text-sm">
               {learnerRole} · {aiRole}
             </p>
+            {summary ? (
+              <p className="text-sm text-custom-text-dark/70 mt-2">
+                <span className="font-semibold text-custom-primary">Summary:</span> {summary}
+              </p>
+            ) : null}
           </div>
         ) : (
           <div className="flex flex-wrap gap-2">

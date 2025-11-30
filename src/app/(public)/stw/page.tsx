@@ -13,6 +13,7 @@ export default async function StopTheWorldPage({ searchParams }: PageProps) {
   const learnerRole = typeof searchParams.userRole === "string" ? searchParams.userRole : null;
   const aiRole = typeof searchParams.aiRole === "string" ? searchParams.aiRole : null;
   const contextId = typeof searchParams.contextId === "string" ? searchParams.contextId : null;
+  const summary = typeof searchParams.summary === "string" ? searchParams.summary : null;
 
   if (context) {
     const scenario = {
@@ -20,8 +21,8 @@ export default async function StopTheWorldPage({ searchParams }: PageProps) {
       title: contextTitle?.slice(0, 140) || "Free Chat",
       learnerRole: learnerRole || "You",
       aiRole: aiRole || "AI Partner",
-      mainGoal: null,
-      subGoals: [],
+      mainGoal: summary || null,
+      subGoals: context ? [context] : [],
       description: context,
     };
 

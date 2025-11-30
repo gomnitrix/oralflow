@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 const defaultUserRole = "You";
@@ -14,30 +14,90 @@ const buildTitle = (title: string, context: string) => {
   return snippet ? `Free Chat: ${snippet}` : "Free Chat";
 };
 
+type DraftResult = {
+  title: string;
+  englishContext: string;
+  summary: string;
+};
+
 export default function FreeChatPage() {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [context, setContext] = useState("");
-  const [userRole, setUserRole] = useState("");
-  const [aiRole, setAiRole] = useState("");
+  const [userRole, setUserRole] = useState(defaultUserRole);
+  const [aiRole, setAiRole] = useState(defaultAiRole);
   const [error, setError] = useState<string | null>(null);
+  const [draft, setDraft] = useState<DraftResult | null>(null);
+  const [isPreparing, setIsPreparing] = useState(false);
+
+  // Clear draft when inputs change
+  useEffect(() => {
+    setDraft(null);
+  }, [title, context, userRole, aiRole]);
 
   const contextPreview = useMemo(() => {
-    if (!context.trim()) return "Enter your context on the left to see a preview.";
+    if (draft?.englishContext?.trim()) return draft.englishContext.trim();
+    if (!context.trim()) return "Enter a context on the left, then prepare with AI to see the structured result.";
     return context.trim();
-  }, [context]);
+  }, [context, draft]);
 
-  const startConversation = (mode: "stw" | "zen") => {
+  const summaryPreview = useMemo(() => {
+    if (draft?.summary?.trim()) return draft.summary.trim();
+    if (!context.trim()) return "Summary will appear here after preparing with AI.";
+    return "Click “Prepare with AI” to generate a concise summary.";
+  }, [context, draft]);
+
+  const effectiveTitle = draft?.title ?? buildTitle(title, context);
+
+  const ensureDraft = async (): Promise<DraftResult | null> => {
     const cleanContext = trimText(context);
     if (!cleanContext) {
-      setError("请输入一段文本作为上下文。");
-      return;
+      setError("Please enter a context before starting.");
+      return null;
     }
-
     setError(null);
+
+    if (draft) return draft;
+
+    try {
+      setIsPreparing(true);
+      const response = await fetch("/api/free-chat/draft", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          context: cleanContext,
+          title: title || null,
+          userRole,
+          aiRole,
+        }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !data) {
+        throw new Error(data?.error || "Failed to prepare context.");
+      }
+      const next: DraftResult = {
+        title: data.title || buildTitle(title, cleanContext),
+        englishContext: data.englishContext || cleanContext,
+        summary: data.summary || data.englishContext || cleanContext,
+      };
+      setDraft(next);
+      return next;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to prepare context.");
+      return null;
+    } finally {
+      setIsPreparing(false);
+    }
+  };
+
+  const startConversation = async (mode: "stw" | "zen") => {
+    const prepared = await ensureDraft();
+    if (!prepared) return;
+
     const params = new URLSearchParams({
-      context: cleanContext,
-      title: buildTitle(title, cleanContext),
+      context: prepared.englishContext,
+      title: prepared.title,
+      summary: prepared.summary,
       userRole: trimText(userRole) || defaultUserRole,
       aiRole: trimText(aiRole) || defaultAiRole,
       origin: "freechat",
@@ -53,7 +113,7 @@ export default function FreeChatPage() {
           <p className="text-sm font-bold text-custom-primary uppercase tracking-[0.12em]">Free Chat</p>
           <h1 className="text-custom-text-dark text-4xl font-black leading-tight tracking-tighter">Context Chat</h1>
           <p className="text-custom-text-dark/70 max-w-2xl">
-            粘贴或输入任意文本作为上下文，直接与 AI 进行自由对话，无需创建或保存场景。随时选择 Zen 或 Stop The World 模式开始。
+            Paste any text as context, let AI translate/clean it, and jump into a conversation with Zen or Stop The World. Nothing is saved as a scenario.
           </p>
         </header>
 
@@ -62,52 +122,70 @@ export default function FreeChatPage() {
           <div className="lg:col-span-5 xl:col-span-4">
             <div className="flex flex-col gap-6">
               <div className="space-y-2">
-                <label className="block text-sm font-bold text-custom-text-dark">对话标题（可选）</label>
+                <label className="block text-sm font-bold text-custom-text-dark">Title (optional)</label>
                 <input
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="给这段对话起个名字，便于识别"
+                  placeholder="Give this chat a name"
                   className="w-full rounded-xl border border-custom-border bg-white px-4 py-3 text-custom-text-dark placeholder:text-custom-text-dark/30 focus:border-custom-primary focus:outline-none focus:ring-1 focus:ring-custom-primary transition-all"
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="block text-sm font-bold text-custom-text-dark">上下文文本</label>
+                <label className="block text-sm font-bold text-custom-text-dark">Context</label>
                 <textarea
                   value={context}
                   onChange={(e) => setContext(e.target.value)}
-                  placeholder="粘贴文章片段、邮件、会议纪要、备忘，或任意你想聊的内容..."
+                  placeholder="Paste any article, email, notes, or text you want to chat about..."
                   rows={10}
                   className="w-full rounded-xl border border-custom-border bg-white px-4 py-3 text-custom-text-dark placeholder:text-custom-text-dark/30 focus:border-custom-primary focus:outline-none focus:ring-1 focus:ring-custom-primary transition-all resize-none"
                 />
                 <p className="text-xs text-custom-text-dark/60">
-                  文本仅用于本次对话，不会保存为场景。内容较长时会自动作为对话背景发送给 AI。
+                  We’ll translate to English if needed and summarize longer passages to keep the chat concise.
                 </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label className="block text-sm font-bold text-custom-text-dark">你的身份（可选）</label>
+                  <label className="block text-sm font-bold text-custom-text-dark">Your role</label>
                   <input
                     type="text"
                     value={userRole}
                     onChange={(e) => setUserRole(e.target.value)}
-                    placeholder="例如：文本作者 / 读者 / 汇报人"
+                    placeholder="e.g., Author, presenter, reader"
                     className="w-full rounded-xl border border-custom-border bg-white px-4 py-3 text-custom-text-dark placeholder:text-custom-text-dark/30 focus:border-custom-primary focus:outline-none focus:ring-1 focus:ring-custom-primary transition-all"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-sm font-bold text-custom-text-dark">AI 的身份（可选）</label>
+                  <label className="block text-sm font-bold text-custom-text-dark">AI role</label>
                   <input
                     type="text"
                     value={aiRole}
                     onChange={(e) => setAiRole(e.target.value)}
-                    placeholder="例如：讨论伙伴 / 校对助手 / 头脑风暴伙伴"
+                    placeholder="e.g., Reviewer, brainstorm partner"
                     className="w-full rounded-xl border border-custom-border bg-white px-4 py-3 text-custom-text-dark placeholder:text-custom-text-dark/30 focus:border-custom-primary focus:outline-none focus:ring-1 focus:ring-custom-primary transition-all"
                   />
                 </div>
               </div>
+
+              <button
+                onClick={ensureDraft}
+                disabled={isPreparing}
+                className="w-full rounded-full bg-custom-primary py-3 text-white font-bold text-base hover:bg-custom-primary/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isPreparing ? (
+                  <>
+                    <span className="material-symbols-outlined animate-spin text-base">refresh</span>
+                    Preparing with AI...
+                  </>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined text-base">auto_awesome</span>
+                    Prepare with AI
+                  </>
+                )}
+              </button>
             </div>
           </div>
 
@@ -119,7 +197,7 @@ export default function FreeChatPage() {
                   <div className="space-y-1">
                     <p className="text-xs font-bold text-custom-primary uppercase tracking-[0.2em]">Context Preview</p>
                     <h2 className="text-2xl font-bold text-custom-text-dark leading-tight">
-                      {buildTitle(title, context)}
+                      {effectiveTitle}
                     </h2>
                     <p className="text-sm text-custom-text-dark/60">
                       {trimText(userRole) || defaultUserRole} · {trimText(aiRole) || defaultAiRole}
@@ -128,8 +206,14 @@ export default function FreeChatPage() {
                   <span className="material-symbols-outlined text-3xl text-custom-text-dark/20">auto_awesome</span>
                 </div>
 
-                <div className="bg-custom-bg p-4 rounded-2xl border border-custom-border/60 max-h-[320px] overflow-auto whitespace-pre-wrap text-sm text-custom-text-dark/80 leading-relaxed">
-                  {contextPreview}
+                <div className="grid gap-4">
+                  <div className="bg-custom-bg p-4 rounded-2xl border border-custom-border/60 max-h-[200px] overflow-auto whitespace-pre-wrap text-sm text-custom-text-dark/80 leading-relaxed">
+                    {contextPreview}
+                  </div>
+                  <div className="bg-custom-primary/5 p-4 rounded-2xl border border-custom-primary/10 whitespace-pre-wrap text-sm text-custom-text-dark/80 leading-relaxed">
+                    <p className="text-xs font-bold text-custom-primary uppercase tracking-[0.16em] mb-1">Summary</p>
+                    {summaryPreview}
+                  </div>
                 </div>
 
                 {error ? (
@@ -142,15 +226,17 @@ export default function FreeChatPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <button
                   onClick={() => startConversation("stw")}
-                  className="w-full rounded-full bg-custom-primary py-4 text-white font-bold text-lg hover:bg-custom-primary/90 transition-colors shadow-lg shadow-custom-primary/20"
+                  className="w-full rounded-full bg-custom-primary py-4 text-white font-bold text-lg hover:bg-custom-primary/90 transition-colors shadow-lg shadow-custom-primary/20 disabled:opacity-60 disabled:cursor-not-allowed"
+                  disabled={isPreparing}
                 >
-                  使用 Stop The World 开始
+                  Start in Stop The World
                 </button>
                 <button
                   onClick={() => startConversation("zen")}
-                  className="w-full rounded-full bg-white py-4 text-custom-text-dark font-bold text-lg hover:bg-custom-bg transition-colors border border-custom-border shadow-sm"
+                  className="w-full rounded-full bg-white py-4 text-custom-text-dark font-bold text-lg hover:bg-custom-bg transition-colors border border-custom-border shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                  disabled={isPreparing}
                 >
-                  使用 Zen 模式开始
+                  Start in Zen
                 </button>
               </div>
             </div>

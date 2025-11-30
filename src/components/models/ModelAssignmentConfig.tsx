@@ -91,6 +91,7 @@ export const ModelAssignmentConfig: React.FC<Props> = ({ settings, onUpdateAssig
                     {renderSelect('scenario_draft', 'Scenario Draft', 'Generate scenario drafts', availableModels.language)}
                     {renderSelect('ask_ai', 'Ask AI', 'General Q&A', availableModels.language)}
                     {renderSelect('review_notes', 'Review Notes', 'Format and organize notes', availableModels.language)}
+                    {renderSelect('free_chat_draft', 'Free Chat Draft', 'Translate/contextualize free chat text', availableModels.language)}
                 </div>
             </div>
         </div>
