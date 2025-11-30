@@ -52,6 +52,18 @@ const Sidebar = () => {
                         </p>
                     </Link>
                     <Link
+                        href="/free-chat"
+                        className={`flex items-center gap-3 px-4 py-2 rounded-full transition-colors ${isActive("/free-chat")
+                            ? "bg-custom-primary/20 text-custom-primary"
+                            : "hover:bg-custom-primary/10 text-custom-text-dark"
+                            }`}
+                    >
+                        <span className="material-symbols-outlined">chat</span>
+                        <p className={`text-sm ${isActive("/free-chat") ? "font-bold" : "font-medium"}`}>
+                            Free Chat
+                        </p>
+                    </Link>
+                    <Link
                         href="/ask"
                         className={`flex items-center gap-3 px-4 py-2 rounded-full transition-colors ${isActive("/ask")
                             ? "bg-custom-primary/20 text-custom-primary"

@@ -9,6 +9,11 @@ function ZenModeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const scenarioId = searchParams.get("scenarioId");
+  const context = searchParams.get("context")?.trim() || "";
+  const title = searchParams.get("title")?.trim() || "Zen Mode";
+  const learnerRole = searchParams.get("userRole")?.trim() || "You";
+  const aiRole = searchParams.get("aiRole")?.trim() || "AI Partner";
+  const isFreeChat = Boolean(context);
 
   const [isListening, setIsListening] = useState(true);
   const [showTranscript, setShowTranscript] = useState(false);
@@ -44,20 +49,35 @@ function ZenModeContent() {
   return (
     <div className="flex-1 flex flex-col relative h-full bg-custom-bg">
       <header className="absolute top-0 left-0 right-0 p-6 z-10">
-        <div className="flex flex-wrap gap-2">
-          <Link
-            href="/scenarios"
-            className="text-custom-text-dark/60 hover:text-custom-text-dark transition-colors text-base font-medium leading-normal"
-          >
-            Scenarios
-          </Link>
-          <span className="text-custom-text-dark/40 text-base font-medium leading-normal">
-            /
-          </span>
-          <span className="text-custom-text-dark text-base font-medium leading-normal">
-            Ordering Coffee
-          </span>
-        </div>
+        {isFreeChat ? (
+          <div className="space-y-1">
+            <div className="flex flex-wrap gap-2 items-center text-sm font-medium text-custom-text-dark/60">
+              <Link href="/free-chat" className="hover:text-custom-text-dark transition-colors">
+                Free Chat
+              </Link>
+              <span className="text-custom-text-dark/40">/</span>
+              <span className="text-custom-text-dark">{title}</span>
+            </div>
+            <p className="text-custom-text-dark/60 text-sm">
+              {learnerRole} · {aiRole}
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href="/scenarios"
+              className="text-custom-text-dark/60 hover:text-custom-text-dark transition-colors text-base font-medium leading-normal"
+            >
+              Scenarios
+            </Link>
+            <span className="text-custom-text-dark/40 text-base font-medium leading-normal">
+              /
+            </span>
+            <span className="text-custom-text-dark text-base font-medium leading-normal">
+              Ordering Coffee
+            </span>
+          </div>
+        )}
       </header>
 
       <div className="flex-1 flex flex-col items-center justify-center p-6 relative">
@@ -73,6 +93,12 @@ function ZenModeContent() {
       </div>
 
       <footer className="w-full p-6 z-10">
+        {isFreeChat && context ? (
+          <div className="max-w-3xl mx-auto mb-4 bg-white/70 backdrop-blur-sm border border-custom-border rounded-2xl p-4 shadow-sm text-sm text-custom-text-dark/80 whitespace-pre-wrap">
+            <p className="text-xs font-bold text-custom-primary uppercase tracking-[0.18em] mb-2">Context</p>
+            {context}
+          </div>
+        ) : null}
         <div className="flex justify-center">
           <div className="flex gap-4 p-3 bg-white/60 backdrop-blur-sm rounded-full border border-custom-border shadow-sm">
             <button
