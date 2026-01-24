@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import Image from "next/image";
 import confetti from "canvas-confetti";
 
 export interface SessionScores {
@@ -60,10 +61,13 @@ export const SessionSummaryModal: React.FC<SessionSummaryModalProps> = ({
                 <div className="flex w-full flex-col items-center gap-6 rounded-3xl bg-[#f8f6f6] p-6 sm:p-8 md:p-10 shadow-2xl border border-white/20">
                     <div className="flex w-full flex-col items-center gap-6 sm:flex-row sm:items-center sm:justify-between">
                         <div className="relative h-64 w-64 flex-shrink-0">
-                            <img
+                            <Image
                                 alt={isHighScore ? "Cheers!" : "Keep trying!"}
                                 className="h-full w-full object-contain mix-blend-darken"
                                 src={imageSrc}
+                                fill
+                                sizes="256px"
+                                priority
                             />
                         </div>
                         <div className="flex flex-1 flex-col items-center gap-2 rounded-2xl bg-custom-primary/10 p-6 sm:items-start w-full sm:w-auto">

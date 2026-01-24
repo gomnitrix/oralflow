@@ -1,30 +1,11 @@
-"use client";
-
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { loadProfile } from "../../services/profile/profile-store";
+
+export const dynamic = "force-dynamic";
 
 export default function Dashboard() {
-  const [username, setUsername] = useState("Learner");
-
-  useEffect(() => {
-    let isMounted = true;
-    const loadProfile = async () => {
-      try {
-        const response = await fetch("/api/profile");
-        const data = await response.json().catch(() => null);
-        if (!response.ok || !data) return;
-        if (isMounted && typeof data.username === "string" && data.username.trim()) {
-          setUsername(data.username.trim());
-        }
-      } catch {
-        // Ignore profile fetch errors.
-      }
-    };
-    void loadProfile();
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  const profile = loadProfile();
+  const username = profile.username?.trim() || "Learner";
 
   return (
     <div className="p-8 lg:p-12">

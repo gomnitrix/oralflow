@@ -1,6 +1,7 @@
 import { type ProviderType } from "./provider-manager";
 import { createOpenAIClient, resolveModelForCapability } from "./model-routing";
 import { type AssignmentCapability } from "./settings";
+import { extractTextFromMessage } from "./message-normalizer";
 
 export type ProviderName = ProviderType;
 
@@ -36,13 +37,7 @@ export class AIClient {
     });
 
     const choice = response.choices[0];
-    const content = choice?.message?.content as any;
-    const message =
-      typeof content === "string"
-        ? content.trim()
-        : Array.isArray(content)
-          ? content.map((item: any) => item?.text ?? "").join("").trim()
-          : "";
+    const message = extractTextFromMessage(choice?.message).trim();
 
     if (!message) {
       throw new Error(`No completion returned from ${provider}`);

@@ -2,11 +2,45 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState, type MouseEvent } from "react";
 
 const Sidebar = () => {
     const pathname = usePathname();
+    const [profileAvatar, setProfileAvatar] = useState<string>("");
 
     const isActive = (path: string) => pathname === path;
+
+    const handleGuardedNavigation = (event: MouseEvent<HTMLAnchorElement>, href: string) => {
+        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+        if (typeof window === "undefined") return;
+        const navEvent = new CustomEvent("oralflow:navigate", {
+            detail: { href },
+            cancelable: true,
+        });
+        window.dispatchEvent(navEvent);
+        if (navEvent.defaultPrevented) {
+            event.preventDefault();
+        }
+    };
+
+    useEffect(() => {
+        let isMounted = true;
+        const loadProfile = async () => {
+            try {
+                const response = await fetch("/api/profile");
+                const data = await response.json().catch(() => null);
+                if (!response.ok || !data) return;
+                const avatar = typeof data.avatarUrl === "string" ? data.avatarUrl : "";
+                if (isMounted) setProfileAvatar(avatar);
+            } catch {
+                // Ignore profile fetch errors.
+            }
+        };
+        void loadProfile();
+        return () => {
+            isMounted = false;
+        };
+    }, []);
 
     return (
         <aside className="sticky top-0 flex h-screen flex-col justify-between border-r border-custom-border bg-white p-5 w-[270px] hidden lg:flex text-[15px]">
@@ -28,6 +62,7 @@ const Sidebar = () => {
                             ? "bg-custom-primary/20 text-custom-primary"
                             : "hover:bg-custom-primary/10 text-custom-text-dark"
                             }`}
+                        onClick={(event) => handleGuardedNavigation(event, "/")}
                     >
                         <span
                             className={`material-symbols-outlined ${isActive("/") ? "fill" : ""
@@ -45,6 +80,7 @@ const Sidebar = () => {
                             ? "bg-custom-primary/20 text-custom-primary"
                             : "hover:bg-custom-primary/10 text-custom-text-dark"
                             }`}
+                        onClick={(event) => handleGuardedNavigation(event, "/scenarios")}
                     >
                         <span className="material-symbols-outlined">smart_toy</span>
                         <p className={`text-sm ${isActive("/scenarios") ? "font-bold" : "font-medium"}`}>
@@ -57,6 +93,7 @@ const Sidebar = () => {
                             ? "bg-custom-primary/20 text-custom-primary"
                             : "hover:bg-custom-primary/10 text-custom-text-dark"
                             }`}
+                        onClick={(event) => handleGuardedNavigation(event, "/free-chat")}
                     >
                         <span className="material-symbols-outlined">chat</span>
                         <p className={`text-sm ${isActive("/free-chat") ? "font-bold" : "font-medium"}`}>
@@ -69,6 +106,7 @@ const Sidebar = () => {
                             ? "bg-custom-primary/20 text-custom-primary"
                             : "hover:bg-custom-primary/10 text-custom-text-dark"
                             }`}
+                        onClick={(event) => handleGuardedNavigation(event, "/ask")}
                     >
                         <span className="material-symbols-outlined">search</span>
                         <p className={`text-sm ${isActive("/ask") ? "font-bold" : "font-medium"}`}>
@@ -81,6 +119,7 @@ const Sidebar = () => {
                             ? "bg-custom-primary/20 text-custom-primary"
                             : "hover:bg-custom-primary/10 text-custom-text-dark"
                             }`}
+                        onClick={(event) => handleGuardedNavigation(event, "/notebook")}
                     >
                         <span className="material-symbols-outlined">book_2</span>
                         <p className={`text-sm ${isActive("/notebook") ? "font-bold" : "font-medium"}`}>
@@ -93,6 +132,7 @@ const Sidebar = () => {
                             ? "bg-custom-primary/20 text-custom-primary"
                             : "hover:bg-custom-primary/10 text-custom-text-dark"
                             }`}
+                        onClick={(event) => handleGuardedNavigation(event, "/models")}
                     >
                         <span className="material-symbols-outlined">settings_suggest</span>
                         <p className={`text-sm ${isActive("/models") ? "font-bold" : "font-medium"}`}>
@@ -105,6 +145,7 @@ const Sidebar = () => {
                             ? "bg-custom-primary/20 text-custom-primary"
                             : "hover:bg-custom-primary/10 text-custom-text-dark"
                             }`}
+                        onClick={(event) => handleGuardedNavigation(event, "/settings")}
                     >
                         <span className="material-symbols-outlined">tune</span>
                         <p className={`text-sm ${isActive("/settings") ? "font-bold" : "font-medium"}`}>
@@ -118,12 +159,15 @@ const Sidebar = () => {
                 <Link
                     href="/profile"
                     className="flex items-center gap-3 px-4 py-2 rounded-full hover:bg-custom-primary/10 transition-colors"
+                    onClick={(event) => handleGuardedNavigation(event, "/profile")}
                 >
                     <div
                         className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-8"
                         style={{
                             backgroundImage:
-                                'url("https://lh3.googleusercontent.com/aida-public/AB6AXuAJ2Lt5Is3j3zzLp6vfyAeSDPkuwVyN1TikoD11G1X60UMj5nqkfIDUBp_oAXF-MZdhXNBSUWK2Ib4KjnZy6wrUcnWppKaHaNEkjTnQkrqTVLONf053bN4Eg4JPMJRXUIypbufc6qHnahkv46HZYaEuveOMj1Bntu2va3mzNsvpTxg65SL0LeANXFrtDwqGtxvzdRKOrxdTQ-KgF9mX7yx8fVd0fnUJTPeOrW8M1_wtK9IfivNuYpWkne2rNXRtVBXMwF7eRsa6-To")',
+                                profileAvatar
+                                    ? `url(${profileAvatar})`
+                                    : 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuAJ2Lt5Is3j3zzLp6vfyAeSDPkuwVyN1TikoD11G1X60UMj5nqkfIDUBp_oAXF-MZdhXNBSUWK2Ib4KjnZy6wrUcnWppKaHaNEkjTnQkrqTVLONf053bN4Eg4JPMJRXUIypbufc6qHnahkv46HZYaEuveOMj1Bntu2va3mzNsvpTxg65SL0LeANXFrtDwqGtxvzdRKOrxdTQ-KgF9mX7yx8fVd0fnUJTPeOrW8M1_wtK9IfivNuYpWkne2rNXRtVBXMwF7eRsa6-To")',
                         }}
                     ></div>
                     <p className="text-custom-text-dark text-sm font-medium">Profile</p>

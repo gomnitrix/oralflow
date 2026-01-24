@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { ExpressionPreview } from "../../../components/ask/ExpressionPreview";
 import type { ExpressionSuggestion } from "../../../domains/notes/models";
 
@@ -14,6 +14,8 @@ export default function AskPage() {
   const [suggestions, setSuggestions] = useState<ExpressionSuggestion[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [saveNotice, setSaveNotice] = useState<string | null>(null);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -48,6 +50,7 @@ export default function AskPage() {
   const save = async (suggestion: ExpressionSuggestion) => {
     try {
       setError(null);
+      setSaveNotice(null);
       const response = await fetch("/api/ask/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -57,10 +60,23 @@ export default function AskPage() {
       if (!response.ok || !data?.item) {
         throw new Error(data?.error ?? "Failed to save suggestion.");
       }
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+      }
+      setSaveNotice("Saved to Notebook.");
+      saveTimerRef.current = setTimeout(() => setSaveNotice(null), 2500);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save suggestion.");
     }
   };
+
+  useEffect(() => {
+    return () => {
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+      }
+    };
+  }, []);
 
   return (
     <main className="min-h-screen bg-custom-bg">
@@ -106,6 +122,7 @@ export default function AskPage() {
 
           <div className="w-full text-left">
             {error ? <p className="text-sm text-red-500">{error}</p> : null}
+            {saveNotice ? <p className="text-sm text-green-600">{saveNotice}</p> : null}
 
             {suggestions.length === 0 ? (
               <div className="rounded-2xl border border-custom-border bg-white/70 p-6 text-sm text-custom-text-dark/60 shadow-sm">

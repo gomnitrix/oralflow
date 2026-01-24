@@ -262,6 +262,7 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
   const [sessionScores, setSessionScores] = useState<SessionScores | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [userAvatarUrl, setUserAvatarUrl] = useState<string>("");
+  const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
 
   const transcriptEndRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -277,6 +278,21 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
   useEffect(() => {
     sessionRef.current = session;
   }, [session]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleNavigationAttempt = (event: Event) => {
+      const custom = event as CustomEvent<{ href?: string }>;
+      if (!custom.detail?.href) return;
+      event.preventDefault();
+      setPendingNavigation(custom.detail.href);
+      setShowEndConfirm(true);
+    };
+    window.addEventListener("oralflow:navigate", handleNavigationAttempt);
+    return () => {
+      window.removeEventListener("oralflow:navigate", handleNavigationAttempt);
+    };
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -347,7 +363,7 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
         setError((err as Error).message);
       }
     },
-    [mainGoal, scenario, subGoals, updateSession]
+    [disableGoalEvaluation, mainGoal, scenario, subGoals, updateSession]
   );
 
   useEffect(() => {
@@ -796,7 +812,7 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
     } finally {
       setIsReplying(false);
     }
-  }, [latestUserBubble, mainGoal, scenario, subGoals, updateSession]);
+  }, [disableGoalEvaluation, latestUserBubble, mainGoal, scenario, subGoals, updateSession]);
 
   const handleRetry = useCallback(() => {
     setRecordingStatus("idle");
@@ -1080,13 +1096,23 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
             <div className="flex justify-end gap-3">
               <button
                 className="px-4 py-2 text-sm font-semibold rounded-full border border-custom-border text-custom-text-dark hover:bg-gray-50"
-                onClick={() => setShowEndConfirm(false)}
+                onClick={() => {
+                  setShowEndConfirm(false);
+                  setPendingNavigation(null);
+                }}
               >
                 {freeContext ? "Stay in chat" : "Keep practicing"}
               </button>
               <button
                 className="px-4 py-2 text-sm font-semibold rounded-full bg-custom-primary text-white shadow hover:opacity-90"
                 onClick={() => {
+                  if (pendingNavigation) {
+                    const target = pendingNavigation;
+                    setPendingNavigation(null);
+                    setShowEndConfirm(false);
+                    router.push(target);
+                    return;
+                  }
                   handleEndSession();
                 }}
               >

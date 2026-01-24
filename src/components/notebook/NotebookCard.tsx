@@ -59,7 +59,7 @@ export const NotebookCard: React.FC<NotebookCardProps> = ({
                 className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-custom-bg text-custom-text-dark/70 transition-colors hover:text-custom-primary hover:bg-custom-primary/10 disabled:opacity-50 disabled:cursor-not-allowed"
                 aria-label="Play pronunciation"
               >
-                <span className="material-symbols-outlined text-lg">
+                <span className={`material-symbols-outlined text-lg ${isPronouncing ? "animate-spin" : ""}`}>
                   {isPronouncing ? "autorenew" : "volume_up"}
                 </span>
               </button>

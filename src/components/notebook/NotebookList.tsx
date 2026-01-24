@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import type { NotebookItem } from "../../domains/notes/models";
 import { NotebookCard } from "./NotebookCard";
 
@@ -15,6 +15,8 @@ export const NotebookList: React.FC<Props> = ({ initialItems }) => {
   const [draft, setDraft] = useState<NotebookItem | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [pronouncingId, setPronouncingId] = useState<string | null>(null);
+  const audioCacheRef = useRef<Record<string, string>>({});
+  const audioRequestRef = useRef<Record<string, Promise<string>>>({});
 
   const handleDelete = async (id: string) => {
     setError(null);
@@ -71,20 +73,40 @@ export const NotebookList: React.FC<Props> = ({ initialItems }) => {
   };
 
   const handlePronounce = async (text: string, id: string) => {
-    if (!text.trim()) return;
+    const trimmed = text.trim();
+    if (!trimmed) return;
     setError(null);
+    const key = trimmed.toLowerCase();
     setPronouncingId(id);
     try {
-      const response = await fetch("/api/notes/tts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
-      });
-      const data = await response.json().catch(() => null);
-      if (!response.ok || !data?.audioUrl) {
-        throw new Error(data?.error || "Failed to generate audio.");
+      const cached = audioCacheRef.current[key];
+      if (cached) {
+        const audio = new Audio(cached);
+        await audio.play();
+        return;
       }
-      const audio = new Audio(data.audioUrl);
+
+      if (!audioRequestRef.current[key]) {
+        audioRequestRef.current[key] = fetch("/api/notes/tts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: trimmed }),
+        })
+          .then((response) => response.json().catch(() => null).then((data) => ({ response, data })))
+          .then(({ response, data }) => {
+            if (!response.ok || !data?.audioUrl) {
+              throw new Error(data?.error || "Failed to generate audio.");
+            }
+            return data.audioUrl as string;
+          })
+          .finally(() => {
+            delete audioRequestRef.current[key];
+          });
+      }
+
+      const audioUrl = await audioRequestRef.current[key];
+      audioCacheRef.current[key] = audioUrl;
+      const audio = new Audio(audioUrl);
       await audio.play();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to play audio.");

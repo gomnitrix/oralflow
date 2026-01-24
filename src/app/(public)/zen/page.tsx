@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, Suspense } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import EvaluationModal from "@/components/zen/EvaluationModal";
@@ -19,6 +19,8 @@ function ZenModeContent() {
   const [isListening, setIsListening] = useState(true);
   const [showTranscript, setShowTranscript] = useState(false);
   const [showEvaluation, setShowEvaluation] = useState(false);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
 
   // Mock data - in a real app this would come from the backend
   const mockEvaluation = {
@@ -46,6 +48,21 @@ function ZenModeContent() {
     setShowEvaluation(false);
     router.push("/notebook");
   };
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleNavigationAttempt = (event: Event) => {
+      const custom = event as CustomEvent<{ href?: string }>;
+      if (!custom.detail?.href) return;
+      event.preventDefault();
+      setPendingNavigation(custom.detail.href);
+      setShowExitConfirm(true);
+    };
+    window.addEventListener("oralflow:navigate", handleNavigationAttempt);
+    return () => {
+      window.removeEventListener("oralflow:navigate", handleNavigationAttempt);
+    };
+  }, []);
 
   return (
     <div className="flex-1 flex flex-col relative h-full bg-custom-bg">
@@ -161,6 +178,40 @@ function ZenModeContent() {
         onSave={handleSaveToNotebook}
         data={mockEvaluation}
       />
+
+      {showExitConfirm && (
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-xl border border-custom-border p-6 w-full max-w-md">
+            <h3 className="text-lg font-bold text-custom-text-dark mb-2">End session?</h3>
+            <p className="text-sm text-custom-text-dark/70 mb-4">
+              Are you sure you want to leave this Zen session now?
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                className="px-4 py-2 text-sm font-semibold rounded-full border border-custom-border text-custom-text-dark hover:bg-gray-50"
+                onClick={() => {
+                  setShowExitConfirm(false);
+                  setPendingNavigation(null);
+                }}
+              >
+                Stay here
+              </button>
+              <button
+                className="px-4 py-2 text-sm font-semibold rounded-full bg-custom-primary text-white shadow hover:opacity-90"
+                onClick={() => {
+                  if (!pendingNavigation) return;
+                  const target = pendingNavigation;
+                  setPendingNavigation(null);
+                  setShowExitConfirm(false);
+                  router.push(target);
+                }}
+              >
+                Leave
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

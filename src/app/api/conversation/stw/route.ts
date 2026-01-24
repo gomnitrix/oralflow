@@ -12,6 +12,7 @@ import { synthesizePlaceholderSpeech } from "../../../../lib/audio/placeholder";
 import { synthesizeSpeech } from "../../../../services/ai/tts";
 import { createOpenAIClient, resolveModelForCapability } from "../../../../services/ai/model-routing";
 import { ProviderManager } from "../../../../services/ai/provider-manager";
+import { extractTextFromMessage } from "../../../../services/ai/message-normalizer";
 
 export const runtime = "nodejs";
 const settings = SettingsService.getInstance();
@@ -309,7 +310,7 @@ async function transcribeWithOpenAI(audioBase64: string, mimeType?: string | nul
     ],
     temperature: 0,
   });
-  const rawText = completion.choices?.[0]?.message?.content ?? "";
+  const rawText = extractTextFromMessage(completion.choices?.[0]?.message);
   console.log("[stw:transcribe] response (chat)", {
     provider,
     model,
