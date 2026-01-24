@@ -29,29 +29,71 @@ export const synthesizeSpeech = async (
     const audioUrl = `data:audio/mpeg;base64,${buffer.toString("base64")}`;
     return { audioUrl, provider, model };
   } catch (error) {
-    const completion = await client.chat.completions.create({
+    const requestPayload = {
       model,
-      modalities: ["audio", "text"],
+      modalities: ["audio", "text"] as const,
       audio: { voice: "alloy", format: "mp3" },
       messages: [
         { role: "system", content: "You are a text-to-speech engine. Return audio output for the provided text." },
         { role: "user", content: text },
       ],
       temperature: 0,
-    });
+      stream: true,
+    };
+    if (provider === "openrouter") {
+      console.log("[openrouter:tts] request", JSON.stringify(requestPayload));
+    }
 
-    const message = completion.choices?.[0]?.message;
-    const audio = extractAudioFromMessage(message);
-    if (!audio.data) {
-      const fallbackText = extractTextFromMessage(message).trim();
+    const completion = await client.chat.completions.create(requestPayload as any);
+
+    let audioData = "";
+    let audioFormat = "mp3";
+    let fallbackText = "";
+
+    const stream = completion as any;
+    for await (const chunk of stream) {
+      const delta = chunk?.choices?.[0]?.delta as any;
+      if (!delta) continue;
+
+      const audio = delta.audio || delta.output_audio;
+      if (audio?.data) {
+        audioData += audio.data;
+        if (audio.format) audioFormat = audio.format;
+      }
+
+      const content = delta.content;
+      if (typeof content === "string") {
+        fallbackText += content;
+      } else if (Array.isArray(content)) {
+        for (const part of content) {
+          if (typeof part?.text === "string") {
+            fallbackText += part.text;
+          } else if (typeof part?.transcript === "string") {
+            fallbackText += part.transcript;
+          }
+          const partAudio = part?.audio || part?.output_audio;
+          if (partAudio?.data) {
+            audioData += partAudio.data;
+            if (partAudio.format) audioFormat = partAudio.format;
+          }
+        }
+      }
+    }
+
+    if (!audioData) {
+      const trimmed = fallbackText.trim();
+      if (provider === "openrouter") {
+        console.log("[openrouter:tts] no audio data", { textPreview: trimmed.slice(0, 200) });
+      }
       throw new Error(
-        fallbackText
-          ? `Audio output not returned: ${fallbackText}`
-          : "Audio output not returned from provider."
+        trimmed ? `Audio output not returned: ${trimmed}` : "Audio output not returned from provider."
       );
     }
-    const format = audio.format || "mp3";
-    const audioUrl = `data:audio/${format};base64,${audio.data}`;
+
+    if (provider === "openrouter") {
+      console.log("[openrouter:tts] audio received", { format: audioFormat, size: audioData.length });
+    }
+    const audioUrl = `data:audio/${audioFormat};base64,${audioData}`;
     return { audioUrl, provider, model };
   }
 };

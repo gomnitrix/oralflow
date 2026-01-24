@@ -78,8 +78,8 @@
 - [-] `/api/training/schedule` endpoint - basic implementation
 
 ### Ask Page
-- [-] **Enhance Ask page result interaction**:
-  - [-] **Add toast notification for save**: Currently, the save notification appears at the top of the page and is easily missed when scrolling. **Requirement**: Replace the static message with a floating toast notification that automatically disappears after a few seconds.
+- [x] **Enhance Ask page result interaction**:
+  - [x] **Add toast notification for save**: Currently, the save notification appears at the top of the page and is easily missed when scrolling. **Requirement**: Replace the static message with a floating toast notification that automatically disappears after a few seconds.
 
 ### Free Chat
 
