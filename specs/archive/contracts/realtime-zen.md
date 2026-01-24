@@ -1,5 +1,8 @@
 # Realtime Contract: Zen Mode Conversation
 
+> **⚠️ ARCHIVED**: This document is from November 2025, before implementation.
+> The Zen realtime handler is scaffolded but needs full integration.
+
 **Channel**: `src/app/realtime/zen/route.ts`  
 **Purpose**: Stream audio and text between learner and AI agent with low latency while tracking session id and conversation bubbles.
 

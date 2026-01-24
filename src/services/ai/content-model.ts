@@ -123,50 +123,62 @@ export const generateExpressions = async (
   input: ExpressionGenerationInput
 ): Promise<ExpressionGenerationResult> => {
   const capability: AssignmentCapability = input.capability ?? "ask_ai";
-  const completion = await client.completeChat({
-    messages: [
-      {
-        role: "system",
-        content: "Suggest concise expressions with meanings and short usage notes.",
-      },
-      { role: "user", content: input.prompt },
-    ],
-  }, capability);
+  const completion = await client.completeChat(
+    {
+      messages: [
+        {
+          role: "system",
+          content: [
+            "Return ONLY JSON array of notes. Each item:",
+            "{ content: string, explanation: { en: string, zh: string }, examples: [string, string, string] }",
+            "content should be a useful phrase/idiom/chunk. Keep examples concise (spoken style).",
+          ].join("\n"),
+        },
+        { role: "user", content: `Source text or topic:\n${input.prompt}\nReturn JSON array only.` },
+      ],
+    },
+    capability
+  );
 
-  const suggestion = createExpressionSuggestion({
-    text: completion.message || "Sample expression",
-    meaning: "Placeholder meaning",
-    usageNotes: "Use in a polite, concise response.",
-    examples: ["Thanks for waiting, I appreciate your patience."],
-    tone: input.tone ?? "neutral",
-    origin: input.origin ?? "askPage",
-    linkedNotebookItemId: null,
-  });
+  const parseStructured = (raw: string): ExpressionSuggestion[] => {
+    const cleaned = raw.trim().replace(/```json\n?|```/g, "");
+    try {
+      const parsed = JSON.parse(cleaned);
+      if (Array.isArray(parsed)) {
+        const mapped = parsed
+          .map((item) =>
+            createExpressionSuggestion({
+              text: item.content || item.phrase || item.text || "",
+              meaning: item.explanation?.zh || item.explanation?.en || "",
+              usageNotes: item.explanation?.en || "",
+              examples: Array.isArray(item.examples) ? item.examples.filter((e: any) => typeof e === "string") : [],
+              tone: input.tone ?? "neutral",
+              origin: input.origin ?? "askPage",
+              linkedNotebookItemId: null,
+            })
+          )
+          .filter((s) => s.text);
+        if (mapped.length) return mapped;
+      }
+    } catch (err) {
+      // fall through
+    }
+    return [];
+  };
 
-  const parseList = (raw: string): ExpressionSuggestion[] => {
-    const lines = raw
-      .split(/\r?\n/) // break lines
-      .map((line) => line.replace(/^[-*\d\.\s]+/, "").trim())
-      .filter(Boolean);
-
-    if (lines.length === 0) return [suggestion];
-
-    return lines.slice(0, 5).map((line, idx) => {
-      const [textPart, meaningPart] = line.split(/[:\-–—]\s+/, 2);
-      return createExpressionSuggestion({
-        text: textPart?.trim() || line,
-        meaning: meaningPart?.trim() || "Useful variant",
-        usageNotes: "",
-        examples: [line],
+  const expressions =
+    parseStructured(completion.message) ||
+    [
+      createExpressionSuggestion({
+        text: completion.message || "Sample expression",
+        meaning: "Placeholder meaning",
+        usageNotes: "Use in a polite, concise response.",
+        examples: ["Thanks for waiting, I appreciate your patience."],
         tone: input.tone ?? "neutral",
         origin: input.origin ?? "askPage",
         linkedNotebookItemId: null,
-        id: `${capability}_expr_${idx}_${Math.random().toString(36).slice(2, 8)}`,
-      });
-    });
-  };
-
-  const expressions = parseList(completion.message || "") || [suggestion];
+      }),
+    ];
 
   return { provider: completion.provider, expressions };
 };

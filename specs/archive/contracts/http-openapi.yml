@@ -1,3 +1,6 @@
+# ⚠️ ARCHIVED: Original API specification from November 2025
+# For current API documentation, see specs/PRODUCT.md section 8 (API Reference)
+
 openapi: 3.0.3
 info:
   title: Oralflow Speaking Practice API
@@ -193,7 +196,7 @@ paths:
           description: Scheduled review tasks.
   /api/ask:
     post:
-      summary: Expression discovery for “How do I express X?”.
+      summary: Expression discovery for "How do I express X?".
       operationId: askExpression
       requestBody:
         required: true

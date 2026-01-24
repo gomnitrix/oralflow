@@ -1,5 +1,8 @@
 # Research & Decisions: Oralflow Speaking Practice Loop
 
+> **⚠️ ARCHIVED**: This document is from November 2025, before implementation.
+> For current documentation, see `specs/PRODUCT.md` and `specs/DEVELOPMENT.md`.
+
 **Branch**: `001-speaking-practice`  
 **Date**: 2025-11-23  
 **Related Spec**: `/workspaces/oralflow/specs/001-speaking-practice/spec.md`  
@@ -36,9 +39,9 @@ All items are resolved below; no `[NEEDS CLARIFICATION]` markers remain for the 
 ### Decision 3: Testing Stack
 
 - **Decision**: Use Jest (or Vitest) with React Testing Library for unit and integration tests, plus Playwright for end-to-end tests.
-- **Rationale**: These tools are widely used in the Next.js ecosystem, integrate well with TypeScript, and cover the constitution’s requirement for unit, integration, and E2E coverage on critical loops.
+- **Rationale**: These tools are widely used in the Next.js ecosystem, integrate well with TypeScript, and cover the constitution's requirement for unit, integration, and E2E coverage on critical loops.
 - **Alternatives considered**:
-  - Cypress for E2E: excellent developer experience, but Playwright’s first-class cross-browser support and parallelization make it slightly better for CI-heavy workflows.
+  - Cypress for E2E: excellent developer experience, but Playwright's first-class cross-browser support and parallelization make it slightly better for CI-heavy workflows.
   - Relying only on E2E tests: would be slower and make debugging core logic (SRS, evaluation) harder.
 
 ### Decision 4: Local Persistence Strategy
