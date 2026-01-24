@@ -30,11 +30,19 @@ export class AIClient {
     const { provider, model } = resolveModelForCapability(capability, { categoryOverride: "language" });
     const openai = createOpenAIClient(provider);
 
-    const response = await openai.chat.completions.create({
+    const requestPayload = {
       model,
       messages: prompt.messages,
       temperature: prompt.temperature ?? 0.7,
-    });
+    };
+    if (provider === "openrouter") {
+      console.log("[openrouter:chat] request", JSON.stringify(requestPayload));
+    }
+
+    const response = await openai.chat.completions.create(requestPayload);
+    if (provider === "openrouter") {
+      console.log("[openrouter:chat] response", JSON.stringify(response));
+    }
 
     const choice = response.choices[0];
     const message = extractTextFromMessage(choice?.message).trim();

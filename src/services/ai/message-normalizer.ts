@@ -7,6 +7,12 @@ type MessageContentPart = {
 };
 
 export const extractTextFromContent = (content: unknown): string => {
+  if (content && typeof content === "object" && !Array.isArray(content)) {
+    const asPart = content as MessageContentPart;
+    if (typeof asPart.text === "string") return asPart.text;
+    if (typeof asPart.transcript === "string") return asPart.transcript;
+    if (typeof asPart.input_text === "string") return asPart.input_text;
+  }
   if (typeof content === "string") return content;
   if (Array.isArray(content)) {
     return content
@@ -39,7 +45,7 @@ export const extractAudioFromMessage = (message: any): { data?: string; format?:
   const content = message?.content;
   if (Array.isArray(content)) {
     for (const part of content as MessageContentPart[]) {
-      const audio = part?.audio;
+      const audio = part?.audio ?? (part as any)?.output_audio;
       if (audio?.data) {
         return { data: audio.data, format: audio.format };
       }

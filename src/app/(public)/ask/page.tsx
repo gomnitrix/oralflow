@@ -122,7 +122,6 @@ export default function AskPage() {
 
           <div className="w-full text-left">
             {error ? <p className="text-sm text-red-500">{error}</p> : null}
-            {saveNotice ? <p className="text-sm text-green-600">{saveNotice}</p> : null}
 
             {suggestions.length === 0 ? (
               <div className="rounded-2xl border border-custom-border bg-white/70 p-6 text-sm text-custom-text-dark/60 shadow-sm">
@@ -138,6 +137,15 @@ export default function AskPage() {
           </div>
         </div>
       </div>
+      {saveNotice ? (
+        <div
+          className="fixed bottom-6 right-6 z-50 rounded-full bg-custom-text-dark px-4 py-2 text-sm font-semibold text-white shadow-lg"
+          role="status"
+          aria-live="polite"
+        >
+          {saveNotice}
+        </div>
+      ) : null}
     </main>
   );
 }
