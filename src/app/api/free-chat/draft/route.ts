@@ -10,7 +10,50 @@ const limitWords = (text: string, limit: number): string => {
   if (words.length <= limit) return words.join(" ");
   return words.slice(0, limit).join(" ");
 };
+const normalizeText = (value: unknown): string => (typeof value === "string" ? value.trim() : "");
 const fallbackTitleFromContext = (context: string): string => limitWords(context, 8);
+
+const extractJson = (message: string) => {
+  const match = message.match(/\{[\s\S]*\}/);
+  if (!match) {
+    throw new Error("AI response was not valid JSON.");
+  }
+  return JSON.parse(match[0]);
+};
+
+const ensureSummaryLimit = async (summary: string, englishContext: string, ai: AIClient): Promise<string> => {
+  if (countWords(summary) <= 8) return summary;
+
+  const { message } = await ai.completeChat(
+    {
+      messages: [
+        {
+          role: "system",
+          content: [
+            "Rewrite the summary in 8 words or fewer.",
+            "Keep the full meaning, avoid truncation, no extra commentary.",
+            "Return ONLY the rewritten summary text.",
+          ].join("\n"),
+        },
+        {
+          role: "user",
+          content: JSON.stringify({ summary, englishContext }),
+        },
+      ],
+      temperature: 0.2,
+    },
+    "free_chat_draft"
+  );
+
+  const cleaned = message.replace(/^[\"']|[\"']$/g, "").trim();
+  if (!cleaned) {
+    throw new Error("Failed to refine summary.");
+  }
+  if (countWords(cleaned) > 8) {
+    throw new Error("Summary exceeds 8 words after refinement.");
+  }
+  return cleaned;
+};
 
 export async function POST(request: Request) {
   try {
@@ -18,16 +61,14 @@ export async function POST(request: Request) {
     const parsed = freeChatDraftSchema.parse(body);
     const ai = new AIClient();
 
-    const contextLength = parsed.context.length;
     const prompt = [
-      "You prepare a free-form chat context for an English-speaking AI partner.",
+      "You prepare a free chat context for an English-speaking conversation.",
       "Return ONLY strict JSON with keys: title, englishContext, summary.",
-      "- englishContext: the English version of the provided context (translate if source is not English; otherwise keep as-is, lightly clean).",
-      "- title: a concise English title (<= 60 characters). For long inputs, you may reuse the short summary as title.",
-      `- summary rules:`,
-      `  * If the input is short, reuse the englishContext as summary (do NOT expand it).`,
-      `  * If the input is long (context_length=${contextLength} chars), produce a very short summary (<= 8 words).`,
-      "No explanations, no prose—just valid JSON.",
+      "- englishContext: rewrite the input into clean, natural English for conversation.",
+      "  Translate if needed. Remove filler, redundancy, and off-topic fragments.",
+      "- summary: 8 words or fewer, complete meaning, not a truncation.",
+      "- title: concise English title (<= 60 characters).",
+      "No markdown, no extra keys, only valid JSON.",
     ].join("\n");
 
     const { message } = await ai.completeChat(
@@ -39,8 +80,6 @@ export async function POST(request: Request) {
             content: JSON.stringify({
               context: parsed.context,
               title_hint: parsed.title ?? null,
-              user_role: parsed.userRole ?? null,
-              ai_role: parsed.aiRole ?? null,
             }),
           },
         ],
@@ -49,35 +88,27 @@ export async function POST(request: Request) {
       "free_chat_draft"
     );
 
-    const match = message.match(/\{[\s\S]*\}/);
-    const jsonText = match ? match[0] : message;
-    const parsedJson = JSON.parse(jsonText);
+    const parsedJson = extractJson(message);
+    const englishContext = normalizeText(parsedJson.englishContext);
+    if (!englishContext) {
+      throw new Error("AI response missing englishContext.");
+    }
 
-    const englishContext =
-      typeof parsedJson.englishContext === "string"
-        ? parsedJson.englishContext.trim()
-        : parsed.context.trim();
+    const summaryRaw = normalizeText(parsedJson.summary);
+    if (!summaryRaw) {
+      throw new Error("AI response missing summary.");
+    }
 
-    const isShort = countWords(englishContext) <= 12;
-
-    const resolvedSummary = (() => {
-      if (isShort) return englishContext;
-      const raw = typeof parsedJson.summary === "string" ? parsedJson.summary.trim() : "";
-      const limited = raw ? limitWords(raw, 8) : "";
-      return limited || limitWords(englishContext, 8);
-    })();
-
-    const resolvedTitle = (() => {
-      if (isShort) {
-        return parsed.title?.trim() || (typeof parsedJson.title === "string" ? parsedJson.title.trim() : "") || fallbackTitleFromContext(englishContext);
-      }
-      return resolvedSummary || fallbackTitleFromContext(englishContext);
-    })();
+    const refinedSummary = await ensureSummaryLimit(summaryRaw, englishContext, ai);
+    const resolvedTitle =
+      normalizeText(parsed.title) ||
+      normalizeText(parsedJson.title) ||
+      fallbackTitleFromContext(englishContext);
 
     const response = {
       title: resolvedTitle || "Free Chat",
       englishContext,
-      summary: resolvedSummary || englishContext,
+      summary: refinedSummary,
     };
 
     return NextResponse.json(response);

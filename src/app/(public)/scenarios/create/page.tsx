@@ -20,7 +20,7 @@ export default function ScenarioCreatePage() {
     keyword: string;
     sourceText: string;
   }>({
-    mode: "manual",
+    mode: "ai",
     background: "",
     userRole: "",
     agentRole: "",
@@ -32,10 +32,11 @@ export default function ScenarioCreatePage() {
   // Generated Data State
   const [generatedScenario, setGeneratedScenario] = useState<Partial<ScenarioTemplate> | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isEditingPreview, setIsEditingPreview] = useState(false);
 
   // Modal State for "Start Practice"
   const [showModeSelection, setShowModeSelection] = useState(false);
-  const [activeTab, setActiveTab] = useState<"manual" | "ai" | "import">("manual");
+  const [activeTab, setActiveTab] = useState<"manual" | "ai" | "import">("ai");
 
   const handleFormChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -68,6 +69,7 @@ export default function ScenarioCreatePage() {
 
       const data = await response.json();
       setGeneratedScenario(data.scenario);
+      setIsEditingPreview(false);
     } catch (error) {
       console.error("Generation error:", error);
       // Optional: Show error toast
@@ -76,28 +78,13 @@ export default function ScenarioCreatePage() {
     }
   };
 
-  const handleEdit = () => {
-    if (generatedScenario) {
-      // Switch to Manual Draft
-      setActiveTab("manual");
+  const handleToggleEdit = () => {
+    if (!generatedScenario) return;
+    setIsEditingPreview((prev) => !prev);
+  };
 
-      // Combine Main Goal and Sub Goals for the "Your Goal" field
-      let goalText = generatedScenario.mainGoal || "";
-      if (generatedScenario.subGoals && generatedScenario.subGoals.length > 0) {
-        if (goalText) goalText += "\n\n";
-        goalText += "Sub Goals:\n" + generatedScenario.subGoals.map(g => `- ${g}`).join("\n");
-      }
-
-      setFormData(prev => ({
-        ...prev,
-        mode: "manual",
-        background: generatedScenario.description || "", // Map description to background as requested
-        userRole: generatedScenario.learnerRole || "",
-        agentRole: generatedScenario.aiRole || "",
-        goal: goalText,
-      }));
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+  const handlePreviewUpdate = (next: Partial<ScenarioTemplate>) => {
+    setGeneratedScenario((prev) => (prev ? { ...prev, ...next } : next));
   };
 
   const handleSave = async () => {
@@ -145,7 +132,7 @@ export default function ScenarioCreatePage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
           {/* Left Column: Editor */}
-          <div className="lg:col-span-5 xl:col-span-4">
+          <div className="lg:col-span-7 xl:col-span-7">
             <StudioEditor
               formData={formData}
               onChange={handleFormChange}
@@ -157,11 +144,13 @@ export default function ScenarioCreatePage() {
           </div>
 
           {/* Right Column: Preview */}
-          <div className="lg:col-span-7 xl:col-span-8 h-full min-h-[600px]">
+          <div className="lg:col-span-5 xl:col-span-5 h-full min-h-[600px]">
             {generatedScenario ? (
               <StudioPreviewCard
                 data={generatedScenario}
-                onEdit={handleEdit}
+                isEditing={isEditingPreview}
+                onToggleEdit={handleToggleEdit}
+                onUpdate={handlePreviewUpdate}
                 onRefresh={handleGenerate}
                 onSave={handleSave}
                 onStart={handleStartPractice}

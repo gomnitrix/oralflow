@@ -63,43 +63,64 @@ export default function AskPage() {
   };
 
   return (
-    <main className="p-8 lg:p-12 space-y-8">
-      <header>
-        <h1 className="text-custom-text-dark text-4xl font-black leading-tight tracking-tighter">Ask</h1>
-        <p className="text-custom-text-dark/60 text-base font-normal leading-normal">
-          Ask for expressions and save what you like.
-        </p>
-      </header>
+    <main className="min-h-screen bg-custom-bg">
+      <div className="relative min-h-screen overflow-hidden">
+        <div className="absolute -top-32 left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-custom-primary/20 blur-3xl" />
+        <div className="absolute -bottom-24 right-10 h-72 w-72 rounded-full bg-custom-accent/30 blur-3xl" />
 
-      <form onSubmit={submit} className="space-y-4">
-        <textarea
-          className="w-full rounded-lg bg-white border border-custom-border p-4 text-custom-text-dark placeholder:text-custom-text-dark/40 focus:ring-2 focus:ring-custom-primary focus:border-transparent outline-none transition-all"
-          placeholder="How do I decline politely?"
-          rows={4}
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          disabled={isSubmitting}
-        />
-        <button
-          type="submit"
-          className="rounded-full bg-custom-primary px-6 py-3 text-sm font-bold text-white hover:bg-custom-primary/90 transition-colors disabled:opacity-70"
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? "Generating…" : "Ask"}
-        </button>
-      </form>
+        <div className="relative z-10 mx-auto flex min-h-screen max-w-4xl flex-col items-center gap-10 px-6 py-16 text-center">
+          <header className="space-y-3">
+            <p className="text-xs font-bold uppercase tracking-[0.4em] text-custom-primary">Ask</p>
+            <h1 className="text-4xl font-black leading-tight tracking-tight text-custom-text-dark sm:text-5xl">
+              Find the natural phrase
+            </h1>
+            <p className="text-custom-text-dark/60">
+              Type what you want to say and get native-friendly options.
+            </p>
+          </header>
 
-      {error ? <p className="text-sm text-red-500">{error}</p> : null}
+          <form onSubmit={submit} className="w-full space-y-4">
+            <div className="flex items-center gap-3 rounded-full border border-custom-border bg-white px-5 py-4 shadow-lg shadow-custom-primary/10">
+              <span className="material-symbols-outlined text-custom-text-dark/40">search</span>
+              <textarea
+                className="flex-1 resize-none bg-transparent text-base text-custom-text-dark placeholder:text-custom-text-dark/40 focus:outline-none"
+                placeholder="How do I decline politely?"
+                rows={2}
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                disabled={isSubmitting}
+                aria-label="Ask prompt"
+              />
+              <button
+                type="submit"
+                className="rounded-full bg-custom-primary px-6 py-2 text-sm font-bold text-white shadow-sm shadow-custom-primary/20 hover:bg-custom-primary/90 transition-colors disabled:opacity-70"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Generating..." : "Ask"}
+              </button>
+            </div>
+            <p className="text-xs text-custom-text-dark/50">
+              Try: &quot;Make this sound more polite&quot; or &quot;A casual way to agree&quot;.
+            </p>
+          </form>
 
-      {suggestions.length === 0 ? (
-        <p className="text-custom-text-dark/60 text-sm">Suggestions will appear here.</p>
-      ) : (
-        <div className="space-y-4">
-          {suggestions.map((suggestion) => (
-            <ExpressionPreview key={suggestion.id} suggestion={suggestion} onSave={save} />
-          ))}
+          <div className="w-full text-left">
+            {error ? <p className="text-sm text-red-500">{error}</p> : null}
+
+            {suggestions.length === 0 ? (
+              <div className="rounded-2xl border border-custom-border bg-white/70 p-6 text-sm text-custom-text-dark/60 shadow-sm">
+                Suggestions will appear here after you ask.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {suggestions.map((suggestion) => (
+                  <ExpressionPreview key={suggestion.id} suggestion={suggestion} onSave={save} />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-      )}
+      </div>
     </main>
   );
 }

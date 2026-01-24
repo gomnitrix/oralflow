@@ -37,15 +37,6 @@ export const StudioEditor: React.FC<StudioEditorProps> = ({
             {/* Tabs */}
             <div className="flex gap-8 border-b border-custom-border">
                 <button
-                    onClick={() => handleTabChange("manual")}
-                    className={`pb-3 font-bold transition-colors border-b-2 ${activeTab === "manual"
-                        ? "text-custom-primary border-custom-primary"
-                        : "text-custom-text-dark/40 border-transparent hover:text-custom-text-dark"
-                        }`}
-                >
-                    Manual Draft
-                </button>
-                <button
                     onClick={() => handleTabChange("ai")}
                     className={`pb-3 font-bold transition-colors border-b-2 ${activeTab === "ai"
                         ? "text-custom-primary border-custom-primary"
@@ -53,6 +44,15 @@ export const StudioEditor: React.FC<StudioEditorProps> = ({
                         }`}
                 >
                     AI Generate
+                </button>
+                <button
+                    onClick={() => handleTabChange("manual")}
+                    className={`pb-3 font-bold transition-colors border-b-2 ${activeTab === "manual"
+                        ? "text-custom-primary border-custom-primary"
+                        : "text-custom-text-dark/40 border-transparent hover:text-custom-text-dark"
+                        }`}
+                >
+                    Manual Draft
                 </button>
                 <button
                     onClick={() => handleTabChange("import")}

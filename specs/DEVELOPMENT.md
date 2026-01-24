@@ -1,6 +1,45 @@
 # OralFlow Development Guide
 
-**Last Updated**: 2026-01-23
+**Last Updated**: 2026-01-24
+
+---
+
+## Task Verification Workflow
+
+**Important**: This project uses a two-stage task completion process.
+
+### Task Status Legend
+
+| Symbol | Meaning | Who Can Set |
+|--------|---------|-------------|
+| `[x]` | **Completed** - Verified and accepted | Maintainer only |
+| `[-]` | **Implemented** - Code done, pending verification | AI/Developer |
+| `[~]` | **Partial** - Needs more work | AI/Developer |
+| `[ ]` | **Not started** | - |
+
+### Workflow Rules
+
+1. **AI/Developers**: When you complete a task:
+   - **First**, ensure `npm run build && npm test && npm run lint` all pass
+   - **Then**, mark it as `[-]` (implemented, pending verification), NOT `[x]`
+
+2. **Maintainer**: After manual testing and verification, the maintainer will update `[-]` to `[x]`.
+
+3. **Never** mark a task as `[x]` without explicit maintainer confirmation.
+
+4. If a task needs rework after review, change `[-]` back to `[~]` with notes.
+
+5. **Build failures are blockers**: Do not mark a task as complete if `npm run build` fails.
+
+### Example
+
+```markdown
+## Stop-the-World Mode
+- [x] State machine implementation (VERIFIED)
+- [-] Pronunciation evaluator (implemented, pending verification)
+- [~] Grammar checker (partial, needs edge case handling)
+- [ ] TTS playback (not started)
+```
 
 ---
 
@@ -78,13 +117,19 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## Quality Gate
 
-Before submitting PRs, ensure:
+**Before committing any changes**, ensure all of the following commands pass:
 
 ```bash
-npm test && npm run lint
+npm run build && npm test && npm run lint
 ```
 
-Both commands must pass.
+### Requirements
+
+1. **`npm run build`** - Production build must succeed without errors
+2. **`npm test`** - All tests must pass
+3. **`npm run lint`** - No linting errors
+
+All three checks are **mandatory** after each development task.
 
 ---
 
@@ -292,8 +337,9 @@ The feature works without Azure but won't show pronunciation scores.
 
 1. Create feature branch from `001-speaking-practice`
 2. Implement with tests
-3. Run `npm test && npm run lint`
-4. Submit PR with description
+3. **Run quality checks**: `npm run build && npm test && npm run lint`
+4. Ensure all three pass before committing
+5. Submit PR with description
 
 ### Commit Messages
 
@@ -303,10 +349,13 @@ The feature works without Azure but won't show pronunciation scores.
 
 ### PR Requirements
 
-- All tests pass
-- No linting errors
-- TypeScript compiles without errors
-- Description explains the change
+- **Production build succeeds**: `npm run build` passes
+- **All tests pass**: `npm test` passes
+- **No linting errors**: `npm run lint` passes
+- **TypeScript compiles** without errors
+- **Description** explains the change
+
+**Critical**: Every PR must pass the full quality gate (`npm run build && npm test && npm run lint`) before review.
 
 ---
 

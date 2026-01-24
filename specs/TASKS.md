@@ -1,41 +1,45 @@
 # OralFlow Implementation Tasks
 
-**Last Updated**: 2026-01-23  
-**Status**: ~90% Complete
+**Last Updated**: 2026-01-24  
+**Status**: ~70% Complete
 
 ---
 
 ## Legend
 
-- [x] Completed
-- [ ] Pending
-- [~] Partial / Needs Integration
+- [x] Completed (verified by maintainer)
+- [-] Implemented (pending verification)
+- [~] Partial / Needs work
+- [ ] Not started
+
+> **Important**: Only the maintainer can mark tasks as `[x]` completed after verification.  
+> AI/developers should mark completed work as `[-]` (implemented, pending verification).
 
 ---
 
 ## Summary
 
-| Category | Complete | Pending |
-|----------|----------|---------|
-| Infrastructure | 9/9 | 0 |
-| StW Mode | 11/11 | 0 |
-| Scenario Studio | 7/7 | 0 |
-| Zen Mode | 6/6 | 3 integration |
-| Notebook & Training | 8/8 | 0 |
-| Ask & Dashboard | 7/7 | 0 |
-| Additional Features | 14/14 | 0 |
-| Polish | 5/12 | 7 |
-| **Total** | **67/74** | **10** |
+| Category | Verified | Implemented | Partial | Pending |
+|----------|----------|-------------|---------|---------|
+| Infrastructure | 9 | 0 | 0 | 0 |
+| StW Mode | 8 | 3 | 0 | 0 |
+| Scenario Studio | 4 | 0 | 3 | 0 |
+| Zen Mode | 3 | 3 | 0 | 3 |
+| Notebook | 3 | 0 | 2 | 3 |
+| Training & Review | 0 | 0 | 2 | 6 |
+| Ask & Dashboard | 4 | 1 | 2 | 0 |
+| Free Chat | 0 | 1 | 1 | 5 |
+| Additional Features | 8 | 1 | 0 | 0 |
 
 ---
 
-## Completed ✅
+## Verified ✅
 
 ### Infrastructure
 - [x] Next.js App Router setup with TypeScript strict mode
 - [x] Domain module scaffolding (`src/domains/`)
 - [x] Entity interfaces and factory helpers
-- [x] Storage adapter + repository pattern
+- [x] Storage adapter + repository pattern (SQLite + JSON fallback)
 - [x] Unified AI client with multi-provider support
 - [x] Zod validation schemas
 - [x] i18n scaffolding (en/zh)
@@ -44,121 +48,140 @@
 
 ### Stop-the-World Mode
 - [x] Conversation state machine (idle → recording → pending → evaluating → readyToSend → sent)
-- [x] Pronunciation/grammar/naturalness evaluators
-- [x] Inspiration Burst + Distill services
 - [x] `/api/conversation/stw-evaluate` endpoint
 - [x] StW shell UI with bubble list and controls
 - [x] Copilot panel UI (Inspiration/Distill tabs)
-- [x] Save-to-notebook from Copilot
 - [x] Default seed scenario
 - [x] Unit tests for state machine
 - [x] Keyboard navigation (J/K)
 - [x] Component tests for StW shell
 
 ### Scenario Studio & Library
-- [x] Scenario Studio normalization (manual/AI/import)
 - [x] Scenario Library CRUD + search
 - [x] `/api/scenarios/generate` and `/api/scenarios/crud` endpoints
-- [x] Scenario Studio UI
 - [x] Scenario Library grid + Launchpad modal
 - [x] Launch actions to StW/Zen routes
-- [x] Integration tests for scenario flows
 
 ### Zen Mode
-- [x] Zen orchestration service
 - [x] Realtime handler scaffolding
 - [x] Zen UI shell (HUD, transcript toggle, animations)
-- [x] Zen evaluation report generation
 - [x] Session transcript persistence
-- [x] Integration tests for Zen session
 
-### Notebook & Training
+### Notebook
 - [x] Notebook service with normalized cards
-- [x] SRS engine with Anki-like scheduling
-- [x] `/api/notes/items` and `/api/training/schedule` endpoints
-- [x] Notebook UI with edit/delete
-- [x] Training/Review page with exercises
-- [x] Rating controls (Again/Hard/Good/Easy)
-- [x] Unit tests for SRS scheduler
-- [x] Celebratory empty states
+- [x] `/api/notes/items` endpoint
+- [x] Notebook UI basic list with edit/delete
 
 ### Ask & Dashboard
 - [x] Ask service with tone-tagged suggestions
 - [x] `/api/ask` endpoint
-- [x] Ask page UI with preview cards
 - [x] Home dashboard with quick actions
-- [x] Quick Training text ingestion
-- [x] Integration tests for Ask + Training
 - [x] Celebratory empty states on Home
 
 ### Additional Features
-- [x] Free Chat page with context input
-- [x] `/api/free-chat/draft` endpoint
-- [x] Free Chat → StW/Zen launch
 - [x] ProviderManager for multi-provider support
 - [x] SettingsService for model assignments
 - [x] `/api/ai/settings` and `/api/ai/providers` endpoints
 - [x] Models page with provider status
 - [x] Settings persistence (`ai-settings.json`)
 - [x] StructuredNote model for Copilot output
-- [x] Distill/Inspiration structured format
-- [x] B1+ level targeting in prompts
 - [x] Azure Speech SDK integration
 - [x] Phoneme/word/fulltext granularity options
-- [x] Word-level pronunciation scores in UI
-
-### Polish (Partial)
-- [x] Microphone denial recovery UI
-- [x] English language catalog complete
-- [x] Chinese language catalog scaffolded
-- [x] E2E spec files created
-- [x] Documentation updated
 
 ---
 
-## Pending ⏳
+## Implemented (Pending Verification) [-]
 
-### Audio Integration (High Priority)
-- [ ] Browser microphone recording implementation
-- [ ] Audio visualization during recording
-- [ ] TTS playback for AI responses
-- [ ] Reference audio generation for pronunciation
+### Stop-the-World Mode
+- [-] Pronunciation/grammar/naturalness evaluators
+- [-] Inspiration Burst + Distill services
+- [-] Save-to-notebook from Copilot
 
-### Zen Real-time (High Priority)
-- [ ] Real-time WebSocket audio streaming
-- [ ] Live STT during Zen conversation
-- [ ] TTS audio playback in Zen
+### Ask & Dashboard
+- [-] Ask page UI with preview cards (layout needs redesign)
 
-### Testing (Medium Priority)
-- [ ] E2E tests passing with full coverage
-- [ ] CI pipeline integration
+### Free Chat
+- [-] `/api/free-chat/draft` endpoint
 
-### Polish (Lower Priority)
-- [ ] AI failure retry mechanism
-- [ ] Offline/reconnection recovery in Zen
-- [ ] Full Chinese translation
-- [ ] Mobile responsive layouts
-- [ ] Bottom navigation for mobile
-- [ ] Release checklist
+### Additional Features
+- [-] Word-level pronunciation scores in UI
+
+---
+
+## Partial / Needs Work [~]
+
+### Scenario Studio
+- [-] Scenario Studio UI - needs layout and UX improvements
+  - [-] Move "AI Generate" tab to first position (before "Manual Draft")
+  - [-] Remove backfill-to-form logic: clicking Edit on generated card should enable in-place editing within the card itself, NOT populate the Manual Draft form
+  - [-] Reduce generated card width (currently takes too much space), give more width to left input area
+  - [-] In Characters section: rename "Other:" label to "AI Role:"
+  - [-] Make "Your Role:" and "AI Role:" labels non-editable (styled like "Main Goal" label), only the content values should be editable
+  - [-] Investigate what the AI-generated descriptive phrase under Characters is in code; if not functional, make it non-editable as well
+- [~] Scenario Studio normalization (manual/AI/import) - partial
+- [~] Integration tests for scenario flows - basic coverage
+
+### Notebook
+- [~] Notebook card details need polish and field completion
+- [~] Notebook item editing experience needs refinement
+
+### Training & Review
+- [ ] SRS engine with Anki-like scheduling - basic implementation
+- [ ] `/api/training/schedule` endpoint - basic implementation
+
+### Ask Page
+- [-] Ask page layout needs complete redesign (current: oversized input box, "Ask" button left-aligned below textarea - looks awkward on a sparse page)
+  - [-] Redesign with center-aligned layout (reference: Google homepage search box style)
+  - [-] Reduce input box to appropriate size
+  - [-] Reposition "Ask" button appropriately (e.g., inside input or centered below)
+  - [-] Improve overall visual balance for a minimal page
+
+### Free Chat
+- [-] Free Chat page UI needs significant improvements
+  - [-] Fix header: currently shows both "Free Chat" (small label) AND "Context Chat" (large title) - keep only the styled header format but change content to "Free Chat" (align with other pages' header style)
+  - [-] Simplify description: current text "Paste any text as context, let AI translate/clean it, and jump into a conversation with Zen or Stop The World. Nothing is saved as a scenario." is too verbose - condense to core value proposition
+  - [-] Remove input fields: Title (optional), Your Role, AI Role - keep ONLY the Context textarea
+  - [-] Add Edit button (top-right) to Context Preview card
+  - [-] Enable in-place editing: after clicking Edit, title/context/summary fields in preview card become editable inline
+  - [-] Fix context generation logic: regardless of user input language, `englishContext` must ALWAYS be AI-processed English - processing includes: removing redundant info, cleaning up colloquial/meaningless content, translation if needed. Remove any existing logic that just passes through raw input
+  - [-] Fix summary generation: must be ≤8 words, expressing complete meaning (NOT a crude truncation of the full context). AI should generate a proper semantic summary
+  - [-] Disable "Start in StW/Zen" buttons until "Prepare with AI" completes successfully
+
+### Zen Mode
+- [-] Zen orchestration service
+- [-] Zen evaluation report generation
+- [-] Integration tests for Zen session
 
 ---
 
 ## Priority Queue
 
-### Tier 1 - Core Functionality
-1. Audio integration (recording, playback, visualization)
-2. Zen real-time streaming (WebSocket, STT, TTS)
-3. E2E test completion
+### Tier 1 - Core UX Fixes
+1. **Free Chat page redesign**
+   - Remove duplicate header, simplify description
+   - Remove unnecessary input fields (Title, Your Role, AI Role)
+   - Fix AI context generation (always process to English, clean content)
+   - Fix summary to be ≤8 words semantic summary (not truncation)
+   - Add in-place editing for preview card
+   
+2. **Ask page layout**
+   - Center-aligned Google-style search box design
+   - Appropriate input size and button placement
+   
+3. **Scenario Studio UX**
+   - AI Generate tab first
+   - In-place card editing (not backfill to form)
+   - Non-editable role labels, narrower card width
 
-### Tier 2 - Robustness
-4. Offline recovery in Zen
-5. AI failure retry UI
-6. Full Chinese translation
+### Tier 2 - Missing Features
+4. **Training & Review** - Complete page implementation (currently non-functional)
+5. **Notebook polish** - Full card fields, better editing
+6. **Audio integration** - Recording, playback, visualization
 
-### Tier 3 - Polish
-7. Mobile responsive design
-8. Bottom navigation
-9. Release checklist
+### Tier 3 - Real-time & Polish
+7. **Zen real-time** - WebSocket, STT, TTS
+8. **E2E tests** - Full coverage
+9. **Mobile & i18n** - Responsive, translations
 
 ---
 
@@ -196,7 +219,8 @@ npx playwright test
 - `src/components/copilot/Panel.tsx` - Copilot panel
 - `src/components/training/ReviewSession.tsx` - Training UI
 
-### Key API Files
-- `src/app/api/conversation/stw-evaluate/route.ts` - Evaluation
-- `src/app/api/scenarios/generate/route.ts` - Scenario generation
-- `src/app/api/ai/settings/route.ts` - AI settings
+### Key Pages Needing Work
+- `src/app/(public)/free-chat/page.tsx` - Free Chat
+- `src/app/(public)/scenarios/create/page.tsx` - Scenario Studio
+- `src/app/(public)/ask/page.tsx` - Ask page
+- `src/app/(public)/training/page.tsx` - Training page

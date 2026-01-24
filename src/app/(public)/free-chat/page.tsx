@@ -22,18 +22,17 @@ type DraftResult = {
 
 export default function FreeChatPage() {
   const router = useRouter();
-  const [title, setTitle] = useState("");
   const [context, setContext] = useState("");
-  const [userRole, setUserRole] = useState("");
-  const [aiRole, setAiRole] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [draft, setDraft] = useState<DraftResult | null>(null);
   const [isPreparing, setIsPreparing] = useState(false);
+  const [isEditingPreview, setIsEditingPreview] = useState(false);
 
-  // Clear draft when inputs change
+  // Clear draft when context changes
   useEffect(() => {
     setDraft(null);
-  }, [title, context, userRole, aiRole]);
+    setIsEditingPreview(false);
+  }, [context]);
 
   const contextPreview = useMemo(() => {
     if (draft?.englishContext?.trim()) return draft.englishContext.trim();
@@ -44,20 +43,18 @@ export default function FreeChatPage() {
   const summaryPreview = useMemo(() => {
     if (draft?.summary?.trim()) return draft.summary.trim();
     if (!context.trim()) return "Summary will appear here after preparing with AI.";
-    return "Click “Prepare with AI” to generate a concise summary.";
+    return "Click Prepare with AI to generate a concise summary.";
   }, [context, draft]);
 
-  const effectiveTitle = draft?.title ?? buildTitle(title, context);
+  const effectiveTitle = draft?.title ?? buildTitle("", context);
 
-  const ensureDraft = async (): Promise<DraftResult | null> => {
+  const prepareDraft = async (): Promise<DraftResult | null> => {
     const cleanContext = trimText(context);
     if (!cleanContext) {
-      setError("Please enter a context before starting.");
+      setError("Please enter a context before preparing.");
       return null;
     }
     setError(null);
-
-    if (draft) return draft;
 
     try {
       setIsPreparing(true);
@@ -66,21 +63,22 @@ export default function FreeChatPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           context: cleanContext,
-          title: title || undefined,
-          userRole,
-          aiRole,
         }),
       });
       const data = await response.json().catch(() => null);
       if (!response.ok || !data) {
         throw new Error(data?.error || "Failed to prepare context.");
       }
+      if (!data.englishContext || !data.summary) {
+        throw new Error("Draft response is missing required fields.");
+      }
       const next: DraftResult = {
-        title: data.title || buildTitle(title, cleanContext),
-        englishContext: data.englishContext || cleanContext,
-        summary: data.summary || data.englishContext || cleanContext,
+        title: data.title || buildTitle("", cleanContext),
+        englishContext: data.englishContext,
+        summary: data.summary,
       };
       setDraft(next);
+      setIsEditingPreview(false);
       return next;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to prepare context.");
@@ -90,87 +88,63 @@ export default function FreeChatPage() {
     }
   };
 
-  const startConversation = async (mode: "stw" | "zen") => {
-    const prepared = await ensureDraft();
-    if (!prepared) return;
+  const startConversation = (mode: "stw" | "zen") => {
+    if (!draft) {
+      setError("Prepare with AI before starting.");
+      return;
+    }
 
     const params = new URLSearchParams({
-      context: prepared.englishContext,
-      title: prepared.title,
-      summary: prepared.summary,
-      userRole: trimText(userRole) || defaultUserRole,
-      aiRole: trimText(aiRole) || defaultAiRole,
+      context: draft.englishContext,
+      title: draft.title,
+      summary: draft.summary,
+      userRole: defaultUserRole,
+      aiRole: defaultAiRole,
       origin: "freechat",
     });
 
     router.push(`/${mode}?${params.toString()}`);
   };
 
+  const togglePreviewEdit = () => {
+    if (!draft) return;
+    setIsEditingPreview((prev) => !prev);
+  };
+
+  const updateDraftField = (field: keyof DraftResult, value: string) => {
+    setDraft((prev) => (prev ? { ...prev, [field]: value } : prev));
+  };
+
   return (
     <main className="min-h-screen bg-custom-bg p-8 lg:p-12">
       <div className="max-w-[1600px] mx-auto space-y-8">
         <header className="space-y-2">
-          <p className="text-sm font-bold text-custom-primary uppercase tracking-[0.12em]">Free Chat</p>
-          <h1 className="text-custom-text-dark text-4xl font-black leading-tight tracking-tighter">Context Chat</h1>
+          <h1 className="text-custom-text-dark text-4xl font-black leading-tight tracking-tighter">Free Chat</h1>
           <p className="text-custom-text-dark/70 max-w-2xl">
-            Paste any text as context, let AI translate/clean it, and jump into a conversation with Zen or Stop The World. Nothing is saved as a scenario.
+            Turn any text into a clean English chat starter in seconds.
           </p>
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
           {/* Left Column: Input */}
-          <div className="lg:col-span-5 xl:col-span-4">
+          <div className="lg:col-span-6 xl:col-span-6">
             <div className="flex flex-col gap-6">
-              <div className="space-y-2">
-                <label className="block text-sm font-bold text-custom-text-dark">Title (optional)</label>
-                <input
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Give this chat a name"
-                  className="w-full rounded-xl border border-custom-border bg-white px-4 py-3 text-custom-text-dark placeholder:text-custom-text-dark/30 focus:border-custom-primary focus:outline-none focus:ring-1 focus:ring-custom-primary transition-all"
-                />
-              </div>
-
               <div className="space-y-2">
                 <label className="block text-sm font-bold text-custom-text-dark">Context</label>
                 <textarea
                   value={context}
                   onChange={(e) => setContext(e.target.value)}
                   placeholder="Paste any article, email, notes, or text you want to chat about..."
-                  rows={10}
+                  rows={12}
                   className="w-full rounded-xl border border-custom-border bg-white px-4 py-3 text-custom-text-dark placeholder:text-custom-text-dark/30 focus:border-custom-primary focus:outline-none focus:ring-1 focus:ring-custom-primary transition-all resize-none"
                 />
                 <p className="text-xs text-custom-text-dark/60">
-                  We’ll translate to English if needed and summarize longer passages to keep the chat concise.
+                  We will translate, clean, and condense it into conversational English.
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="block text-sm font-bold text-custom-text-dark">Your role</label>
-                <input
-                  type="text"
-                  value={userRole}
-                  onChange={(e) => setUserRole(e.target.value)}
-                  placeholder={defaultUserRole}
-                  className="w-full rounded-xl border border-custom-border bg-white px-4 py-3 text-custom-text-dark placeholder:text-custom-text-dark/30 focus:border-custom-primary focus:outline-none focus:ring-1 focus:ring-custom-primary transition-all"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="block text-sm font-bold text-custom-text-dark">AI role</label>
-                <input
-                  type="text"
-                  value={aiRole}
-                  onChange={(e) => setAiRole(e.target.value)}
-                  placeholder={defaultAiRole}
-                  className="w-full rounded-xl border border-custom-border bg-white px-4 py-3 text-custom-text-dark placeholder:text-custom-text-dark/30 focus:border-custom-primary focus:outline-none focus:ring-1 focus:ring-custom-primary transition-all"
-                />
-              </div>
-            </div>
-
               <button
-                onClick={ensureDraft}
+                onClick={prepareDraft}
                 disabled={isPreparing}
                 className="w-full rounded-full bg-custom-primary py-3 text-white font-bold text-base hover:bg-custom-primary/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
@@ -190,29 +164,66 @@ export default function FreeChatPage() {
           </div>
 
           {/* Right Column: Preview & Actions */}
-          <div className="lg:col-span-7 xl:col-span-8 h-full min-h-[560px]">
+          <div className="lg:col-span-6 xl:col-span-6 h-full min-h-[560px]">
             <div className="flex flex-col gap-6 h-full">
               <div className="flex-1 bg-white rounded-[32px] p-8 shadow-sm border border-custom-border flex flex-col gap-6">
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-1">
                     <p className="text-xs font-bold text-custom-primary uppercase tracking-[0.2em]">Context Preview</p>
-                    <h2 className="text-2xl font-bold text-custom-text-dark leading-tight">
-                      {effectiveTitle}
-                    </h2>
-                    <p className="text-sm text-custom-text-dark/60">
-                      {trimText(userRole) || defaultUserRole} · {trimText(aiRole) || defaultAiRole}
-                    </p>
+                    {isEditingPreview ? (
+                      <input
+                        type="text"
+                        value={draft?.title ?? ""}
+                        onChange={(event) => updateDraftField("title", event.target.value)}
+                        placeholder={effectiveTitle}
+                        className="w-full rounded-xl border border-custom-border bg-white px-3 py-2 text-custom-text-dark placeholder:text-custom-text-dark/30 focus:border-custom-primary focus:outline-none focus:ring-1 focus:ring-custom-primary transition-all text-2xl font-bold leading-tight"
+                      />
+                    ) : (
+                      <h2 className="text-2xl font-bold text-custom-text-dark leading-tight">
+                        {effectiveTitle}
+                      </h2>
+                    )}
                   </div>
-                  <span className="material-symbols-outlined text-3xl text-custom-text-dark/20">auto_awesome</span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={togglePreviewEdit}
+                      disabled={!draft}
+                      className="w-10 h-10 rounded-full bg-custom-bg flex items-center justify-center text-custom-text-dark/60 hover:text-custom-primary hover:bg-custom-primary/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                      aria-label={isEditingPreview ? "Finish editing" : "Edit preview"}
+                    >
+                      <span className="material-symbols-outlined text-xl">{isEditingPreview ? "check" : "edit"}</span>
+                    </button>
+                    <span className="material-symbols-outlined text-3xl text-custom-text-dark/20">auto_awesome</span>
+                  </div>
                 </div>
 
                 <div className="grid gap-4">
-                  <div className="bg-custom-bg p-4 rounded-2xl border border-custom-border/60 max-h-[200px] overflow-auto whitespace-pre-wrap text-sm text-custom-text-dark/80 leading-relaxed">
-                    {contextPreview}
-                  </div>
+                  {isEditingPreview ? (
+                    <textarea
+                      value={draft?.englishContext ?? ""}
+                      onChange={(event) => updateDraftField("englishContext", event.target.value)}
+                      placeholder={contextPreview}
+                      rows={8}
+                      className="bg-custom-bg p-4 rounded-2xl border border-custom-border/60 w-full text-sm text-custom-text-dark/80 leading-relaxed focus:outline-none focus:ring-1 focus:ring-custom-primary"
+                    />
+                  ) : (
+                    <div className="bg-custom-bg p-4 rounded-2xl border border-custom-border/60 max-h-[220px] overflow-auto whitespace-pre-wrap text-sm text-custom-text-dark/80 leading-relaxed">
+                      {contextPreview}
+                    </div>
+                  )}
                   <div className="bg-custom-primary/5 p-4 rounded-2xl border border-custom-primary/10 whitespace-pre-wrap text-sm text-custom-text-dark/80 leading-relaxed">
                     <p className="text-xs font-bold text-custom-primary uppercase tracking-[0.16em] mb-1">Summary</p>
-                    {summaryPreview}
+                    {isEditingPreview ? (
+                      <input
+                        type="text"
+                        value={draft?.summary ?? ""}
+                        onChange={(event) => updateDraftField("summary", event.target.value)}
+                        placeholder={summaryPreview}
+                        className="w-full bg-transparent text-sm text-custom-text-dark/80 focus:outline-none"
+                      />
+                    ) : (
+                      summaryPreview
+                    )}
                   </div>
                 </div>
 
@@ -227,14 +238,14 @@ export default function FreeChatPage() {
                 <button
                   onClick={() => startConversation("stw")}
                   className="w-full rounded-full bg-custom-primary py-4 text-white font-bold text-lg hover:bg-custom-primary/90 transition-colors shadow-lg shadow-custom-primary/20 disabled:opacity-60 disabled:cursor-not-allowed"
-                  disabled={isPreparing}
+                  disabled={!draft || isPreparing}
                 >
                   Start in Stop The World
                 </button>
                 <button
                   onClick={() => startConversation("zen")}
                   className="w-full rounded-full bg-white py-4 text-custom-text-dark font-bold text-lg hover:bg-custom-bg transition-colors border border-custom-border shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
-                  disabled={isPreparing}
+                  disabled={!draft || isPreparing}
                 >
                   Start in Zen
                 </button>

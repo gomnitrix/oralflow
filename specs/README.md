@@ -1,6 +1,6 @@
 # OralFlow Documentation
 
-**Last Updated**: 2026-01-23
+**Last Updated**: 2026-01-24
 
 This folder contains the product and development documentation for OralFlow.
 
@@ -9,7 +9,7 @@ This folder contains the product and development documentation for OralFlow.
 | Document | Description |
 |----------|-------------|
 | [PRODUCT.md](./PRODUCT.md) | Complete product documentation: features, data models, API reference, design system |
-| [DEVELOPMENT.md](./DEVELOPMENT.md) | Developer guide: setup, commands, testing, contributing |
+| [DEVELOPMENT.md](./DEVELOPMENT.md) | Developer guide: setup, commands, testing, **task verification workflow** |
 | [TASKS.md](./TASKS.md) | Implementation status and remaining work |
 
 ## Quick Links
@@ -17,6 +17,22 @@ This folder contains the product and development documentation for OralFlow.
 - **Getting Started**: See [DEVELOPMENT.md](./DEVELOPMENT.md)
 - **What's Implemented**: See [TASKS.md](./TASKS.md)
 - **Feature Details**: See [PRODUCT.md](./PRODUCT.md)
+
+## ⚠️ Task Verification Rules
+
+Tasks use a **two-stage completion** process:
+
+| Symbol | Meaning |
+|--------|---------|
+| `[x]` | Completed & verified by maintainer |
+| `[-]` | Implemented, pending maintainer verification |
+| `[~]` | Partial / needs more work |
+| `[ ]` | Not started |
+
+**AI/Developers must mark completed work as `[-]`, not `[x]`.**  
+Only the maintainer can mark tasks as `[x]` after verification.
+
+See [DEVELOPMENT.md](./DEVELOPMENT.md#task-verification-workflow) for details.
 
 ## Archive
 
