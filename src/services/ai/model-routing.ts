@@ -7,6 +7,7 @@ type ModelCategory = keyof AISettings["models"];
 
 const capabilityCategoryMap: Partial<Record<AssignmentCapability, ModelCategory>> = {
   stw_tts: "tts",
+  notebook_tts: "tts",
   stw_stt: "stt",
   zen_realtime: "realtime_speech",
   stw_goal: "language",

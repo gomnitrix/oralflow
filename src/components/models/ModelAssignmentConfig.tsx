@@ -86,6 +86,15 @@ export const ModelAssignmentConfig: React.FC<Props> = ({ settings, onUpdateAssig
             <hr className="border-gray-200" />
 
             <div>
+                <h2 className="text-lg font-semibold mb-4">Notebook</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-2">
+                    {renderSelect('notebook_tts', 'Phrase Pronunciation', 'Read saved phrases aloud', availableModels.tts)}
+                </div>
+            </div>
+
+            <hr className="border-gray-200" />
+
+            <div>
                 <h2 className="text-lg font-semibold mb-4">Other Scenarios</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-2">
                     {renderSelect('scenario_draft', 'Scenario Draft', 'Generate scenario drafts', availableModels.language)}

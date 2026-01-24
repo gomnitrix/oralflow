@@ -83,7 +83,7 @@ export default function AskPage() {
             <div className="flex items-center gap-3 rounded-full border border-custom-border bg-white px-5 py-4 shadow-lg shadow-custom-primary/10">
               <span className="material-symbols-outlined text-custom-text-dark/40">search</span>
               <textarea
-                className="flex-1 resize-none bg-transparent text-base text-custom-text-dark placeholder:text-custom-text-dark/40 focus:outline-none"
+                className="flex-1 resize-none bg-transparent border-0 text-base text-custom-text-dark placeholder:text-custom-text-dark/40 focus:outline-none"
                 placeholder="How do I decline politely?"
                 rows={2}
                 value={prompt}

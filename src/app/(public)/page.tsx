@@ -175,42 +175,6 @@ export default function Dashboard() {
           </div>
         </section>
 
-        {/* Continue Practicing Section */}
-        <section>
-          <h2 className="text-custom-text-dark text-[22px] font-bold leading-tight tracking-tight pt-4 pb-4">
-            Continue practicing
-          </h2>
-          <div className="flex flex-col sm:flex-row items-center gap-6 rounded-lg bg-white p-6 border border-custom-border">
-            <div
-              className="w-full sm:w-1/3 h-40 sm:h-full flex-shrink-0 bg-center bg-no-repeat bg-cover rounded"
-              style={{
-                backgroundImage:
-                  'url("https://lh3.googleusercontent.com/aida-public/AB6AXuAifdpO_e-Y18uc8rgcvKdOlMItO8mVMmbO9PbJUJkHwNW5GpftTS_s-5S4_I5HTFLm1Kx2sit5tsPujXD5tTiVr8GkhO7Nx6JSFqaddBaJ8pD3lBagPez_UtIzQ6r-ZJkNkoizr556X_tcvEiEN3nALS4pqUTEh1VOptDDIKFoXTa-7Q7pYb0A4clxJGICSAAC6QR7ATtimFyrsEP7oMdQg-dLXLzRtZLx3givihdrfuUZNmK1MDkj4LxydoIyw7_FN1fJwrlg4kM")',
-              }}
-            ></div>
-            <div className="flex w-full flex-col gap-3">
-              <p className="text-custom-text-dark/60 text-sm font-medium">
-                French Conversation
-              </p>
-              <h3 className="text-custom-text-dark text-xl font-bold">
-                Ordering Coffee in Paris
-              </h3>
-              <div className="w-full bg-custom-border rounded-full h-2.5">
-                <div
-                  className="bg-custom-accent h-2.5 rounded-full"
-                  style={{ width: "45%" }}
-                ></div>
-              </div>
-              <p className="text-custom-text-dark/60 text-sm">45% Complete</p>
-            </div>
-            <Link
-              href="/scenarios/123" // Placeholder ID
-              className="w-full sm:w-auto flex-shrink-0 self-end sm:self-center rounded-full bg-custom-primary py-3 px-6 text-sm font-bold text-white hover:bg-custom-primary/90 transition-colors text-center"
-            >
-              Resume
-            </Link>
-          </div>
-        </section>
       </div>
     </div>
   );

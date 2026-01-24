@@ -14,7 +14,6 @@ export const ExpressionPreview: React.FC<ExpressionPreviewProps> = ({ suggestion
         <p className="text-lg font-bold">{suggestion.text}</p>
         <p className="text-sm text-custom-text-dark/70 font-medium">{suggestion.meaning}</p>
       </div>
-      <span className="text-xs uppercase text-custom-text-dark/50 font-bold tracking-wider bg-custom-bg px-2 py-1 rounded">{suggestion.tone}</span>
     </div>
     <p className="text-sm text-custom-text-dark/80 leading-relaxed">{suggestion.usageNotes}</p>
     <Button variant="secondary" onClick={() => onSave?.(suggestion)}>

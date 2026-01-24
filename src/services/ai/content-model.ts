@@ -129,9 +129,10 @@ export const generateExpressions = async (
         {
           role: "system",
           content: [
-            "Return ONLY JSON array of notes. Each item:",
+            "Return ONLY a JSON array. Each item:",
             "{ content: string, explanation: { en: string, zh: string }, examples: [string, string, string] }",
-            "content should be a useful phrase/idiom/chunk. Keep examples concise (spoken style).",
+            "content MUST be a short, natural phrase (2-6 words), not a full sentence.",
+            "examples MUST contain exactly 3 spoken-style sentences that use the phrase.",
           ].join("\n"),
         },
         { role: "user", content: `Source text or topic:\n${input.prompt}\nReturn JSON array only.` },
@@ -140,23 +141,45 @@ export const generateExpressions = async (
     capability
   );
 
+  const normalizePhrase = (value: string) => value.trim().replace(/[.!?]+$/g, "");
+
+  const normalizeExamples = (value: unknown, phrase: string) => {
+    const cleaned = Array.isArray(value)
+      ? value.filter((item) => typeof item === "string").map((item) => item.trim()).filter(Boolean)
+      : [];
+    if (cleaned.length >= 3) return cleaned.slice(0, 3);
+    if (!cleaned.length) {
+      return [
+        `I want to ${phrase}.`,
+        `Could you ${phrase}?`,
+        `Let’s ${phrase}.`,
+      ];
+    }
+    const padded = [...cleaned];
+    while (padded.length < 3) {
+      padded.push(cleaned[cleaned.length - 1]);
+    }
+    return padded;
+  };
+
   const parseStructured = (raw: string): ExpressionSuggestion[] => {
     const cleaned = raw.trim().replace(/```json\n?|```/g, "");
     try {
       const parsed = JSON.parse(cleaned);
       if (Array.isArray(parsed)) {
         const mapped = parsed
-          .map((item) =>
-            createExpressionSuggestion({
-              text: item.content || item.phrase || item.text || "",
+          .map((item) => {
+            const phrase = normalizePhrase(item.content || item.phrase || item.text || "");
+            return createExpressionSuggestion({
+              text: phrase,
               meaning: item.explanation?.zh || item.explanation?.en || "",
               usageNotes: item.explanation?.en || "",
-              examples: Array.isArray(item.examples) ? item.examples.filter((e: any) => typeof e === "string") : [],
+              examples: normalizeExamples(item.examples ?? item.exampleSentences, phrase),
               tone: input.tone ?? "neutral",
               origin: input.origin ?? "askPage",
               linkedNotebookItemId: null,
-            })
-          )
+            });
+          })
           .filter((s) => s.text);
         if (mapped.length) return mapped;
       }
@@ -170,10 +193,10 @@ export const generateExpressions = async (
     parseStructured(completion.message) ||
     [
       createExpressionSuggestion({
-        text: completion.message || "Sample expression",
+        text: normalizePhrase(completion.message || "Sample expression"),
         meaning: "Placeholder meaning",
         usageNotes: "Use in a polite, concise response.",
-        examples: ["Thanks for waiting, I appreciate your patience."],
+        examples: normalizeExamples(["Thanks for waiting, I appreciate your patience."], completion.message || "Sample expression"),
         tone: input.tone ?? "neutral",
         origin: input.origin ?? "askPage",
         linkedNotebookItemId: null,

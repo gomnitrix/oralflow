@@ -39,6 +39,7 @@ export interface AISettings {
         ask_ai: string | null;
         review_notes: string | null;
         free_chat_draft: string | null;
+        notebook_tts: string | null;
 
         // Zen Mode
         zen_goal: string | null;
@@ -84,6 +85,7 @@ const DEFAULT_SETTINGS: AISettings = {
         ask_ai: null,
         review_notes: null,
         free_chat_draft: null,
+        notebook_tts: null,
         zen_goal: null,
     },
     config: {

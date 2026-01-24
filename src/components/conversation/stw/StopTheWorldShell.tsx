@@ -937,7 +937,7 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
                   <div className="bg-custom-primary/5 px-3 py-1.5 rounded-full border border-custom-primary/10 cursor-help flex items-center gap-2">
                     <span className="material-symbols-outlined text-lg text-custom-primary">segment</span>
                     <p className="text-sm text-custom-primary font-bold truncate max-w-[320px]">
-                      {freeContext.snippet}
+                      {freeContext.summary}
                     </p>
                   </div>
                   <div className="absolute right-0 top-full mt-2 w-96 bg-white rounded-xl shadow-xl border border-custom-border p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">

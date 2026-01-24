@@ -71,6 +71,7 @@ export const createNotebookItem = (
   source: input.source,
   sourceDetails: input.sourceDetails ?? "",
   tags: input.tags ?? [],
+  locale: input.locale ?? "en",
   createdAt: input.createdAt ?? nowIso(),
   updatedAt: input.updatedAt ?? nowIso(),
 });

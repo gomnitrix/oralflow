@@ -136,7 +136,7 @@ export const StudioPreviewCard: React.FC<StudioPreviewCardProps> = ({
                                     onChange={(event) => onUpdate({ mainGoal: event.target.value })}
                                     placeholder="Main goal"
                                     rows={3}
-                                    className="w-full rounded-xl border border-custom-border bg-white px-3 py-2 text-custom-text-dark placeholder:text-custom-text-dark/30 focus:border-custom-primary focus:outline-none focus:ring-1 focus:ring-custom-primary transition-all resize-none"
+                                    className="w-full rounded-xl border border-custom-border bg-white px-4 py-3 text-custom-text-dark placeholder:text-custom-text-dark/30 focus:border-custom-primary focus:outline-none focus:ring-1 focus:ring-custom-primary transition-all resize-none"
                                 />
                             ) : (
                                 <p className="text-custom-text-dark font-medium">{data.mainGoal}</p>
@@ -153,7 +153,7 @@ export const StudioPreviewCard: React.FC<StudioPreviewCardProps> = ({
                                 onChange={(event) => updateSubGoals(event.target.value)}
                                 placeholder="Add one sub goal per line"
                                 rows={4}
-                                className="w-full rounded-xl border border-custom-border bg-white px-3 py-2 text-custom-text-dark placeholder:text-custom-text-dark/30 focus:border-custom-primary focus:outline-none focus:ring-1 focus:ring-custom-primary transition-all resize-none"
+                                className="w-full rounded-xl border border-custom-border bg-white px-4 py-3 text-custom-text-dark placeholder:text-custom-text-dark/30 focus:border-custom-primary focus:outline-none focus:ring-1 focus:ring-custom-primary transition-all resize-none"
                             />
                         </div>
                     ) : (
