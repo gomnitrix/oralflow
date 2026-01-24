@@ -5,12 +5,14 @@ export interface TranscriptListProps {
   bubbles: ConversationBubble[];
   onBubbleClick?: (id: string) => void;
   speakerLabels?: { user: string; ai: string };
+  userAvatarUrl?: string;
 }
 
 const AI_AVATAR_URL = "https://lh3.googleusercontent.com/aida-public/AB6AXuDKwpxleXsknFFucb_wNgxEnE3VXJ52Mv1-DrdF9VZI6Z76ngJm5DLDw4eBnD881E7M38dSacAKr76YZuBVhIKXwVomUeld1clqBoJikOknBiO88ButxebP7dWKLUlu9-szSq0S97Mn7TPLGDW9rp3gecAvCwnXLaO2Z6pZ6XFywRZiQrn8_zExjFYmHGWj94Oge-mzbEEaTEqqeywVGZCwrNFaZ2AWJLdr854orewqLDhQ4keLe-1lfXPTyMak8QoaTUWdYy-GPf0";
 const USER_AVATAR_URL = "https://lh3.googleusercontent.com/aida-public/AB6AXuDKwpxleXsknFFucb_wNgxEnE3VXJ52Mv1-DrdF9VZI6Z76ngJm5DLDw4eBnD881E7M38dSacAKr76YZuBVhIKXwVomUeld1clqBoJikOknBiO88ButxebP7dWKLUlu9-szSq0S97Mn7TPLGDW9rp3gecAvCwnXLaO2Z6pZ6XFywRZiQrn8_zExjFYmHGWj94Oge-mzbEEaTEqqeywVGZCwrNFaZ2AWJLdr854orewqLDhQ4keLe-1lfXPTyMak8QoaTUWdYy-GPf0";
 
-export const TranscriptList: React.FC<TranscriptListProps> = ({ bubbles, onBubbleClick, speakerLabels }) => {
+export const TranscriptList: React.FC<TranscriptListProps> = ({ bubbles, onBubbleClick, speakerLabels, userAvatarUrl }) => {
+  const resolvedUserAvatar = userAvatarUrl?.trim() ? userAvatarUrl : USER_AVATAR_URL;
   const playAudio = (url: string) => {
     const audio = new Audio(url);
     audio.play().catch(e => console.error("Failed to play audio:", e));
@@ -89,7 +91,7 @@ export const TranscriptList: React.FC<TranscriptListProps> = ({ bubbles, onBubbl
             {isUser && (
               <div
                 className="w-10 h-10 rounded-full bg-cover bg-center shrink-0 shadow-sm"
-                style={{ backgroundImage: `url(${USER_AVATAR_URL})` }}
+                style={{ backgroundImage: `url(${resolvedUserAvatar})` }}
               />
             )}
           </div>

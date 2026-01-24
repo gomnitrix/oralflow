@@ -261,6 +261,7 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
   const [showSummary, setShowSummary] = useState(false);
   const [sessionScores, setSessionScores] = useState<SessionScores | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [userAvatarUrl, setUserAvatarUrl] = useState<string>("");
 
   const transcriptEndRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -276,6 +277,25 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
   useEffect(() => {
     sessionRef.current = session;
   }, [session]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadProfile = async () => {
+      try {
+        const response = await fetch("/api/profile");
+        const data = await response.json().catch(() => null);
+        if (!response.ok || !data) return;
+        const avatar = typeof data.avatarUrl === "string" ? data.avatarUrl : "";
+        if (isMounted) setUserAvatarUrl(avatar);
+      } catch {
+        // Ignore profile fetch errors.
+      }
+    };
+    void loadProfile();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const updateSession = useCallback((updater: (prev: ConversationSession) => ConversationSession) => {
     setSession((prev) => {
@@ -1007,6 +1027,7 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
             <TranscriptList
               bubbles={bubblesWithActive as ConversationBubble[]}
               speakerLabels={{ user: learnerRole || "User", ai: aiRole || "AI" }}
+              userAvatarUrl={userAvatarUrl}
               onBubbleClick={(id) => {
                 const idx = session.bubbles.findIndex((b) => b.id === id);
                 if (idx !== -1) setActiveIndex(idx);
@@ -1048,16 +1069,20 @@ export const StopTheWorldShell: React.FC<StopTheWorldShellProps> = ({
       {showEndConfirm && (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl shadow-xl border border-custom-border p-6 w-full max-w-md">
-            <h3 className="text-lg font-bold text-custom-text-dark mb-2">Goals not completed</h3>
+            <h3 className="text-lg font-bold text-custom-text-dark mb-2">
+              {freeContext ? "End session?" : "Goals not completed"}
+            </h3>
             <p className="text-sm text-custom-text-dark/70 mb-4">
-              Some goals are still pending. Are you sure you want to end this session now?
+              {freeContext
+                ? "Are you sure you want to end this free chat session now?"
+                : "Some goals are still pending. Are you sure you want to end this session now?"}
             </p>
             <div className="flex justify-end gap-3">
               <button
                 className="px-4 py-2 text-sm font-semibold rounded-full border border-custom-border text-custom-text-dark hover:bg-gray-50"
                 onClick={() => setShowEndConfirm(false)}
               >
-                Keep practicing
+                {freeContext ? "Stay in chat" : "Keep practicing"}
               </button>
               <button
                 className="px-4 py-2 text-sm font-semibold rounded-full bg-custom-primary text-white shadow hover:opacity-90"

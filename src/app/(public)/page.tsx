@@ -1,8 +1,31 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 export default function Dashboard() {
+  const [username, setUsername] = useState("Learner");
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadProfile = async () => {
+      try {
+        const response = await fetch("/api/profile");
+        const data = await response.json().catch(() => null);
+        if (!response.ok || !data) return;
+        if (isMounted && typeof data.username === "string" && data.username.trim()) {
+          setUsername(data.username.trim());
+        }
+      } catch {
+        // Ignore profile fetch errors.
+      }
+    };
+    void loadProfile();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   return (
     <div className="p-8 lg:p-12">
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-8">
@@ -10,7 +33,7 @@ export default function Dashboard() {
         <header className="flex flex-wrap justify-between gap-4">
           <div className="flex flex-col gap-1">
             <p className="text-custom-text-dark text-4xl font-black leading-tight tracking-tighter">
-              Welcome back, Alex!
+              Welcome back, {username}!
             </p>
             <p className="text-custom-text-dark/60 text-base font-normal leading-normal">
               Ready to speak with confidence?

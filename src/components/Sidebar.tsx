@@ -70,7 +70,7 @@ const Sidebar = () => {
                             : "hover:bg-custom-primary/10 text-custom-text-dark"
                             }`}
                     >
-                        <span className="material-symbols-outlined">help_center</span>
+                        <span className="material-symbols-outlined">search</span>
                         <p className={`text-sm ${isActive("/ask") ? "font-bold" : "font-medium"}`}>
                             Ask
                         </p>

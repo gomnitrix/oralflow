@@ -80,12 +80,12 @@ export default function AskPage() {
           </header>
 
           <form onSubmit={submit} className="w-full space-y-4">
-            <div className="flex items-center gap-3 rounded-full border border-custom-border bg-white px-5 py-4 shadow-lg shadow-custom-primary/10">
+            <div className="flex items-center gap-3 rounded-full border border-custom-border bg-white px-5 py-3 shadow-lg shadow-custom-primary/10">
               <span className="material-symbols-outlined text-custom-text-dark/40">search</span>
               <textarea
-                className="flex-1 resize-none bg-transparent border-0 text-base text-custom-text-dark placeholder:text-custom-text-dark/40 focus:outline-none"
+                className="flex-1 resize-none bg-transparent border-0 text-base text-custom-text-dark placeholder:text-custom-text-dark/40 focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:outline-none leading-tight py-0 self-center"
                 placeholder="How do I decline politely?"
-                rows={2}
+                rows={1}
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 disabled={isSubmitting}

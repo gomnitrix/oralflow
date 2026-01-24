@@ -219,7 +219,7 @@ export default function FreeChatPage() {
                         value={draft?.summary ?? ""}
                         onChange={(event) => updateDraftField("summary", event.target.value)}
                         placeholder={summaryPreview}
-                        className="w-full bg-transparent border-0 text-sm text-custom-text-dark/80 focus:outline-none"
+                        className="w-full bg-transparent border-0 text-sm text-custom-text-dark/80 focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:outline-none"
                       />
                     ) : (
                       summaryPreview

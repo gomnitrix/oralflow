@@ -16,6 +16,13 @@ export const ExpressionPreview: React.FC<ExpressionPreviewProps> = ({ suggestion
       </div>
     </div>
     <p className="text-sm text-custom-text-dark/80 leading-relaxed">{suggestion.usageNotes}</p>
+    {suggestion.examples.length ? (
+      <ul className="list-disc list-inside text-xs text-custom-text-dark/60 space-y-1 bg-custom-bg p-3 rounded-lg">
+        {suggestion.examples.map((example) => (
+          <li key={example}>{example}</li>
+        ))}
+      </ul>
+    ) : null}
     <Button variant="secondary" onClick={() => onSave?.(suggestion)}>
       Save to Notebook
     </Button>
