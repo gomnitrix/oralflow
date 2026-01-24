@@ -95,6 +95,7 @@
 - [-] **Fix OpenRouter GPT-Audio-Mini compatibility**: The `openai/gpt-audio-mini` model on OpenRouter is currently non-functional, while existing `gpt-4o-mini-tts` (via AIHubMix) works correctly. 
   - **Requirement**: Implement a broad and elegant compatibility layer for different provider input/output formats. Avoid hardcoding logic based on specific model names.
   - **Debugging**: Add detailed logging to the AI client to capture the exact request payload and response from OpenRouter. This should allow for definitive identification of the issue without multiple deployment cycles.
+  - **Implementation**: Added streaming chat fallback with SSE parsing plus normalized audio/text extraction and error detail logging.
   - **Reference**: See OpenRouter's audio model example below. Ensure the fix does not break existing provider integrations.
   - **Reference Code**:
     ```javascript

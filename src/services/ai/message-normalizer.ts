@@ -42,6 +42,9 @@ export const extractAudioFromMessage = (message: any): { data?: string; format?:
   if (message?.audio?.data) {
     return { data: message.audio.data, format: message.audio.format };
   }
+  if (message?.output_audio?.data) {
+    return { data: message.output_audio.data, format: message.output_audio.format };
+  }
   const content = message?.content;
   if (Array.isArray(content)) {
     for (const part of content as MessageContentPart[]) {
