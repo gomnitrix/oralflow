@@ -67,14 +67,14 @@ export const ModelAssignmentConfig: React.FC<Props> = ({ settings, onUpdateAssig
                 <h2 className="text-lg font-semibold mb-4">STW Mode</h2>
                 <div className="space-y-6">
                     <div>
-                        <div className="flex items-center gap-2 text-xs font-bold text-custom-primary uppercase tracking-[0.2em] w-fit">
-                            <span>Sequential</span>
-                            <Tooltip content="Workflow: Text Chat -> TTS. Balanced cost and performance.">
-                                <span className="material-symbols-outlined text-xs cursor-help">
+                        <Tooltip content="Workflow: Text Chat -> TTS. Balanced cost and performance.">
+                            <div className="flex items-start gap-0.5 text-xs font-bold text-custom-primary uppercase tracking-[0.2em] w-fit cursor-help">
+                                <span>Sequential</span>
+                                <span className="material-symbols-outlined text-[10px] leading-none relative -top-0.5">
                                     help
                                 </span>
-                            </Tooltip>
-                        </div>
+                            </div>
+                        </Tooltip>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-2 mt-2">
                             {renderSelect('stw_chat', 'Chat Model', 'Main conversation model', availableModels.language, true)}
                             {renderSelect('stw_tts', 'Text-to-Speech', 'Generate AI voice', availableModels.tts, true)}
@@ -82,14 +82,14 @@ export const ModelAssignmentConfig: React.FC<Props> = ({ settings, onUpdateAssig
                     </div>
 
                     <div>
-                        <div className="flex items-center gap-2 text-xs font-bold text-custom-primary uppercase tracking-[0.2em] w-fit">
-                            <span>Native</span>
-                            <Tooltip content="Workflow: End-to-end Audio. Faster response time, slightly higher cost than Sequential.">
-                                <span className="material-symbols-outlined text-xs cursor-help">
+                        <Tooltip content="Workflow: End-to-end Audio. Faster response time, slightly higher cost than Sequential.">
+                            <div className="flex items-start gap-0.5 text-xs font-bold text-custom-primary uppercase tracking-[0.2em] w-fit cursor-help">
+                                <span>Native</span>
+                                <span className="material-symbols-outlined text-[10px] leading-none relative -top-0.5">
                                     help
                                 </span>
-                            </Tooltip>
-                        </div>
+                            </div>
+                        </Tooltip>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-2 mt-2">
                             {renderSelect('stw_audio', 'Audio Model', 'End-to-end audio responses (Mode 2)', availableModels.language)}
                         </div>
