@@ -42,3 +42,14 @@ export const pcm16Base64ToWavDataUrl = (pcmBase64: string, sampleRate = 24000): 
 
   return `data:audio/wav;base64,${encodeWavBase64(samples, sampleRate)}`;
 };
+
+export const pcm16BufferToWavDataUrl = (pcmBuffer: Buffer, sampleRate = 24000): string => {
+  const sampleCount = Math.floor(pcmBuffer.length / 2);
+  const samples = new Int16Array(sampleCount);
+
+  for (let i = 0; i < sampleCount; i += 1) {
+    samples[i] = pcmBuffer.readInt16LE(i * 2);
+  }
+
+  return `data:audio/wav;base64,${encodeWavBase64(samples, sampleRate)}`;
+};

@@ -2,7 +2,7 @@ import { Buffer } from "buffer";
 
 import { Stream } from "openai/streaming";
 
-import { pcm16Base64ToWavDataUrl } from "@/lib/audio/wav";
+import { pcm16BufferToWavDataUrl } from "@/lib/audio/wav";
 
 import { createOpenAIClient, resolveModelForCapability } from "./model-routing";
 import { ProviderManager, type ProviderType } from "./provider-manager";
@@ -31,20 +31,55 @@ const readSampleRate = (audio: any): number | undefined => {
   return undefined;
 };
 
-const buildAudioChatPayload = (model: string, text: string, format: "mp3" | "pcm16") => ({
-  model,
-  modalities: ["audio", "text"] as const,
-  audio: { voice: "alloy", format },
-  messages: [
-    {
-      role: "system",
-      content: [{ type: "text", text: "You are a text-to-speech engine. Return audio output for the provided text." }],
-    },
-    { role: "user", content: [{ type: "text", text }] },
-  ],
-  temperature: 0,
-  stream: true,
-});
+const estimateMaxCompletionTokens = (text: string): number => {
+  const length = text.trim().length;
+  if (!length) return 256;
+  const estimate = Math.ceil(length * 8);
+  return Math.min(2048, Math.max(256, estimate));
+};
+
+const sniffAudioFormat = (buffer: Buffer): "mp3" | "wav" | "flac" | "opus" | "unknown" => {
+  if (buffer.length < 4) return "unknown";
+  const header = buffer.subarray(0, 4).toString("ascii");
+  if (header === "RIFF") return "wav";
+  if (header === "fLaC") return "flac";
+  if (header === "OggS") return "opus";
+  const header3 = buffer.subarray(0, 3).toString("ascii");
+  if (header3 === "ID3") return "mp3";
+  if (buffer[0] === 0xff && (buffer[1] & 0xe0) === 0xe0) return "mp3";
+  return "unknown";
+};
+
+const resolveOutputFormat = (
+  reported: string,
+  sniffed: "mp3" | "wav" | "flac" | "opus" | "unknown",
+  provider: ProviderType
+): string => {
+  if (sniffed !== "unknown") return sniffed;
+  if (reported === "pcm16") return "pcm16";
+  if (provider === "openrouter" && reported === "mp3") return "pcm16";
+  return reported;
+};
+
+const buildAudioChatPayload = (model: string, text: string, format: "mp3" | "pcm16") => {
+  const maxTokens = estimateMaxCompletionTokens(text);
+  return {
+    model,
+    modalities: ["audio", "text"] as const,
+    audio: { voice: "alloy", format },
+    messages: [
+      {
+        role: "system",
+        content: [{ type: "text", text: "You are a text-to-speech engine. Return audio output for the provided text." }],
+      },
+      { role: "user", content: [{ type: "text", text }] },
+    ],
+    temperature: 0,
+    stream: true,
+    max_completion_tokens: maxTokens,
+    max_tokens: maxTokens,
+  };
+};
 
 const streamChatCompletionViaFetch = async (
   provider: ProviderType,
@@ -86,8 +121,8 @@ const streamChatCompletionViaFetch = async (
 
 const collectAudioFromStream = async (
   stream: AsyncIterable<any>
-): Promise<{ audioData: string; audioFormat: string; fallbackText: string; sampleRate?: number }> => {
-  let audioData = "";
+): Promise<{ audioBuffer: Buffer; audioFormat: string; fallbackText: string; sampleRate?: number }> => {
+  const audioBuffers: Buffer[] = [];
   let audioFormat = "mp3";
   let fallbackText = "";
   let sampleRate: number | undefined;
@@ -98,7 +133,7 @@ const collectAudioFromStream = async (
 
     const audio = delta.audio || delta.output_audio;
     if (audio?.data) {
-      audioData += audio.data;
+      audioBuffers.push(Buffer.from(audio.data, "base64"));
       if (audio.format) audioFormat = audio.format;
       sampleRate = sampleRate ?? readSampleRate(audio);
     }
@@ -115,7 +150,7 @@ const collectAudioFromStream = async (
         }
         const partAudio = part?.audio || part?.output_audio;
         if (partAudio?.data) {
-          audioData += partAudio.data;
+          audioBuffers.push(Buffer.from(partAudio.data, "base64"));
           if (partAudio.format) audioFormat = partAudio.format;
           sampleRate = sampleRate ?? readSampleRate(partAudio);
         }
@@ -123,7 +158,12 @@ const collectAudioFromStream = async (
     }
   }
 
-  return { audioData, audioFormat, fallbackText, sampleRate };
+  return {
+    audioBuffer: audioBuffers.length ? Buffer.concat(audioBuffers) : Buffer.alloc(0),
+    audioFormat,
+    fallbackText,
+    sampleRate,
+  };
 };
 
 const collectAudioFromCompletion = (completion: any) => {
@@ -131,7 +171,7 @@ const collectAudioFromCompletion = (completion: any) => {
   const messageAudio = message?.audio ?? message?.output_audio;
   const audio = extractAudioFromMessage(message);
   return {
-    audioData: audio.data ?? "",
+    audioBuffer: audio.data ? Buffer.from(audio.data, "base64") : Buffer.alloc(0),
     audioFormat: audio.format ?? "mp3",
     fallbackText: extractTextFromMessage(message),
     sampleRate: readSampleRate(messageAudio),
@@ -188,18 +228,18 @@ export const synthesizeSpeech = async (
       ? await collectAudioFromStream(completion)
       : collectAudioFromCompletion(completion);
 
-    if (!result.audioData && provider === "openrouter" && !usedDirectStream) {
+    if (!result.audioBuffer.length && provider === "openrouter" && !usedDirectStream) {
       console.log("[openrouter:tts] retrying stream after empty audio");
       completion = await streamChatCompletionViaFetch(provider, requestPayload);
       usedDirectStream = true;
       result = await collectAudioFromStream(completion);
     }
 
-    if (!result.audioData && provider === "openrouter" && !isAsyncIterable(completion)) {
+    if (!result.audioBuffer.length && provider === "openrouter" && !isAsyncIterable(completion)) {
       console.log("[openrouter:tts] non-stream response", JSON.stringify(completion));
     }
 
-    if (!result.audioData) {
+    if (!result.audioBuffer.length) {
       const trimmed = result.fallbackText.trim();
       if (provider === "openrouter") {
         console.log("[openrouter:tts] no audio data", { textPreview: trimmed.slice(0, 200) });
@@ -209,13 +249,21 @@ export const synthesizeSpeech = async (
       );
     }
 
+    const sniffed = sniffAudioFormat(result.audioBuffer);
+    const resolvedFormat = resolveOutputFormat(result.audioFormat, sniffed, provider);
     if (provider === "openrouter") {
-      console.log("[openrouter:tts] audio received", { format: result.audioFormat, size: result.audioData.length });
+      console.log("[openrouter:tts] audio received", {
+        reportedFormat: result.audioFormat,
+        sniffedFormat: sniffed,
+        resolvedFormat,
+        bytes: result.audioBuffer.length,
+      });
     }
+
     const audioUrl =
-      result.audioFormat === "pcm16"
-        ? pcm16Base64ToWavDataUrl(result.audioData, result.sampleRate ?? 24000)
-        : `data:audio/${result.audioFormat};base64,${result.audioData}`;
+      resolvedFormat === "pcm16"
+        ? pcm16BufferToWavDataUrl(result.audioBuffer, result.sampleRate ?? 24000)
+        : `data:audio/${resolvedFormat};base64,${result.audioBuffer.toString("base64")}`;
     return { audioUrl, provider, model };
   }
 };
