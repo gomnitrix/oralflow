@@ -50,6 +50,13 @@
 
 ### Notebook
 - [~] Notebook card details need polish and field completion
+- [-] **Notebook Debugging & UI Enhancement**:
+  - [-] Support clicking on a notebook item to enter its detailed view.
+  - [-] Implement a "Training Card Directory" for each note.
+  - [-] Display a list of all associated `ReviewCard` items for the selected note.
+  - [-] Show full card information (Type, Cue, Answer, Metadata) in the list for debugging.
+  - [-] support "Regenerate Cards" action for individual notebook items with a user defined card number.
+  - [-] support "Delete" action for individual training card.
 
 ### Training & Review
 - [-] **Database & Schema**:
@@ -82,6 +89,11 @@
   - [-] Implement `/settings` configuration for:
     - [-] Read-Aloud Threshold.
     - [-] New Card Generation Probabilities (Forgot/Hard/Good/Easy).
+- [ ] **Debugging & Observability**:
+  - [-] Add detailed logging for SRS interval calculations.
+  - [-] Implement a "Debug Mode" toggle in Training session to show AI reasoning/prompts.
+  - [-] Create a script/tool to verify SQLite data integrity for SRS fields.
+  - [-] Add error boundaries and descriptive error states for card generation failures.
 
 ### Ask Page
 

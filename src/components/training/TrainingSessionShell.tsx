@@ -31,6 +31,7 @@ export const TrainingSessionShell: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showRating, setShowRating] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [debugMode, setDebugMode] = useState(false);
   const audioCacheRef = useRef<Record<string, string>>({});
 
   const itemMap = useMemo(() => new Map(items.map((item) => [item.id, item])), [items]);
@@ -170,6 +171,8 @@ export const TrainingSessionShell: React.FC = () => {
     }
   };
 
+  const toggleDebug = () => setDebugMode((prev) => !prev);
+
   if (loading) {
     return (
       <div className="rounded-3xl border border-custom-border bg-white p-8 shadow-sm text-center">
@@ -199,11 +202,32 @@ export const TrainingSessionShell: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <TrainingProgressBar current={currentIndex + 1} total={cards.length} />
+      <div className="flex items-center justify-between">
+        <TrainingProgressBar current={currentIndex + 1} total={cards.length} />
+        <button
+          onClick={toggleDebug}
+          className={`text-xs font-mono px-2 py-1 rounded border ${debugMode
+            ? "bg-custom-primary/10 border-custom-primary text-custom-primary"
+            : "bg-transparent border-transparent text-custom-text-dark/30 hover:text-custom-text-dark/60"
+            }`}
+        >
+          DEBUG
+        </button>
+      </div>
 
       {error && (
         <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
           {error}
+        </div>
+      )}
+
+      {debugMode && currentTask && (
+        <div className="rounded-xl bg-gray-50 border border-gray-200 p-3 text-xs font-mono text-gray-600 space-y-1">
+          <p><strong>Task ID:</strong> {currentTask.id}</p>
+          <p><strong>Card ID:</strong> {currentCard.id}</p>
+          <p><strong>SRS State:</strong> Interval={currentTask.intervalDays}d | Ease={currentTask.easeFactor.toFixed(2)} | Reps={currentTask.repetitionCount}</p>
+          <p><strong>Due:</strong> {new Date(currentTask.dueAt).toLocaleString()}</p>
+          <p><strong>Status:</strong> {currentTask.status}</p>
         </div>
       )}
 

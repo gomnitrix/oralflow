@@ -15,6 +15,7 @@ export const NotebookList: React.FC<Props> = ({ initialItems }) => {
   const [draft, setDraft] = useState<NotebookItem | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [pronouncingId, setPronouncingId] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const audioCacheRef = useRef<Record<string, string>>({});
   const audioRequestRef = useRef<Record<string, Promise<string>>>({});
 
@@ -115,6 +116,10 @@ export const NotebookList: React.FC<Props> = ({ initialItems }) => {
     }
   };
 
+  const handleExpand = (id: string) => {
+    setExpandedId((prev) => (prev === id ? null : id));
+  };
+
   return (
     <div className="space-y-4">
       {error && <div className="text-sm text-red-500 bg-red-50 border border-red-100 rounded-lg p-3">{error}</div>}
@@ -138,9 +143,11 @@ export const NotebookList: React.FC<Props> = ({ initialItems }) => {
             item={item}
             draft={editingId === item.id ? draft : null}
             isEditing={editingId === item.id}
+            isExpanded={expandedId === item.id}
             isPronouncing={pronouncingId === item.id}
             onEdit={handleEdit}
             onDelete={handleDelete}
+            onExpand={handleExpand}
             onCancelEdit={handleCancelEdit}
             onSaveEdit={handleSaveEdit}
             onChangeDraft={handleChangeDraft}

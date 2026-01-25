@@ -1,14 +1,17 @@
 import React from "react";
 import type { NotebookItem } from "../../domains/notes/models";
 import { Button } from "../shared/Button";
+import { TrainingCardDirectory } from "./TrainingCardDirectory";
 
 export interface NotebookCardProps {
   item: NotebookItem;
   draft?: NotebookItem | null;
   isEditing?: boolean;
+  isExpanded?: boolean;
   isPronouncing?: boolean;
   onEdit?: (id: string) => void;
   onDelete?: (id: string) => void;
+  onExpand?: (id: string) => void;
   onCancelEdit?: () => void;
   onSaveEdit?: () => void;
   onChangeDraft?: (next: Partial<NotebookItem>) => void;
@@ -19,9 +22,11 @@ export const NotebookCard: React.FC<NotebookCardProps> = ({
   item,
   draft,
   isEditing = false,
+  isExpanded = false,
   isPronouncing = false,
   onEdit,
   onDelete,
+  onExpand,
   onCancelEdit,
   onSaveEdit,
   onChangeDraft,
@@ -51,7 +56,12 @@ export const NotebookCard: React.FC<NotebookCardProps> = ({
             />
           ) : (
             <div className="flex items-center gap-2">
-              <p className="text-lg font-bold">{activeItem.phrase}</p>
+              <p
+                className="text-lg font-bold cursor-pointer hover:text-custom-primary transition-colors"
+                onClick={() => onExpand?.(item.id)}
+              >
+                {activeItem.phrase}
+              </p>
               <button
                 type="button"
                 onClick={() => onPronounce?.(activeItem.phrase, item.id)}
@@ -88,6 +98,9 @@ export const NotebookCard: React.FC<NotebookCardProps> = ({
             </>
           ) : (
             <>
+              <Button variant="ghost" onClick={() => onExpand?.(item.id)}>
+                {isExpanded ? "Hide" : "Details"}
+              </Button>
               <Button variant="secondary" onClick={() => onEdit?.(item.id)}>
                 Edit
               </Button>
@@ -124,6 +137,10 @@ export const NotebookCard: React.FC<NotebookCardProps> = ({
           ))}
         </ul>
       ) : null}
+
+      {isExpanded && !isEditing && (
+        <TrainingCardDirectory notebookItemId={item.id} />
+      )}
     </div>
   );
 };

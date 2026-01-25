@@ -155,7 +155,8 @@ export class CardGeneratorService {
       const parsed = JSON.parse(cleaned);
       content = normalizeContent(parsed, fallback);
     } catch (error) {
-      console.warn("[training] card generator fallback", error);
+      console.error(`[training] Card generation failed for item ${item.id} (type: ${type}). Using fallback content.`, error);
+      // Fallback content is already set to 'fallback' variable
     }
 
     const metadata: ReviewCardMetadata = {

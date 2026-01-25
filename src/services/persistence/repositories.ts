@@ -605,6 +605,14 @@ export class ReviewCardRepository {
       });
     return entity;
   }
+  async delete(id: string): Promise<void> {
+    if (this.fileRepo) {
+      await this.fileRepo.delete(id);
+      return;
+    }
+    if (!this.db) return;
+    this.db.prepare("DELETE FROM review_cards WHERE id = ?").run(id);
+  }
 }
 
 export class ConversationSessionRepository extends GenericRepository<ConversationSession> {

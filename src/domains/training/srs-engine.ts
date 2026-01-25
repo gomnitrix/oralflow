@@ -20,9 +20,13 @@ export const scheduleNext = (task: ReviewTask, rating: Rating): ReviewTask => {
   const nextEase = Math.max(1.3, task.easeFactor + adjustment.easeDelta);
   const reviewedAt = new Date();
 
+  console.log(`[SRS] Scheduling task ${task.id} with rating ${rating}`);
+  console.log(`[SRS] Current State: interval=${task.intervalDays}, ease=${task.easeFactor}, reps=${task.repetitionCount}`);
+
   if (rating === "forgot") {
     const dueAt = new Date(reviewedAt);
     dueAt.setDate(dueAt.getDate() + 1);
+    console.log(`[SRS] Forgot -> Resetting interval to 1 day. New Ease: ${nextEase}`);
     return createReviewTask({
       ...task,
       dueAt: dueAt.toISOString(),
@@ -42,6 +46,8 @@ export const scheduleNext = (task: ReviewTask, rating: Rating): ReviewTask => {
 
   const dueAt = new Date(reviewedAt);
   dueAt.setDate(dueAt.getDate() + nextInterval);
+
+  console.log(`[SRS] Next Interval: ${nextInterval} days. New Ease: ${nextEase}. Reps: ${nextRepetition}`);
 
   return createReviewTask({
     ...task,
