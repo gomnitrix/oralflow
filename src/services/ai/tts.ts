@@ -65,12 +65,17 @@ const buildAudioChatPayload = (model: string, text: string, format: "mp3" | "pcm
   const maxTokens = estimateMaxCompletionTokens(text);
   return {
     model,
-    modalities: ["audio", "text"] as const,
+    modalities: ["audio"] as const,
     audio: { voice: "alloy", format },
     messages: [
       {
         role: "system",
-        content: [{ type: "text", text: "You are a text-to-speech engine. Return audio output for the provided text." }],
+        content: [
+          {
+            type: "text",
+            text: "You are a text-to-speech engine. Output only audio. Speak exactly the user's text verbatim without adding, removing, or paraphrasing.",
+          },
+        ],
       },
       { role: "user", content: [{ type: "text", text }] },
     ],
