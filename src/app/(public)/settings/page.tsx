@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { AISettings, type AIConfigUpdate } from '@/services/ai/settings';
+import type { AISettings, AIConfigUpdate } from '@/services/ai/settings';
 
 const difficultyOptions = ["A2", "B1", "B1+", "B2", "C1"];
 const granularityOptions = [

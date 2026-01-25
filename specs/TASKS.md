@@ -55,7 +55,7 @@
 - [-] **Database & Schema**:
   - [-] Update `NotebookItem` schema with SRS fields (srsLevel, nextReviewAt, lastDifficulty, etc.).
   - [-] Create `ReviewCard` schema (id, notebookItemId, type, content, metadata).
-  - [-] Run migrations.
+  - [-] Update SQLite tables/columns to match current Training & Review schema (no JSON migration).
 - [-] **Backend Services**:
   - [-] Implement SRS Scheduling Algorithm (Service) with 'Forgot' logic (1-day interval).
   - [-] Implement `CardGeneratorService` (AI) with prompt engineering for 4 card types (Hidden Cue).

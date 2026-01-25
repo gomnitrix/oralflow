@@ -10,7 +10,7 @@
 | `notebook:save` | Suggestion saved to notebook | `{ source, itemId, bubbleId? }` |
 | `zen:start` | Zen session starts | `{ sessionId, scenarioId }` |
 | `zen:end` | Zen session ends | `{ sessionId, reason }` |
-| `training:rate` | Rating applied (Again/Hard/Good/Easy) | `{ taskId, rating }` |
+| `training:rate` | Rating applied (Forgot/Hard/Good/Easy) | `{ taskId, rating }` |
 | `ask:prompt` | Ask page prompt submitted | `{ promptLength }` |
 
 Notes:

@@ -1,4 +1,3 @@
-import { JsonFileStorageAdapter } from "./json-file-adapter";
 import { InMemoryStorageAdapter, StorageAdapter } from "./storage-adapter";
 import {
     ScenarioRepository,
@@ -15,12 +14,7 @@ export const createServerRepositories = (adapter?: StorageAdapter) => {
     let volatileAdapter = adapter;
 
     if (!adapter) {
-        const storagePath = process.env.LOCAL_STORAGE_PATH;
-        if (storagePath) {
-            persistentAdapter = new JsonFileStorageAdapter(storagePath);
-        } else {
-            persistentAdapter = new InMemoryStorageAdapter();
-        }
+        persistentAdapter = new InMemoryStorageAdapter();
         // Always use in-memory for evaluations as they don't need long-term persistence
         volatileAdapter = new InMemoryStorageAdapter();
     }

@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { ProviderStatusList } from '@/components/models/ProviderStatusList';
 import { ModelCapabilityConfig } from '@/components/models/ModelCapabilityConfig';
 import { ModelAssignmentConfig } from '@/components/models/ModelAssignmentConfig';
-import { AISettings, AIModel, type AssignmentCapability } from '@/services/ai/settings';
+import type { AISettings, AIModel, AssignmentCapability } from '@/services/ai/settings';
 import { AIProvider } from '@/services/ai/provider-manager';
 
 export default function ModelsPage() {

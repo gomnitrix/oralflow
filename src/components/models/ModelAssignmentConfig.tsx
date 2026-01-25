@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { AIModel, AISettings, type AssignmentCapability } from '@/services/ai/settings';
+import type { AIModel, AISettings, AssignmentCapability } from '@/services/ai/settings';
 import { Tooltip } from '../shared/Tooltip';
 
 interface Props {

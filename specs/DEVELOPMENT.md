@@ -89,7 +89,7 @@ OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
 AZURE_SPEECH_KEY=your-azure-key
 AZURE_SPEECH_REGION=eastus
 
-# Storage path (default: ./local_storage)
+# Storage path (default: ./data/storage)
 LOCAL_STORAGE_PATH=./data/storage
 ```
 
@@ -275,7 +275,7 @@ Navigate to `/` to see:
 
 1. Go to `/training`
 2. Complete daily review queue
-3. Rate items: Again / Hard / Good / Easy
+3. Rate items: Forgot / Hard / Good / Easy
 4. See updated schedule
 
 ### AI Model Configuration
@@ -290,14 +290,13 @@ Navigate to `/` to see:
 ## Data Storage
 
 By default, data is stored in:
-- SQLite database: `./local_storage/oralflow.db`
-- AI settings: `./ai-settings.json`
+- SQLite database: `./data/storage/oralflow.db`
+- AI settings: `./data/storage/ai-settings.json`
 
 To reset data:
 
 ```bash
-rm -rf ./local_storage
-rm ./ai-settings.json
+rm -rf ./data/storage
 ```
 
 ---
@@ -320,7 +319,7 @@ If you see native module errors:
 2. Run `npm install`
 3. Rebuild native modules: `npm rebuild better-sqlite3`
 
-Or use JSON fallback by not setting `LOCAL_STORAGE_PATH`.
+JSON fallback is deprecated; ensure SQLite is available.
 
 ### Pronunciation assessment not working
 

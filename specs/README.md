@@ -53,7 +53,7 @@ OralFlow is an AI-powered English speaking practice application with:
 ## Tech Stack
 
 - Next.js 14 (App Router) + TypeScript
-- SQLite (better-sqlite3) + JSON fallback
+- SQLite (better-sqlite3)
 - OpenAI / Gemini / Azure Speech SDK
 - Tailwind CSS + Lexend font
 

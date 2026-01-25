@@ -38,7 +38,7 @@ OralFlow is an AI-powered English speaking practice application designed to help
 | Language | TypeScript (strict mode) |
 | Runtime | Node.js 20+ |
 | Styling | Tailwind CSS with custom design system |
-| Database | SQLite (better-sqlite3) with JSON file fallback |
+| Database | SQLite (better-sqlite3) |
 | AI Providers | OpenAI, Google Gemini, AiHubMix, OpenRouter |
 | Pronunciation | Microsoft Azure Speech SDK |
 | Testing | Jest + Testing Library (unit/integration), Playwright (E2E) |
@@ -90,10 +90,9 @@ src/
 The application uses a layered persistence strategy:
 
 1. **Primary**: SQLite database via `better-sqlite3`
-2. **Fallback**: JSON file storage for environments without native modules
-3. **Configuration**: JSON file for AI settings (`ai-settings.json`)
+2. **Configuration**: JSON file for AI settings (`ai-settings.json`)
 
-**Storage Location**: Configured via `LOCAL_STORAGE_PATH` environment variable (default: `./local_storage`)
+**Storage Location**: Configured via `LOCAL_STORAGE_PATH` environment variable (default: `./data/storage`)
 
 ---
 

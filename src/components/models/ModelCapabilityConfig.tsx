@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { AIModel, type AISettings } from '@/services/ai/settings';
+import type { AIModel, AISettings } from '@/services/ai/settings';
 
 interface Props {
     title: string;

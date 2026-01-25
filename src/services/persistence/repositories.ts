@@ -1,8 +1,11 @@
+import path from "path";
+
 import type { ConversationSession, EvaluationRecord, SessionEvaluationReport } from "../../domains/conversation";
 import type { NotebookItem } from "../../domains/notes";
 import type { ScenarioTemplate } from "../../domains/scenario";
 import type { ReviewCard, ReviewTask } from "../../domains/training";
 import { InMemoryStorageAdapter, type StorageAdapter } from "./storage-adapter";
+import { resolveStorageRoot } from "./storage-root";
 
 type EntityWithId = { id: string };
 
@@ -77,11 +80,10 @@ const resolveSqlite = (): any | null => {
   if (sharedDb) return sharedDb;
   try {
     // Defer requires to server runtime to avoid bundling in the client
-    const path = require("path") as typeof import("path");
     const fs = require("fs") as typeof import("fs");
     // Lazy require to avoid bundling into client
     const Database = require("better-sqlite3");
-    const storageRoot = process.env.LOCAL_STORAGE_PATH || path.join(process.cwd(), "local_storage");
+    const storageRoot = resolveStorageRoot();
     fs.mkdirSync(storageRoot, { recursive: true });
     const dbPath = path.join(storageRoot, "oralflow.db");
     sharedDb = new Database(dbPath);
@@ -188,7 +190,7 @@ const resolveSqlite = (): any | null => {
 
     return sharedDb;
   } catch (err) {
-    console.warn("[sqlite] failed to initialize, falling back to file/in-memory", err);
+    console.warn("[sqlite] failed to initialize; JSON fallback disabled", err);
     return null;
   }
 };
@@ -205,9 +207,7 @@ export class ScenarioRepository {
     }
     this.db = resolveSqlite();
     if (!this.db) {
-      const { JsonFileStorageAdapter } = require("./json-file-adapter") as typeof import("./json-file-adapter");
-      const fileAdapter = new JsonFileStorageAdapter(process.env.LOCAL_STORAGE_PATH || "");
-      this.fileRepo = new GenericRepository<ScenarioTemplate>(fileAdapter, COLLECTIONS.scenarios);
+      console.warn("[sqlite] ScenarioRepository unavailable; JSON fallback disabled.");
     }
   }
 
@@ -327,9 +327,7 @@ export class NotebookRepository {
     }
     this.db = resolveSqlite();
     if (!this.db) {
-      const { JsonFileStorageAdapter } = require("./json-file-adapter") as typeof import("./json-file-adapter");
-      const fileAdapter = new JsonFileStorageAdapter(process.env.LOCAL_STORAGE_PATH || "");
-      this.fileRepo = new GenericRepository<NotebookItem>(fileAdapter, COLLECTIONS.notebookItems);
+      console.warn("[sqlite] NotebookRepository unavailable; JSON fallback disabled.");
     }
   }
 
@@ -494,9 +492,7 @@ export class ReviewCardRepository {
     }
     this.db = resolveSqlite();
     if (!this.db) {
-      const { JsonFileStorageAdapter } = require("./json-file-adapter") as typeof import("./json-file-adapter");
-      const fileAdapter = new JsonFileStorageAdapter(process.env.LOCAL_STORAGE_PATH || "");
-      this.fileRepo = new GenericRepository<ReviewCard>(fileAdapter, COLLECTIONS.reviewCards);
+      console.warn("[sqlite] ReviewCardRepository unavailable; JSON fallback disabled.");
     }
   }
 
@@ -628,9 +624,7 @@ export class ReviewTaskRepository {
     }
     this.db = resolveSqlite();
     if (!this.db) {
-      const { JsonFileStorageAdapter } = require("./json-file-adapter") as typeof import("./json-file-adapter");
-      const fileAdapter = new JsonFileStorageAdapter(process.env.LOCAL_STORAGE_PATH || "");
-      this.fileRepo = new GenericRepository<ReviewTask>(fileAdapter, COLLECTIONS.reviewTasks);
+      console.warn("[sqlite] ReviewTaskRepository unavailable; JSON fallback disabled.");
     }
   }
 

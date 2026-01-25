@@ -5,7 +5,7 @@ const fsSync = require("fs");
 const path = require("path");
 const Database = require("better-sqlite3");
 
-const storageRoot = process.env.LOCAL_STORAGE_PATH || path.join(process.cwd(), "local_storage");
+const storageRoot = process.env.LOCAL_STORAGE_PATH || path.join(process.cwd(), "data", "storage");
 const scenarioFile = path.join(storageRoot, "scenarios.json");
 const notebookFile = path.join(storageRoot, "notebookItems.json");
 const dbPath = path.join(storageRoot, "oralflow.db");

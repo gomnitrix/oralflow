@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { z } from "zod";
+import { resolveStorageRoot } from "../persistence/storage-root";
 
 const DEFAULT_PROFILE = {
   username: "Learner",
@@ -15,8 +16,7 @@ const profileSchema = z.object({
 export type UserProfile = z.infer<typeof profileSchema>;
 
 const resolveProfilePath = (): string => {
-  const storageRoot =
-    process.env.LOCAL_STORAGE_PATH || path.join(process.cwd(), "local_storage");
+  const storageRoot = resolveStorageRoot();
   return path.join(storageRoot, "user-profile.json");
 };
 

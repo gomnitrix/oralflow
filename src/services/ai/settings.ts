@@ -1,9 +1,9 @@
 import fs from 'fs';
 import path from 'path';
+import { resolveStorageRoot } from "../persistence/storage-root";
 
-const SETTINGS_FILE = process.env.LOCAL_STORAGE_PATH
-    ? path.join(process.env.LOCAL_STORAGE_PATH, 'ai-settings.json')
-    : path.join(process.cwd(), 'ai-settings.json');
+const SETTINGS_FILE = path.join(resolveStorageRoot(), 'ai-settings.json');
+const LEGACY_SETTINGS_FILE = path.join(process.cwd(), 'ai-settings.json');
 
 export interface AIModel {
     id: string;
@@ -148,8 +148,14 @@ export class SettingsService {
 
     private loadSettings(): AISettings {
         try {
-            if (fs.existsSync(SETTINGS_FILE)) {
-                const data = fs.readFileSync(SETTINGS_FILE, 'utf-8');
+            const settingsPath = fs.existsSync(SETTINGS_FILE)
+                ? SETTINGS_FILE
+                : fs.existsSync(LEGACY_SETTINGS_FILE)
+                    ? LEGACY_SETTINGS_FILE
+                    : null;
+
+            if (settingsPath) {
+                const data = fs.readFileSync(settingsPath, 'utf-8');
                 const parsed = JSON.parse(data) as Partial<AISettings>;
 
                 const parsedModels = (parsed.models ?? {}) as Partial<AISettings['models']>;
@@ -253,6 +259,7 @@ export class SettingsService {
 
     private saveSettings(): void {
         try {
+            fs.mkdirSync(path.dirname(SETTINGS_FILE), { recursive: true });
             fs.writeFileSync(SETTINGS_FILE, JSON.stringify(this.settings, null, 2));
         } catch (error) {
             console.error('Failed to save AI settings:', error);
