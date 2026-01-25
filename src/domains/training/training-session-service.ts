@@ -34,6 +34,8 @@ export interface TrainingSessionStartInput {
   mode: TrainingMode;
   sourceText?: string | null;
   limit?: number;
+  disableNewCards?: boolean;
+  lazyGeneration?: boolean;
 }
 
 export interface TrainingSessionResult {
@@ -41,6 +43,13 @@ export interface TrainingSessionResult {
   tasks: ReviewTask[];
   cards: ReviewCard[];
   items: NotebookItem[];
+}
+
+export interface TrainingSessionSummary {
+  dueItemCount: number;
+  totalCardCount: number;
+  existingCardCount: number;
+  newCardCount: number;
 }
 
 const difficultyScale: Record<NonNullable<NotebookItem["lastDifficulty"]>, number> = {
@@ -57,9 +66,8 @@ const resolveCardCount = (item: NotebookItem): number => {
   return clamp(5 - difficulty, 1, 4);
 };
 
-const pickCardTypes = (count: number, includeReadAloud: boolean): CardType[] => {
-  const ordered: CardType[] = ["answer_generation", "translation", "ask_question"];
-  if (includeReadAloud) ordered.push("read_aloud");
+const pickCardTypes = (count: number): CardType[] => {
+  const ordered: CardType[] = ["answer_generation", "translation", "ask_question", "read_aloud"];
   if (ordered.length === 0) return [];
   const selected: CardType[] = [];
   for (let i = 0; i < count; i += 1) {
@@ -67,8 +75,6 @@ const pickCardTypes = (count: number, includeReadAloud: boolean): CardType[] => 
   }
   return selected;
 };
-
-const wordCount = (text: string) => text.trim().split(/\s+/).filter(Boolean).length;
 
 export interface TrainingSessionDeps {
   notebook: NotebookRepositoryPort;
@@ -122,8 +128,7 @@ export class TrainingSessionService {
       });
       await this.deps.reviewTasks.upsert(task);
 
-      const includeReadAloud = wordCount(item.phrase) <= SettingsService.getInstance().getSettings().config.training.readAloudThreshold;
-      const cardType = includeReadAloud ? "read_aloud" : "answer_generation";
+      const cardType: CardType = "read_aloud";
       const card = await this.deps.cardGenerator.generateCard(item, cardType);
       await this.deps.reviewCards.upsert(card);
 
@@ -138,6 +143,8 @@ export class TrainingSessionService {
     const now = new Date();
     const nowIso = now.toISOString();
     const settings = SettingsService.getInstance().getSettings().config.training;
+    const disableNewCards = input.disableNewCards ?? false;
+    const lazyGeneration = input.lazyGeneration ?? false;
     const notebookItems = await this.deps.notebook.list();
 
     const existingTasks = await this.deps.reviewTasks.list();
@@ -172,11 +179,12 @@ export class TrainingSessionService {
       const item = itemMap.get(task.notebookItemId);
       if (!item) continue;
       const cardCount = resolveCardCount(item);
-      const includeReadAloud = wordCount(item.phrase) <= settings.readAloudThreshold;
 
       const newProbability = settings.newCardProbability[item.lastDifficulty ?? "hard"];
-      const requestedNew = item.lastDifficulty ? Math.round(cardCount * newProbability) : Math.max(1, Math.round(cardCount * 0.5));
-      const desiredNewCount = clamp(requestedNew, 0, cardCount);
+      const requestedNew = item.lastDifficulty
+        ? Math.round(cardCount * newProbability)
+        : Math.max(1, Math.round(cardCount * 0.5));
+      const desiredNewCount = disableNewCards ? 0 : clamp(requestedNew, 0, cardCount);
 
       const existingCards = await this.deps.reviewCards.listByItem(item.id);
       const sortedExisting = [...existingCards].sort((a, b) => {
@@ -185,18 +193,41 @@ export class TrainingSessionService {
         return aScore - bScore;
       });
 
-      const selectedExisting = sortedExisting.slice(0, Math.max(0, cardCount - desiredNewCount));
+      const existingTarget = Math.max(0, cardCount - desiredNewCount);
+      const selectedExisting = sortedExisting.slice(0, existingTarget);
       const missingCount = cardCount - selectedExisting.length;
 
-      const generatedCards = missingCount > 0
-        ? await this.deps.cardGenerator.generateCards(item, pickCardTypes(missingCount, includeReadAloud))
-        : [];
+      const generateCount = disableNewCards ? 0 : Math.max(desiredNewCount, missingCount);
+      let generatedCards: ReviewCard[] = [];
 
-      for (const card of generatedCards) {
-        await this.deps.reviewCards.upsert(card);
+      if (generateCount > 0) {
+        const types = pickCardTypes(generateCount);
+        if (lazyGeneration) {
+          void this.deps.cardGenerator
+            .generateCards(item, types)
+            .then(async (newCards) => {
+              for (const card of newCards) {
+                await this.deps.reviewCards.upsert(card);
+              }
+            })
+            .catch((error) => {
+              console.warn("[training] background card generation failed", error);
+            });
+        } else {
+          generatedCards = await this.deps.cardGenerator.generateCards(item, types);
+          for (const card of generatedCards) {
+            await this.deps.reviewCards.upsert(card);
+          }
+        }
       }
 
-      const updatedExisting = selectedExisting.map((card) => ({
+      const sessionExisting = [...selectedExisting];
+      if (lazyGeneration && sortedExisting.length > selectedExisting.length) {
+        const fillCount = Math.min(cardCount - sessionExisting.length, sortedExisting.length - selectedExisting.length);
+        sessionExisting.push(...sortedExisting.slice(selectedExisting.length, selectedExisting.length + fillCount));
+      }
+
+      const updatedExisting = sessionExisting.map((card) => ({
         ...card,
         lastUsedAt: nowIso,
         usageCount: (card.usageCount ?? 0) + 1,
@@ -206,7 +237,19 @@ export class TrainingSessionService {
         await this.deps.reviewCards.upsert(card);
       }
 
-      cards.push(...updatedExisting, ...generatedCards);
+      const includedGenerated = lazyGeneration
+        ? []
+        : generatedCards.slice(0, Math.max(0, cardCount - updatedExisting.length)).map((card) => ({
+          ...card,
+          lastUsedAt: nowIso,
+          usageCount: (card.usageCount ?? 0) + 1,
+        }));
+
+      for (const card of includedGenerated) {
+        await this.deps.reviewCards.upsert(card);
+      }
+
+      cards.push(...updatedExisting, ...includedGenerated);
     }
 
     const session = createTrainingSession({
@@ -220,6 +263,73 @@ export class TrainingSessionService {
       tasks: limitedTasks,
       cards,
       items: notebookItems.filter((item) => limitedTasks.some((task) => task.notebookItemId === item.id)),
+    };
+  }
+
+  async buildSummary(input: TrainingSessionStartInput): Promise<TrainingSessionSummary> {
+    if (input.mode === "adHoc") {
+      return { dueItemCount: 0, totalCardCount: 0, existingCardCount: 0, newCardCount: 0 };
+    }
+
+    const now = new Date();
+    const nowIso = now.toISOString();
+    const settings = SettingsService.getInstance().getSettings().config.training;
+    const disableNewCards = input.disableNewCards ?? false;
+    const notebookItems = await this.deps.notebook.list();
+
+    const existingTasks = await this.deps.reviewTasks.list();
+    const existingByItemId = new Map(existingTasks.map((task) => [task.notebookItemId, task]));
+
+    const mergedTasks = notebookItems.map((item) => {
+      const existing = existingByItemId.get(item.id);
+      if (existing) return existing;
+      return createReviewTask({
+        notebookItemId: item.id,
+        dueAt: item.nextReviewAt ?? nowIso,
+        lastReviewedAt: item.lastReviewedAt ?? null,
+        intervalDays: item.intervalDays ?? 1,
+        easeFactor: item.easeFactor ?? 2.5,
+        repetitionCount: item.srsLevel ?? 0,
+        status: "pending",
+      });
+    });
+
+    const dueTasks = mergedTasks.filter((task) => {
+      if (task.status !== "pending") return false;
+      return new Date(task.dueAt).getTime() <= now.getTime();
+    });
+
+    const limitedTasks = input.limit ? dueTasks.slice(0, input.limit) : dueTasks;
+    const itemMap = new Map(notebookItems.map((item) => [item.id, item]));
+
+    let existingCardCount = 0;
+    let newCardCount = 0;
+
+    for (const task of limitedTasks) {
+      const item = itemMap.get(task.notebookItemId);
+      if (!item) continue;
+      const cardCount = resolveCardCount(item);
+      const newProbability = settings.newCardProbability[item.lastDifficulty ?? "hard"];
+      const requestedNew = item.lastDifficulty
+        ? Math.round(cardCount * newProbability)
+        : Math.max(1, Math.round(cardCount * 0.5));
+      const desiredNewCount = disableNewCards ? 0 : clamp(requestedNew, 0, cardCount);
+
+      const existingCards = await this.deps.reviewCards.listByItem(item.id);
+      const existingTarget = Math.max(0, cardCount - desiredNewCount);
+      const usedExisting = Math.min(existingCards.length, existingTarget);
+      const missingCount = cardCount - usedExisting;
+      const generateCount = disableNewCards ? 0 : Math.max(desiredNewCount, missingCount);
+
+      existingCardCount += Math.min(existingCards.length, cardCount);
+      newCardCount += generateCount;
+    }
+
+    return {
+      dueItemCount: limitedTasks.length,
+      totalCardCount: existingCardCount + newCardCount,
+      existingCardCount,
+      newCardCount,
     };
   }
 }

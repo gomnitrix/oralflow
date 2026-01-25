@@ -2,16 +2,29 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerRepositories } from "../../../../../services/persistence/server-repositories";
 import { AIClient } from "../../../../../services/ai/client";
 import { CardGeneratorService } from "../../../../../domains/training/card-generator";
-import { CardType } from "../../../../../domains/training/models";
+import { trainingCardSupplementSchema } from "../../../../../lib/validation/training";
+import type { CardType } from "../../../../../domains/training/models";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 const CARD_TYPES: CardType[] = ["answer_generation", "ask_question", "translation", "read_aloud"];
+
+const pickCardTypes = (count: number): CardType[] => {
+    if (!count) return [];
+    const selected: CardType[] = [];
+    for (let i = 0; i < count; i += 1) {
+        selected.push(CARD_TYPES[i % CARD_TYPES.length]);
+    }
+    return selected;
+};
 
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { notebookItemId, count = 1 } = body;
+        const parsed = trainingCardSupplementSchema.parse(body);
+        const notebookItemId = parsed.notebookItemId;
+        const count = parsed.count ?? 1;
 
         if (!notebookItemId) {
             return NextResponse.json({ error: "Missing notebookItemId" }, { status: 400 });
@@ -27,12 +40,7 @@ export async function POST(request: NextRequest) {
         const aiClient = new AIClient();
         const generator = new CardGeneratorService({ aiClient });
 
-        // Determine types to generate
-        const typesToGenerate: CardType[] = [];
-        for (let i = 0; i < count; i++) {
-            const randomType = CARD_TYPES[Math.floor(Math.random() * CARD_TYPES.length)];
-            typesToGenerate.push(randomType);
-        }
+        const typesToGenerate = pickCardTypes(count);
 
         const newCards = await generator.generateCards(item, typesToGenerate);
 

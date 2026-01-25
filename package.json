@@ -10,7 +10,8 @@
     "lint": "next lint",
     "test": "jest --runInBand",
     "postinstall": "echo \"postinstall: no-op\"",
-    "migrate:sqlite": "node scripts/migrate-json-to-sqlite.js"
+    "migrate:sqlite": "node scripts/migrate-json-to-sqlite.js",
+    "verify:srs": "node scripts/verify-srs-sqlite.js"
   },
   "dependencies": {
     "better-sqlite3": "^12.5.0",

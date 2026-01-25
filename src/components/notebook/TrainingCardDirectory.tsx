@@ -17,6 +17,7 @@ export const TrainingCardDirectory: React.FC<Props> = ({ notebookItemId }) => {
 
     const fetchCards = useCallback(async () => {
         setLoading(true);
+        setError(null);
         try {
             const res = await fetch(`/api/training/cards?notebookItemId=${notebookItemId}`);
             const data = await res.json();
@@ -24,7 +25,7 @@ export const TrainingCardDirectory: React.FC<Props> = ({ notebookItemId }) => {
                 setCards(data.cards);
             }
         } catch (err) {
-            console.error("Failed to fetch cards", err);
+            setError("Failed to fetch cards.");
         } finally {
             setLoading(false);
         }
@@ -56,13 +57,17 @@ export const TrainingCardDirectory: React.FC<Props> = ({ notebookItemId }) => {
 
     const handleDelete = async (cardId: string) => {
         if (!confirm("Delete this card?")) return;
+        setError(null);
         try {
             const res = await fetch(`/api/training/cards?id=${cardId}`, { method: "DELETE" });
             if (res.ok) {
                 setCards((prev) => prev.filter((c) => c.id !== cardId));
+            } else {
+                const data = await res.json().catch(() => null);
+                throw new Error(data?.error || "Failed to delete card");
             }
         } catch (err) {
-            console.error("Failed to delete card", err);
+            setError(err instanceof Error ? err.message : "Failed to delete card.");
         }
     };
 
@@ -82,7 +87,7 @@ export const TrainingCardDirectory: React.FC<Props> = ({ notebookItemId }) => {
                         className="w-16 px-2 py-1 text-sm border border-custom-border rounded-lg"
                     />
                     <Button variant="secondary" onClick={handleRegenerate} disabled={regenerating}>
-                        {regenerating ? "Generating..." : "Regenerate"}
+                        {regenerating ? "Generating..." : "Generate More"}
                     </Button>
                 </div>
             </div>
@@ -109,26 +114,20 @@ export const TrainingCardDirectory: React.FC<Props> = ({ notebookItemId }) => {
                             <div>
                                 <p className="text-xs font-bold text-gray-500 uppercase mb-1">Front</p>
                                 <div className="space-y-1">
-                                    <p><span className="font-semibold">Title:</span> {card.content.front.title}</p>
-                                    <p><span className="font-semibold">Prompt:</span> {card.content.front.prompt}</p>
-                                    {card.content.front.cue && <p><span className="font-semibold">Cue:</span> {card.content.front.cue}</p>}
-                                    {card.content.front.context && <p><span className="font-semibold">Context:</span> {card.content.front.context}</p>}
+                                    <p><span className="font-semibold">Context:</span> {card.content.frontContent.context}</p>
+                                    <p><span className="font-semibold">Task:</span> {card.content.frontContent.task}</p>
+                                    <p><span className="font-semibold">Cue:</span> {card.content.frontContent.cue}</p>
                                 </div>
                             </div>
                             <div>
                                 <p className="text-xs font-bold text-gray-500 uppercase mb-1">Back</p>
-                                <p>{card.content.back.referenceAnswer}</p>
-                                {card.content.back.notes && card.content.back.notes.length > 0 && (
-                                    <ul className="list-disc list-inside mt-1 text-gray-600">
-                                        {card.content.back.notes.map((note, i) => <li key={i}>{note}</li>)}
-                                    </ul>
-                                )}
+                                <p><span className="font-semibold">Answer:</span> {card.content.backContent.referenceAnswer}</p>
                             </div>
                         </div>
 
                         {card.metadata && (
                             <div className="mt-2 text-xs text-gray-400">
-                                Source: {card.metadata.source} | Tags: {card.metadata.tags?.join(", ")}
+                                Source: {card.metadata.source || "—"} | Locale: {card.metadata.locale || "—"} | Tags: {card.metadata.tags?.join(", ") || "—"}
                             </div>
                         )}
                     </div>

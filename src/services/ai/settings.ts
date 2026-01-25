@@ -62,7 +62,7 @@ export interface AISettings {
             granularity: "phoneme" | "word" | "fulltext";
         };
         training: {
-            readAloudThreshold: number;
+            readAloudPassScore: number;
             newCardProbability: {
                 forgot: number;
                 hard: number;
@@ -120,7 +120,7 @@ const DEFAULT_SETTINGS: AISettings = {
             granularity: "phoneme",
         },
         training: {
-            readAloudThreshold: 6,
+            readAloudPassScore: 80,
             newCardProbability: {
                 forgot: 0.5,
                 hard: 0.3,
@@ -200,11 +200,11 @@ export class SettingsService {
                     return DEFAULT_SETTINGS.config.stw.responseMode;
                 })();
 
-                const clampTrainingThreshold = (() => {
-                    const value = (mergedConfig as any)?.training?.readAloudThreshold;
+                const clampPassScore = (() => {
+                    const value = (mergedConfig as any)?.training?.readAloudPassScore;
                     const num = typeof value === 'number' ? value : Number(value);
-                    if (!Number.isFinite(num)) return DEFAULT_SETTINGS.config.training.readAloudThreshold;
-                    return Math.min(12, Math.max(1, Math.round(num)));
+                    if (!Number.isFinite(num)) return DEFAULT_SETTINGS.config.training.readAloudPassScore;
+                    return Math.min(100, Math.max(0, Math.round(num)));
                 })();
 
                 const normalizeProbability = (value: unknown, fallback: number) => {
@@ -240,7 +240,7 @@ export class SettingsService {
                         },
                         training: {
                             ...mergedConfig.training,
-                            readAloudThreshold: clampTrainingThreshold,
+                            readAloudPassScore: clampPassScore,
                             newCardProbability: {
                                 forgot: normalizeProbability((mergedConfig as any)?.training?.newCardProbability?.forgot, DEFAULT_SETTINGS.config.training.newCardProbability.forgot),
                                 hard: normalizeProbability((mergedConfig as any)?.training?.newCardProbability?.hard, DEFAULT_SETTINGS.config.training.newCardProbability.hard),
@@ -299,9 +299,9 @@ export class SettingsService {
             return Math.min(1, Math.max(0, num));
         };
 
-        const clampReadAloud = (value?: number) => {
-            if (typeof value !== 'number' || Number.isNaN(value)) return this.settings.config.training.readAloudThreshold;
-            return Math.min(12, Math.max(1, Math.round(value)));
+        const clampPassScore = (value?: number) => {
+            if (typeof value !== 'number' || Number.isNaN(value)) return this.settings.config.training.readAloudPassScore;
+            return Math.min(100, Math.max(0, Math.round(value)));
         };
 
         this.settings.config = {
@@ -327,9 +327,9 @@ export class SettingsService {
             training: {
                 ...this.settings.config.training,
                 ...(config.training ?? {}),
-                readAloudThreshold: config.training?.readAloudThreshold !== undefined
-                    ? clampReadAloud(config.training.readAloudThreshold)
-                    : this.settings.config.training.readAloudThreshold,
+                readAloudPassScore: config.training?.readAloudPassScore !== undefined
+                    ? clampPassScore(config.training.readAloudPassScore)
+                    : this.settings.config.training.readAloudPassScore,
                 newCardProbability: {
                     ...this.settings.config.training.newCardProbability,
                     ...(config.training?.newCardProbability ?? {}),
@@ -339,7 +339,7 @@ export class SettingsService {
         const normalizedTraining = this.settings.config.training;
         this.settings.config.training = {
             ...normalizedTraining,
-            readAloudThreshold: clampReadAloud(normalizedTraining.readAloudThreshold),
+            readAloudPassScore: clampPassScore(normalizedTraining.readAloudPassScore),
             newCardProbability: {
                 forgot: normalizeProbability(normalizedTraining.newCardProbability.forgot, DEFAULT_SETTINGS.config.training.newCardProbability.forgot),
                 hard: normalizeProbability(normalizedTraining.newCardProbability.hard, DEFAULT_SETTINGS.config.training.newCardProbability.hard),

@@ -21,6 +21,8 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState<AISettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [clearingCards, setClearingCards] = useState(false);
+  const [clearError, setClearError] = useState<string | null>(null);
 
   const fetchSettings = async () => {
     setLoading(true);
@@ -62,6 +64,23 @@ export default function SettingsPage() {
       console.error('Failed to save settings', error);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleClearTrainingCards = async () => {
+    if (!confirm("Delete all training cards? Notes will be kept.")) return;
+    setClearingCards(true);
+    setClearError(null);
+    try {
+      const res = await fetch("/api/training/cards/clear", { method: "POST" });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to clear training cards.");
+      }
+    } catch (error) {
+      setClearError(error instanceof Error ? error.message : "Failed to clear training cards.");
+    } finally {
+      setClearingCards(false);
     }
   };
 
@@ -169,16 +188,16 @@ export default function SettingsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-white border border-custom-border rounded-2xl p-6 shadow-sm space-y-4">
           <div>
-            <p className="text-sm font-bold text-custom-text-dark">Training Read-Aloud Threshold</p>
-            <p className="text-xs text-custom-text-dark/60">Max word count to include read-aloud cards in a session.</p>
+            <p className="text-sm font-bold text-custom-text-dark">Read-Aloud Passing Threshold</p>
+            <p className="text-xs text-custom-text-dark/60">Minimum Azure pronunciation score required to pass.</p>
           </div>
           <input
             type="number"
-            min={1}
-            max={12}
+            min={0}
+            max={100}
             step={1}
-            value={settings.config.training.readAloudThreshold}
-            onChange={(e) => updateConfig({ training: { readAloudThreshold: Number(e.target.value) } })}
+            value={settings.config.training.readAloudPassScore}
+            onChange={(e) => updateConfig({ training: { readAloudPassScore: Number(e.target.value) } })}
             className="w-full rounded-xl border border-custom-border px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-custom-primary/40"
           />
         </div>
@@ -213,6 +232,24 @@ export default function SettingsPage() {
               </label>
             ))}
           </div>
+        </div>
+      </div>
+
+      <div className="bg-white border border-custom-border rounded-2xl p-6 shadow-sm space-y-4">
+        <div>
+          <p className="text-sm font-bold text-custom-text-dark">Clear All Training Cards</p>
+          <p className="text-xs text-custom-text-dark/60">Deletes generated review cards but keeps notebook entries.</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={handleClearTrainingCards}
+            disabled={clearingCards}
+            className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-100 disabled:opacity-50"
+          >
+            {clearingCards ? "Clearing..." : "Clear Training Cards"}
+          </button>
+          {clearError && <span className="text-xs text-red-600">{clearError}</span>}
         </div>
       </div>
     </div>

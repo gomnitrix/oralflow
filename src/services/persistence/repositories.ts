@@ -519,23 +519,48 @@ export class ReviewCardRepository {
       }
     };
 
-    const content = parseJson(row.content);
-    const legacyFront = parseJson(row.frontContent);
-    const legacyBack = parseJson(row.backContent);
+    const content = parseJson(row.content) as any;
+    const legacyFront = parseJson(row.frontContent) as any;
+    const legacyBack = parseJson(row.backContent) as any;
+
+    const fallbackContext =
+      legacyFront?.context ??
+      content?.front?.context ??
+      content?.front?.prompt ??
+      "";
+    const fallbackTask =
+      legacyFront?.task ??
+      content?.front?.prompt ??
+      "";
+    const fallbackCue =
+      legacyFront?.cue ??
+      content?.front?.cue ??
+      "";
+    const fallbackAnswer =
+      legacyBack?.referenceAnswer ??
+      content?.back?.referenceAnswer ??
+      "";
+
+    const frontCandidate = content?.frontContent ?? legacyFront ?? content?.front ?? {};
+    const backCandidate = content?.backContent ?? legacyBack ?? content?.back ?? {};
+
+    const resolvedContext = frontCandidate?.context ?? frontCandidate?.prompt ?? fallbackContext;
+    const resolvedTask = frontCandidate?.task ?? frontCandidate?.prompt ?? fallbackTask;
+    const resolvedCue = frontCandidate?.cue ?? fallbackCue;
+    const resolvedAnswer = backCandidate?.referenceAnswer ?? fallbackAnswer;
 
     return {
       id: row.id,
       notebookItemId: row.notebookItemId,
       type: row.type,
-      content: content ?? {
-        front: {
-          title: legacyFront?.task ?? "Practice",
-          prompt: legacyFront?.context ?? legacyFront?.task ?? "",
-          cue: legacyFront?.cue ?? null,
-          context: legacyFront?.context ?? null,
+      content: {
+        frontContent: {
+          context: resolvedContext ?? "",
+          task: resolvedTask ?? "",
+          cue: resolvedCue ?? "",
         },
-        back: {
-          referenceAnswer: legacyBack?.referenceAnswer ?? "",
+        backContent: {
+          referenceAnswer: resolvedAnswer ?? "",
         },
       },
       metadata: parseJson(row.metadata),
@@ -600,8 +625,8 @@ export class ReviewCardRepository {
         ...entity,
         content: JSON.stringify(entity.content),
         metadata: JSON.stringify(entity.metadata ?? null),
-        frontContent: JSON.stringify(entity.content.front),
-        backContent: JSON.stringify(entity.content.back),
+        frontContent: JSON.stringify(entity.content.frontContent),
+        backContent: JSON.stringify(entity.content.backContent),
       });
     return entity;
   }
@@ -612,6 +637,15 @@ export class ReviewCardRepository {
     }
     if (!this.db) return;
     this.db.prepare("DELETE FROM review_cards WHERE id = ?").run(id);
+  }
+
+  async deleteAll(): Promise<void> {
+    if (this.fileRepo) {
+      await this.fileRepo.replaceAll([]);
+      return;
+    }
+    if (!this.db) return;
+    this.db.prepare("DELETE FROM review_cards").run();
   }
 }
 

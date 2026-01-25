@@ -2,6 +2,7 @@ import { createNotebookItem, type ExpressionSuggestion, type NotebookItem } from
 
 export interface NotebookRepositoryPort {
   list(): Promise<NotebookItem[]>;
+  getById(id: string): Promise<NotebookItem | null>;
   upsert(item: NotebookItem): Promise<NotebookItem>;
   delete(id: string): Promise<void>;
 }
@@ -39,6 +40,10 @@ export class NotebookService {
 
   async list(): Promise<NotebookItem[]> {
     return this.deps.repository.list();
+  }
+
+  async getById(id: string): Promise<NotebookItem | null> {
+    return this.deps.repository.getById(id);
   }
 
   async upsert(item: NotebookItem): Promise<NotebookItem> {

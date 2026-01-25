@@ -6,11 +6,17 @@ import type { ReviewCard as ReviewCardModel } from "../../domains/training/model
 import { Button } from "../shared/Button";
 
 export interface CardEvaluationSummary {
-  score: number;
+  isCorrect: boolean;
   feedback: string;
   corrections: string[];
-  isCorrect: boolean;
   referenceAnswer: string;
+  pronunciationScore?: number;
+  pronunciationPassed?: boolean;
+  debug?: {
+    systemPrompt: string;
+    userPrompt: string;
+    rawResponse?: string;
+  };
 }
 
 interface ReviewCardProps {
@@ -36,12 +42,43 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
   onPlayAudio,
   loading = false,
 }) => {
-  const front = card.content.front;
-  const back = card.content.back;
-  const notes = [
-    ...(back.notes ?? []),
-    ...(item?.usageNotes ? [item.usageNotes] : []),
-  ].filter(Boolean);
+  const front = card.content.frontContent;
+  const back = card.content.backContent;
+  const isReadAloud = card.type === "read_aloud";
+  const typeLabel = {
+    answer_generation: "Answer Generation",
+    ask_question: "Ask a Question",
+    translation: "Translation",
+    read_aloud: "Read Aloud",
+  }[card.type];
+
+  const maskCue = (value: string) => {
+    if (!value) return "";
+    return "*".repeat(Math.max(4, value.length));
+  };
+
+  const renderContext = () => {
+    if (!front.context) return null;
+    if (!isReadAloud || !front.cue) {
+      return <p className="text-sm text-custom-text-dark/60">{front.context}</p>;
+    }
+    const lowerContext = front.context.toLowerCase();
+    const lowerCue = front.cue.toLowerCase();
+    const idx = lowerContext.indexOf(lowerCue);
+    if (idx < 0) {
+      return <p className="text-sm text-custom-text-dark/60">{front.context}</p>;
+    }
+    const before = front.context.slice(0, idx);
+    const match = front.context.slice(idx, idx + front.cue.length);
+    const after = front.context.slice(idx + front.cue.length);
+    return (
+      <p className="text-sm text-custom-text-dark/60">
+        {before}
+        <span className="rounded bg-custom-primary/20 px-1 text-custom-text-dark">{match}</span>
+        {after}
+      </p>
+    );
+  };
 
   return (
     <div className="relative w-full" style={{ perspective: "1400px" }}>
@@ -56,41 +93,47 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
           <div className="space-y-6 h-full flex flex-col">
             <div>
               <p className="text-xs uppercase tracking-[0.2em] text-custom-text-dark/50">Training Card</p>
-              <h2 className="text-3xl font-bold text-custom-text-dark">{front.title}</h2>
+              <h2 className="text-3xl font-bold text-custom-text-dark">{typeLabel}</h2>
             </div>
             <div className="space-y-3">
-              {front.context && (
-                <p className="text-sm text-custom-text-dark/60">{front.context}</p>
-              )}
-              <p className="text-lg text-custom-text-dark">{front.prompt}</p>
+              {renderContext()}
+              <p className="text-lg text-custom-text-dark">{front.task}</p>
               {front.cue && (
                 <div className="inline-flex items-center rounded-full border border-custom-border bg-custom-bg px-3 py-1 text-sm text-custom-text-dark/70">
-                  Cue: {front.cue}
+                  Cue: {maskCue(front.cue)}
                 </div>
               )}
             </div>
             <div className="flex-1">
-              <label className="text-xs font-semibold uppercase tracking-[0.2em] text-custom-text-dark/50">
-                Your Answer
-              </label>
-              <textarea
-                className="mt-2 w-full resize-none rounded-2xl border border-custom-border bg-custom-bg/60 p-4 text-sm text-custom-text-dark focus:outline-none focus:ring-2 focus:ring-custom-primary/30"
-                rows={4}
-                value={answer}
-                onChange={(e) => onAnswerChange(e.target.value)}
-                placeholder="Type your response..."
-              />
+              {isReadAloud ? (
+                <div className="rounded-2xl border border-custom-border bg-custom-bg/60 p-4 text-sm text-custom-text-dark/70">
+                  Use the Record button below and read the sentence aloud.
+                </div>
+              ) : (
+                <>
+                  <label className="text-xs font-semibold uppercase tracking-[0.2em] text-custom-text-dark/50">
+                    Your Answer
+                  </label>
+                  <textarea
+                    className="mt-2 w-full resize-none rounded-2xl border border-custom-border bg-custom-bg/60 p-4 text-sm text-custom-text-dark focus:outline-none focus:ring-2 focus:ring-custom-primary/30"
+                    rows={4}
+                    value={answer}
+                    onChange={(e) => onAnswerChange(e.target.value)}
+                    placeholder="Type your response..."
+                  />
+                </>
+              )}
             </div>
             <div className="flex items-center justify-between">
               <Button variant="secondary" onClick={onReveal} disabled={loading}>
                 {loading ? "Checking..." : "Show Answer"}
               </Button>
-              {front.prompt && onPlayAudio && (
+              {front.context && onPlayAudio && (
                 <button
                   className="text-xs font-semibold text-custom-primary hover:underline"
-                  onClick={() => onPlayAudio(front.prompt)}
+                  onClick={() => onPlayAudio(front.context)}
                 >
-                  Play prompt
+                  Play context
                 </button>
               )}
             </div>
@@ -135,19 +178,25 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
                     Corrections: {evaluation.corrections.join(" · ")}
                   </div>
                 )}
+                {evaluation.pronunciationScore !== undefined && (
+                  <div className="text-xs text-custom-text-dark/60">
+                    Pronunciation Score: {evaluation.pronunciationScore}{" "}
+                    {evaluation.pronunciationPassed === undefined
+                      ? ""
+                      : evaluation.pronunciationPassed
+                        ? "(Pass)"
+                        : "(Retry)"}
+                  </div>
+                )}
               </div>
             )}
 
-            {notes.length > 0 && (
+            {item?.usageNotes ? (
               <div className="space-y-2">
                 <p className="text-xs font-semibold text-custom-text-dark/60 uppercase">Notes</p>
-                <div className="space-y-1 text-sm text-custom-text-dark/70">
-                  {notes.map((note, idx) => (
-                    <p key={`${card.id}-note-${idx}`}>• {note}</p>
-                  ))}
-                </div>
+                <div className="text-sm text-custom-text-dark/70">• {item.usageNotes}</div>
               </div>
-            )}
+            ) : null}
 
             {item?.exampleSentences?.length ? (
               <div className="space-y-1 text-sm text-custom-text-dark/60">

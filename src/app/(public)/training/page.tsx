@@ -1,5 +1,5 @@
 import React from "react";
-import { TrainingSessionShell } from "../../../components/training/TrainingSessionShell";
+import { TrainingFlow } from "../../../components/training/TrainingFlow";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +12,7 @@ export default function TrainingPage() {
       </header>
 
       <section className="max-w-3xl mx-auto mt-8 space-y-6">
-        <TrainingSessionShell />
+        <TrainingFlow />
       </section>
     </main>
   );

@@ -6,15 +6,13 @@ export type TrainingMode = "review" | "adHoc";
 export type CardType = "answer_generation" | "ask_question" | "translation" | "read_aloud";
 
 export interface ReviewCardContent {
-  front: {
-    title: string;
-    prompt: string;
-    cue?: string | null;
-    context?: string | null;
+  frontContent: {
+    context: string;
+    task: string;
+    cue: string;
   };
-  back: {
+  backContent: {
     referenceAnswer: string;
-    notes?: string[];
   };
 }
 
@@ -22,6 +20,10 @@ export interface ReviewCardMetadata {
   locale?: string;
   source?: "generated" | "manual" | "import";
   tags?: string[];
+  debug?: {
+    systemPrompt: string;
+    userPrompt: string;
+  };
 }
 
 export interface ReviewCard {

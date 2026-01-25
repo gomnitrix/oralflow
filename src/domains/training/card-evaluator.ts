@@ -3,16 +3,20 @@ import type { NotebookItem } from "../notes/models";
 import type { ReviewCard } from "./models";
 
 export interface CardEvaluation {
-  score: number;
+  isCorrect: boolean;
   feedback: string;
   corrections: string[];
-  isCorrect: boolean;
   referenceAnswer: string;
 }
 
 export interface CardEvaluationResult extends CardEvaluation {
   provider: string;
   model: string;
+  debug?: {
+    systemPrompt: string;
+    userPrompt: string;
+    rawResponse?: string;
+  };
 }
 
 const buildSystemPrompt = () => [
@@ -20,7 +24,6 @@ const buildSystemPrompt = () => [
   "Evaluate the learner answer against the reference answer.",
   "Return ONLY JSON with:",
   `{
-    "score": number (0-100),
     "isCorrect": boolean,
     "feedback": "string",
     "corrections": ["string"]
@@ -30,9 +33,10 @@ const buildSystemPrompt = () => [
 
 const buildUserPrompt = (card: ReviewCard, answerText: string, item?: NotebookItem | null) => [
   `Card type: ${card.type}`,
-  `Prompt: ${card.content.front.prompt}`,
-  `Cue: ${card.content.front.cue ?? ""}`,
-  `Reference answer: ${card.content.back.referenceAnswer}`,
+  `Context: ${card.content.frontContent.context}`,
+  `Task: ${card.content.frontContent.task}`,
+  `Cue: ${card.content.frontContent.cue}`,
+  `Reference answer: ${card.content.backContent.referenceAnswer}`,
   `Learner answer: ${answerText || "(empty)"}`,
   item
     ? `Notebook notes: ${item.usageNotes || "N/A"} | Examples: ${(item.exampleSentences || []).join(" | ") || "N/A"}`
@@ -56,14 +60,21 @@ export interface CardEvaluatorDeps {
 export class CardEvaluatorService {
   constructor(private readonly deps: CardEvaluatorDeps) { }
 
-  async evaluate(card: ReviewCard, answerText: string, item?: NotebookItem | null): Promise<CardEvaluationResult> {
-    const reference = card.content.back.referenceAnswer;
+  async evaluate(
+    card: ReviewCard,
+    answerText: string,
+    item?: NotebookItem | null,
+    options?: { includeDebug?: boolean }
+  ): Promise<CardEvaluationResult> {
+    const reference = card.content.backContent.referenceAnswer;
+    const systemPrompt = buildSystemPrompt();
+    const userPrompt = buildUserPrompt(card, answerText, item);
     try {
       const completion = await this.deps.aiClient.completeChat(
         {
           messages: [
-            { role: "system", content: buildSystemPrompt() },
-            { role: "user", content: buildUserPrompt(card, answerText, item) },
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
           ],
           temperature: 0.3,
         },
@@ -71,10 +82,8 @@ export class CardEvaluatorService {
       );
       const cleaned = completion.message.replace(/```json\n?|```/g, "").trim();
       const parsed = JSON.parse(cleaned) as Partial<CardEvaluation>;
-      const score = typeof parsed.score === "number" ? parsed.score : 0;
-      const isCorrect = typeof parsed.isCorrect === "boolean" ? parsed.isCorrect : score >= 70;
-      return {
-        score,
+      const isCorrect = typeof parsed.isCorrect === "boolean" ? parsed.isCorrect : false;
+      const result: CardEvaluationResult = {
         isCorrect,
         feedback: parsed.feedback || "Review the reference answer and try again.",
         corrections: Array.isArray(parsed.corrections) ? parsed.corrections.filter(Boolean) : [],
@@ -82,13 +91,16 @@ export class CardEvaluatorService {
         provider: completion.provider,
         model: completion.model,
       };
+      if (options?.includeDebug) {
+        result.debug = { systemPrompt, userPrompt, rawResponse: completion.message };
+      }
+      return result;
     } catch (error) {
       const normalizedAnswer = normalizeText(answerText || "");
       const normalizedReference = normalizeText(reference || "");
       const sim = similarityScore(normalizedAnswer, normalizedReference);
       const isCorrect = sim >= 0.6;
-      return {
-        score: Math.round(sim * 100),
+      const result: CardEvaluationResult = {
         isCorrect,
         feedback: isCorrect
           ? "Nice work! Your answer matches the reference closely."
@@ -98,6 +110,10 @@ export class CardEvaluatorService {
         provider: "fallback",
         model: "heuristic",
       };
+      if (options?.includeDebug) {
+        result.debug = { systemPrompt, userPrompt, rawResponse: "" };
+      }
+      return result;
     }
   }
 }

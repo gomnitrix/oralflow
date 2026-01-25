@@ -17,22 +17,52 @@ interface SessionPayload {
   items: NotebookItem[];
 }
 
-export const TrainingSessionShell: React.FC = () => {
-  const [session, setSession] = useState<TrainingSession | null>(null);
-  const [tasks, setTasks] = useState<ReviewTask[]>([]);
-  const [cards, setCards] = useState<ReviewCard[]>([]);
-  const [items, setItems] = useState<NotebookItem[]>([]);
+interface TrainingSessionShellProps {
+  payload: SessionPayload;
+  onComplete?: (summary: { sessionId: string; cardsReviewed: number; itemsReviewed: number }) => void;
+  onExit?: () => void;
+}
+
+const preferredMimeTypes = [
+  "audio/webm;codecs=opus",
+  "audio/ogg;codecs=opus",
+  "audio/webm",
+  "audio/wav",
+];
+
+const pickMimeType = () => {
+  if (typeof MediaRecorder === "undefined") return undefined;
+  return preferredMimeTypes.find((mime) => (MediaRecorder as any).isTypeSupported?.(mime));
+};
+
+const blobToBase64 = (blob: Blob) =>
+  new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error("Failed to read audio blob"));
+    reader.readAsDataURL(blob);
+  });
+
+export const TrainingSessionShell: React.FC<TrainingSessionShellProps> = ({ payload, onComplete, onExit }) => {
+  const [session, setSession] = useState<TrainingSession | null>(payload.session);
+  const [tasks, setTasks] = useState<ReviewTask[]>(payload.tasks);
+  const [cards, setCards] = useState<ReviewCard[]>(payload.cards);
+  const [items, setItems] = useState<NotebookItem[]>(payload.items);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answer, setAnswer] = useState("");
   const [revealed, setRevealed] = useState(false);
   const [evaluation, setEvaluation] = useState<CardEvaluationSummary | null>(null);
-  const [loading, setLoading] = useState(true);
   const [loadingAnswer, setLoadingAnswer] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showRating, setShowRating] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [recordedAudio, setRecordedAudio] = useState<{ base64: string; mimeType: string } | null>(null);
+  const [recordedAudioUrl, setRecordedAudioUrl] = useState<string | null>(null);
   const [debugMode, setDebugMode] = useState(false);
   const audioCacheRef = useRef<Record<string, string>>({});
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<BlobPart[]>([]);
+  const completedRef = useRef(false);
 
   const itemMap = useMemo(() => new Map(items.map((item) => [item.id, item])), [items]);
 
@@ -44,54 +74,143 @@ export const TrainingSessionShell: React.FC = () => {
   const currentItem = currentCard ? itemMap.get(currentCard.notebookItemId) ?? null : null;
 
   const resetCardState = useCallback(() => {
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.stop();
+      mediaRecorderRef.current.stream.getTracks().forEach((track) => track.stop());
+      mediaRecorderRef.current = null;
+    }
     setAnswer("");
     setRevealed(false);
     setEvaluation(null);
     setShowRating(false);
     setIsRecording(false);
-  }, []);
-
-  const fetchSession = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await fetch("/api/training/session/start", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode: "review" }),
-      });
-      const data = (await response.json()) as SessionPayload;
-      if (!response.ok) {
-        throw new Error((data as any)?.error || "Failed to start session.");
-      }
-      setSession(data.session);
-      setTasks(data.tasks);
-      setCards(data.cards);
-      setItems(data.items);
-      setCurrentIndex(0);
-      resetCardState();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to start session.");
-    } finally {
-      setLoading(false);
+    setRecordedAudio(null);
+    if (recordedAudioUrl) {
+      URL.revokeObjectURL(recordedAudioUrl);
     }
-  }, [resetCardState]);
+    setRecordedAudioUrl(null);
+  }, [recordedAudioUrl]);
 
   useEffect(() => {
-    void fetchSession();
-  }, [fetchSession]);
+    setSession(payload.session);
+    setTasks(payload.tasks);
+    setCards(payload.cards);
+    setItems(payload.items);
+    setCurrentIndex(0);
+    resetCardState();
+    completedRef.current = false;
+  }, [payload, resetCardState]);
+
+  useEffect(() => {
+    return () => {
+      if (recordedAudioUrl) {
+        URL.revokeObjectURL(recordedAudioUrl);
+      }
+    };
+  }, [recordedAudioUrl]);
+
+  useEffect(() => {
+    return () => {
+      if (mediaRecorderRef.current) {
+        mediaRecorderRef.current.stop();
+        mediaRecorderRef.current.stream.getTracks().forEach((track) => track.stop());
+        mediaRecorderRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!cards.length || completedRef.current) return;
+    if (currentIndex >= cards.length) {
+      completedRef.current = true;
+      onComplete?.({
+        sessionId: session?.id ?? "",
+        cardsReviewed: cards.length,
+        itemsReviewed: new Set(cards.map((card) => card.notebookItemId)).size,
+      });
+    }
+  }, [cards, currentIndex, onComplete, session]);
+
+  const stopRecording = useCallback(() => {
+    const recorder = mediaRecorderRef.current;
+    if (!recorder) return;
+    recorder.stop();
+    recorder.stream.getTracks().forEach((track) => track.stop());
+    mediaRecorderRef.current = null;
+    setIsRecording(false);
+  }, []);
+
+  const startRecording = useCallback(async () => {
+    try {
+      if (!navigator?.mediaDevices?.getUserMedia) {
+        throw new Error("Audio recording is not supported in this browser.");
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mimeType = pickMimeType();
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      mediaRecorderRef.current = recorder;
+      audioChunksRef.current = [];
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) audioChunksRef.current.push(event.data);
+      };
+      recorder.onstop = async () => {
+        if (!audioChunksRef.current.length) return;
+        const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || "audio/webm" });
+        audioChunksRef.current = [];
+        try {
+          const base64 = await blobToBase64(blob);
+          const url = URL.createObjectURL(blob);
+          setRecordedAudio({ base64, mimeType: blob.type || "audio/webm" });
+          setRecordedAudioUrl(url);
+        } catch (err) {
+          setError(err instanceof Error ? err.message : "Failed to process recording.");
+        }
+      };
+      recorder.start();
+      setIsRecording(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to start recording.");
+    }
+  }, []);
+
+  const handleRecord = () => {
+    if (!currentCard || currentCard.type !== "read_aloud") {
+      setError("Recording is available for read-aloud cards only.");
+      return;
+    }
+    if (isRecording) {
+      stopRecording();
+    } else {
+      setError(null);
+      startRecording();
+    }
+  };
 
   const handleReveal = async () => {
     if (!currentCard) return;
+    if (isRecording) {
+      stopRecording();
+    }
     setRevealed(true);
     setShowRating(false);
     setLoadingAnswer(true);
     setError(null);
     try {
+      const payload: Record<string, unknown> = { cardId: currentCard.id, debug: debugMode };
+      if (currentCard.type === "read_aloud") {
+        if (!recordedAudio) {
+          throw new Error("Please record your read-aloud before revealing the answer.");
+        }
+        payload.audioBase64 = recordedAudio.base64;
+        payload.audioMimeType = recordedAudio.mimeType;
+      } else {
+        payload.answerText = answer;
+      }
+
       const response = await fetch("/api/training/card/evaluate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cardId: currentCard.id, answerText: answer }),
+        body: JSON.stringify(payload),
       });
       const data = await response.json();
       if (!response.ok) {
@@ -143,10 +262,6 @@ export const TrainingSessionShell: React.FC = () => {
     setShowRating(false);
   };
 
-  const handleRecord = () => {
-    setIsRecording((prev) => !prev);
-  };
-
   const handlePlayAudio = async (text: string) => {
     const trimmed = text.trim();
     if (!trimmed) return;
@@ -173,29 +288,34 @@ export const TrainingSessionShell: React.FC = () => {
 
   const toggleDebug = () => setDebugMode((prev) => !prev);
 
-  if (loading) {
-    return (
-      <div className="rounded-3xl border border-custom-border bg-white p-8 shadow-sm text-center">
-        <p className="text-sm text-custom-text-dark/60">Preparing your session...</p>
-      </div>
-    );
-  }
-
   if (!cards.length || !currentCard) {
+    const hasPendingTasks = tasks.length > 0;
     return (
       <div className="rounded-3xl border border-custom-border bg-white p-8 shadow-sm text-center space-y-3">
-        <p className="text-lg font-bold text-custom-text-dark">All caught up!</p>
-        <p className="text-sm text-custom-text-dark/60">Add more expressions to keep practicing.</p>
+        <p className="text-lg font-bold text-custom-text-dark">
+          {hasPendingTasks ? "Cards are on the way!" : "All caught up!"}
+        </p>
+        <p className="text-sm text-custom-text-dark/60">
+          {hasPendingTasks
+            ? "We're generating new cards in the background. Check back in a moment."
+            : "Add more expressions to keep practicing."}
+        </p>
         {error && (
           <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
             {error}
           </div>
         )}
         <div className="flex justify-center gap-3">
-          <Button variant="secondary" href="/ask">Go to Ask</Button>
-          <Button variant="secondary" href="/scenarios/create">Scenario Studio</Button>
+          {hasPendingTasks ? null : (
+            <>
+              <Button variant="secondary" href="/ask">Go to Ask</Button>
+              <Button variant="secondary" href="/scenarios/create">Scenario Studio</Button>
+            </>
+          )}
         </div>
-        <Button variant="ghost" onClick={fetchSession}>Refresh session</Button>
+        {onExit ? (
+          <Button variant="ghost" onClick={onExit}>Back to Summary</Button>
+        ) : null}
       </div>
     );
   }
@@ -221,13 +341,31 @@ export const TrainingSessionShell: React.FC = () => {
         </div>
       )}
 
-      {debugMode && currentTask && (
-        <div className="rounded-xl bg-gray-50 border border-gray-200 p-3 text-xs font-mono text-gray-600 space-y-1">
-          <p><strong>Task ID:</strong> {currentTask.id}</p>
-          <p><strong>Card ID:</strong> {currentCard.id}</p>
-          <p><strong>SRS State:</strong> Interval={currentTask.intervalDays}d | Ease={currentTask.easeFactor.toFixed(2)} | Reps={currentTask.repetitionCount}</p>
-          <p><strong>Due:</strong> {new Date(currentTask.dueAt).toLocaleString()}</p>
-          <p><strong>Status:</strong> {currentTask.status}</p>
+      {debugMode && currentTask && currentCard && (
+        <div className="rounded-xl bg-gray-50 border border-gray-200 p-3 text-xs font-mono text-gray-600 space-y-2">
+          <div>
+            <p><strong>Task ID:</strong> {currentTask.id}</p>
+            <p><strong>Card ID:</strong> {currentCard.id}</p>
+            <p><strong>SRS State:</strong> Interval={currentTask.intervalDays}d | Ease={currentTask.easeFactor.toFixed(2)} | Reps={currentTask.repetitionCount}</p>
+            <p><strong>Due:</strong> {new Date(currentTask.dueAt).toLocaleString()}</p>
+            <p><strong>Status:</strong> {currentTask.status}</p>
+          </div>
+          {currentCard.metadata?.debug && (
+            <div className="space-y-1">
+              <p><strong>Generator System Prompt:</strong></p>
+              <pre className="whitespace-pre-wrap">{currentCard.metadata.debug.systemPrompt}</pre>
+              <p><strong>Generator User Prompt:</strong></p>
+              <pre className="whitespace-pre-wrap">{currentCard.metadata.debug.userPrompt}</pre>
+            </div>
+          )}
+          {evaluation?.debug && (
+            <div className="space-y-1">
+              <p><strong>Evaluator System Prompt:</strong></p>
+              <pre className="whitespace-pre-wrap">{evaluation.debug.systemPrompt}</pre>
+              <p><strong>Evaluator User Prompt:</strong></p>
+              <pre className="whitespace-pre-wrap">{evaluation.debug.userPrompt}</pre>
+            </div>
+          )}
         </div>
       )}
 
@@ -249,11 +387,24 @@ export const TrainingSessionShell: React.FC = () => {
 
       <TrainingControlBar
         isRecording={isRecording}
+        recordEnabled={currentCard.type === "read_aloud"}
         onRecord={handleRecord}
         onRetry={handleRetry}
         onSkip={handleSkip}
         disabled={loadingAnswer}
       />
+
+      {recordedAudioUrl && currentCard.type === "read_aloud" ? (
+        <div className="text-xs text-custom-text-dark/60">
+          Recording ready.{" "}
+          <button
+            className="text-custom-primary hover:underline"
+            onClick={() => new Audio(recordedAudioUrl).play()}
+          >
+            Play recording
+          </button>
+        </div>
+      ) : null}
 
       {session && (
         <p className="text-xs text-custom-text-dark/50">

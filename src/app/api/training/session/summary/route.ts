@@ -19,18 +19,13 @@ export async function POST(request: Request) {
     const body = await request.json();
     const parsed = trainingSessionStartSchema.parse(body);
 
-    if (parsed.mode === "adHoc" && !parsed.sourceText?.trim()) {
-      return NextResponse.json({ error: "sourceText is required for ad hoc sessions." }, { status: 400 });
-    }
-
-    const result = await trainingService.startSession({
+    const summary = await trainingService.buildSummary({
       mode: parsed.mode,
       sourceText: parsed.sourceText ?? null,
       limit: parsed.limit,
       disableNewCards: parsed.disableNewCards ?? false,
-      lazyGeneration: parsed.lazyGeneration ?? false,
     });
-    return NextResponse.json(result);
+    return NextResponse.json({ summary });
   } catch (error) {
     return NextResponse.json({ error: (error as Error).message }, { status: 400 });
   }
