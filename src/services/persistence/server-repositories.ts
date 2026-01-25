@@ -7,6 +7,7 @@ import {
     SessionEvaluationReportRepository,
     NotebookRepository,
     ReviewTaskRepository,
+    ReviewCardRepository,
 } from "./repositories";
 
 export const createServerRepositories = (adapter?: StorageAdapter) => {
@@ -36,6 +37,7 @@ export const createServerRepositories = (adapter?: StorageAdapter) => {
         evaluationRecords: new EvaluationRecordRepository(volatileAdapter),
         evaluationReports: new SessionEvaluationReportRepository(volatileAdapter),
         notebook: adapter ? new NotebookRepository(adapter) : new NotebookRepository(),
-        reviewTasks: new ReviewTaskRepository(persistentAdapter),
+        reviewTasks: adapter ? new ReviewTaskRepository(adapter) : new ReviewTaskRepository(),
+        reviewCards: adapter ? new ReviewCardRepository(adapter) : new ReviewCardRepository(),
     };
 };

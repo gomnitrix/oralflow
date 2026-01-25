@@ -5,7 +5,7 @@ import type { StructuredNote } from "../../domains/copilot/models";
 import type { NotebookItemInput } from "../../lib/validation/notes";
 
 interface CopilotPanelProps {
-  mode?: "standard" | "assessment";
+  mode?: "standard" | "assessment" | "training";
   selectedBubble?: ConversationBubble;
   onDistill?: () => void | Promise<void>;
   onInspiration?: (prompt?: string) => void | Promise<void>;
@@ -201,6 +201,7 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({
   onInspiration,
   loading = false,
 }) => {
+  const isTraining = mode === "training";
   const { context, updateContext } = useBubbleContext(selectedBubble?.id);
   const summary = selectedBubble?.evaluationSummary;
   const assessmentRuns = useMemo(() => {
@@ -223,14 +224,20 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({
     : "AI is preparing a response...";
 
   useEffect(() => {
+    if (isTraining && context.activeTab !== "distill") {
+      updateContext({ activeTab: "distill" });
+    }
+  }, [context.activeTab, isTraining, updateContext]);
+
+  useEffect(() => {
     const handler = (event: KeyboardEvent) => {
       if (!selectedBubble) return;
       if (event.key.toLowerCase() === "h") updateContext({ activeTab: "distill" });
-      if (event.key.toLowerCase() === "l") updateContext({ activeTab: "inspiration" });
+      if (!isTraining && event.key.toLowerCase() === "l") updateContext({ activeTab: "inspiration" });
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [selectedBubble, updateContext]);
+  }, [isTraining, selectedBubble, updateContext]);
 
   const distillInsights = (selectedBubble?.copilotInsights ?? []).filter((i) => i.type === "distill");
   const inspirationInsights = (selectedBubble?.copilotInsights ?? []).filter((i) => i.type === "inspiration");
@@ -403,7 +410,7 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({
         </div>
 
         <div className="px-6 py-4">
-          <div className="grid grid-cols-2 gap-2 p-1 bg-gray-100 rounded-full">
+          <div className={`grid ${isTraining ? "grid-cols-1" : "grid-cols-2"} gap-2 p-1 bg-gray-100 rounded-full`}>
             <button
               onClick={() => updateContext({ activeTab: "distill" })}
               className={`py-2 px-4 rounded-full text-sm font-bold transition-all ${context.activeTab === "distill"
@@ -413,15 +420,17 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({
             >
               Distill
             </button>
-            <button
-              onClick={() => updateContext({ activeTab: "inspiration" })}
-              className={`py-2 px-4 rounded-full text-sm font-bold transition-all ${context.activeTab === "inspiration"
-                ? "bg-white text-custom-text-dark shadow-sm"
-                : "text-custom-text-dark/60 hover:text-custom-text-dark"
-                }`}
-            >
-              Inspiration Burst
-            </button>
+            {!isTraining && (
+              <button
+                onClick={() => updateContext({ activeTab: "inspiration" })}
+                className={`py-2 px-4 rounded-full text-sm font-bold transition-all ${context.activeTab === "inspiration"
+                  ? "bg-white text-custom-text-dark shadow-sm"
+                  : "text-custom-text-dark/60 hover:text-custom-text-dark"
+                  }`}
+              >
+                Inspiration Burst
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -430,7 +439,9 @@ export const CopilotPanel: React.FC<CopilotPanelProps> = ({
         {!selectedBubble ? (
           <div className="bg-[#f8f6f6] p-6 rounded-3xl shadow-sm border border-custom-border text-center py-12">
             <span className="material-symbols-outlined text-4xl text-custom-text-dark/20 mb-3">touch_app</span>
-            <p className="text-custom-text-dark/60 font-medium">Select a bubble to analyze</p>
+            <p className="text-custom-text-dark/60 font-medium">
+              {isTraining ? "Training insights will appear here." : "Select a bubble to analyze"}
+            </p>
           </div>
         ) : context.activeTab === "distill" ? (
           <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">

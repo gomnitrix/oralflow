@@ -14,6 +14,8 @@ const capabilityCategoryMap: Partial<Record<AssignmentCapability, ModelCategory>
   stw_goal: "language",
   zen_goal: "language",
   free_chat_draft: "language",
+  training_generator: "language",
+  training_evaluator: "language",
 };
 
 const defaultModelByCategory: Record<ModelCategory, string> = {

@@ -30,6 +30,12 @@ export const notebookItemSchema = z.object({
   locale: z.string().optional(),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
+  srsLevel: z.number().int().min(0).optional(),
+  nextReviewAt: z.string().optional(),
+  lastReviewedAt: z.string().nullable().optional(),
+  lastDifficulty: z.enum(["forgot", "hard", "good", "easy"]).nullable().optional(),
+  easeFactor: z.number().min(1).optional(),
+  intervalDays: z.number().int().min(0).optional(),
 });
 
 export type NotebookItemInput = z.infer<typeof notebookItemSchema>;

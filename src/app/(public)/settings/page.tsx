@@ -15,6 +15,7 @@ const stwResponseOptions = [
 ];
 
 const clampTurn = (value: number) => Math.min(10, Math.max(1, Math.round(value || 1)));
+const clampProbability = (value: number) => Math.min(1, Math.max(0, Number.isFinite(value) ? value : 0));
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<AISettings | null>(null);
@@ -46,6 +47,7 @@ export default function SettingsPage() {
       copilot: { ...settings.config.copilot, ...(update.copilot ?? {}) },
       stw: { ...settings.config.stw, ...(update.stw ?? {}) },
       pronunciation: { ...settings.config.pronunciation, ...(update.pronunciation ?? {}) },
+      training: { ...settings.config.training, ...(update.training ?? {}) },
     };
 
     setSettings({ ...settings, config: nextConfig });
@@ -161,6 +163,56 @@ export default function SettingsPage() {
               <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
           </select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white border border-custom-border rounded-2xl p-6 shadow-sm space-y-4">
+          <div>
+            <p className="text-sm font-bold text-custom-text-dark">Training Read-Aloud Threshold</p>
+            <p className="text-xs text-custom-text-dark/60">Max word count to include read-aloud cards in a session.</p>
+          </div>
+          <input
+            type="number"
+            min={1}
+            max={12}
+            step={1}
+            value={settings.config.training.readAloudThreshold}
+            onChange={(e) => updateConfig({ training: { readAloudThreshold: Number(e.target.value) } })}
+            className="w-full rounded-xl border border-custom-border px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-custom-primary/40"
+          />
+        </div>
+
+        <div className="bg-white border border-custom-border rounded-2xl p-6 shadow-sm space-y-4">
+          <div>
+            <p className="text-sm font-bold text-custom-text-dark">Training New Card Probability</p>
+            <p className="text-xs text-custom-text-dark/60">Chance of generating new cards after each rating.</p>
+          </div>
+          <div className="space-y-3">
+            {(["forgot", "hard", "good", "easy"] as const).map((rating) => (
+              <label key={rating} className="flex items-center justify-between text-sm text-custom-text-dark">
+                <span className="capitalize">{rating}</span>
+                <input
+                  type="number"
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  value={settings.config.training.newCardProbability[rating]}
+                  onChange={(e) =>
+                    updateConfig({
+                      training: {
+                        newCardProbability: {
+                          ...settings.config.training.newCardProbability,
+                          [rating]: clampProbability(Number(e.target.value)),
+                        },
+                      },
+                    })
+                  }
+                  className="w-24 rounded-xl border border-custom-border px-3 py-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-custom-primary/40"
+                />
+              </label>
+            ))}
+          </div>
         </div>
       </div>
     </div>

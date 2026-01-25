@@ -27,7 +27,7 @@
 | Scenario Studio | 6 | 0 | 3 | 0 |
 | Zen Mode | 3 | 3 | 0 | 4 |
 | Notebook | 4 | 0 | 2 | 7 |
-| Training & Review | 0 | 0 | 2 | 6 |
+| Training & Review | 0 | 8 | 0 | 0 |
 | Ask & Dashboard | 11 | 0 | 2 | 5 |
 | Free Chat | 5 | 1 | 1 | 5 |
 | Profile & Personalization | 4 | 0 | 1 | 2 |
@@ -38,39 +38,6 @@
 
 ## Verified ✅
 
-### Conversation Shell
-- [x] **Implement session exit protection for sidebar navigation**: Sidebar navigation now triggers a confirmation dialog during active sessions.
-
-### Notebook
-- [x] **Optimize TTS experience**:
-  - [x] **Audio caching**: In-memory caching implemented.
-  - [x] **Loading state UI**: Visual feedback added during TTS requests.
-
-### Ask Page
-- [x] **Add edit functionality**: Edit icon added to generated notes.
-
-### Free Chat
-- [x] Fix header: Styled header format with "Free Chat" content.
-- [x] Simplify description: Condensed core value proposition.
-- [x] Remove input fields: Only Context textarea remains.
-- [x] Add Edit button to Context Preview card.
-- [x] Enable in-place editing for preview card fields.
-- [x] **Refine summary input UI: focus state and border reset**: Summary input is now borderless and ring-less on focus.
-
-### Profile & Personalization
-- [x] **Integration - Home Greeting**: Username from profile settings integrated.
-- [x] **Fix Home Greeting flicker**: Flicker resolved by proper initial state handling.
-- [x] **Fix sidebar profile avatar**: Sidebar avatar now updates correctly.
-
-### AI & Infrastructure
-- [x] **Implement STW Response Mode selection**: Added setting for sequential vs native audio response modes.
-  - [x] Add "Audio Model" configuration in the `/models` settings page.
-  - [x] Ensure both modes receive identical conversation context.
-  - [x] Update STW orchestration logic to respect the selected mode.
-
-### Ask Page
-- [x] **Enhance Ask page result interaction**:
-  - [x] **Add toast notification for save**: Replaced static message with a floating toast notification.
 
 ---
 
@@ -85,8 +52,36 @@
 - [~] Notebook card details need polish and field completion
 
 ### Training & Review
-- [-] SRS engine with Anki-like scheduling - basic implementation
-- [-] `/api/training/schedule` endpoint - basic implementation
+- [-] **Database & Schema**:
+  - [-] Update `NotebookItem` schema with SRS fields (srsLevel, nextReviewAt, lastDifficulty, etc.).
+  - [-] Create `ReviewCard` schema (id, notebookItemId, type, content, metadata).
+  - [-] Run migrations.
+- [-] **Backend Services**:
+  - [-] Implement SRS Scheduling Algorithm (Service) with 'Forgot' logic (1-day interval).
+  - [-] Implement `CardGeneratorService` (AI) with prompt engineering for 4 card types (Hidden Cue).
+    - [-] Define System Prompts for Answer Generation, Ask Question, Translation, Read Aloud.
+  - [-] Implement `CardEvaluatorService` (AI) for answer assessment.
+  - [-] Implement `TrainingSessionService` to orchestrate queue and card selection.
+    - [-] Implement Card Quantity Logic ($N = 5 - D$).
+    - [-] Implement New Card Probability Logic ($P_{new}$).
+- [-] **API Endpoints**:
+  - [-] `POST /api/training/session/start`: Generate queue and cards.
+  - [-] `POST /api/training/card/evaluate`: Submit audio/text for evaluation.
+  - [-] `POST /api/training/item/rate`: Submit SRS rating (Forgot/Hard/Good/Easy).
+  - [-] `GET /api/training/audio`: Generate TTS on-demand.
+- [-] **Frontend - Components**:
+  - [-] Create `CardStack` layout component with "peeking" effect.
+  - [-] Create `ReviewCard` component with 3D flip animation.
+  - [-] Create `TrainingControlBar` (Record/Skip/Retry).
+  - [-] Create `DifficultySelector` overlay with time intervals.
+  - [-] Create `TrainingProgressBar` component.
+  - [-] Update `Copilot` for Training mode (Distill only).
+- [-] **Frontend - Pages**:
+  - [-] Implement `/training` page logic (Session state machine).
+  - [-] Implement `/models` configuration for Training models (Generator/Evaluator).
+  - [-] Implement `/settings` configuration for:
+    - [-] Read-Aloud Threshold.
+    - [-] New Card Generation Probabilities (Forgot/Hard/Good/Easy).
 
 ### Ask Page
 
@@ -101,13 +96,6 @@
 - [-] Integration tests for Zen session
 
 ### AI & Infrastructure
-- [-] **Optimize Models Configuration UI**: Group STW models by mode/purpose using subheadings.
-  - [-] **Sequential**: Chat Model, Text-to-Speech.
-    - [x] Add info icon with tooltip: "Workflow: Text Chat -> TTS. Balanced cost and performance."
-  - [-] **Native**: Audio Model.
-    - [x] Add info icon with tooltip: "Workflow: End-to-end Audio. Faster response time, slightly higher cost than Sequential."
-  - [-] **Other**: Speech-to-Text, Assessment (Text Analysis), Goal Completion.
-  - [-] Ensure subheading style is distinct from main section titles.
 
 
 ---
@@ -144,7 +132,7 @@ npx playwright test
 - `src/components/conversation/stw/StopTheWorldShell.tsx` - StW UI
 - `src/components/conversation/zen/ZenShell.tsx` - Zen UI
 - `src/components/copilot/Panel.tsx` - Copilot panel
-- `src/components/training/ReviewSession.tsx` - Training UI
+- `src/components/training/TrainingSessionShell.tsx` - Training UI
 
 ### Key Pages Needing Work
 - `src/app/(public)/page.tsx` - Home/Dashboard page

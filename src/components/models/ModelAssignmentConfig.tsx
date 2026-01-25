@@ -68,12 +68,9 @@ export const ModelAssignmentConfig: React.FC<Props> = ({ settings, onUpdateAssig
                 <div className="space-y-6">
                     <div>
                         <Tooltip content="Workflow: Text Chat -> TTS. Balanced cost and performance.">
-                            <div className="flex items-start gap-0.5 text-xs font-bold text-custom-primary uppercase tracking-[0.2em] w-fit cursor-help">
-                                <span>Sequential</span>
-                                <span className="material-symbols-outlined text-[10px] leading-none relative -top-0.5">
-                                    help
-                                </span>
-                            </div>
+                            <span className="text-xs font-bold text-custom-primary uppercase tracking-[0.2em] cursor-help">
+                                Sequential
+                            </span>
                         </Tooltip>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-2 mt-2">
                             {renderSelect('stw_chat', 'Chat Model', 'Main conversation model', availableModels.language, true)}
@@ -83,12 +80,9 @@ export const ModelAssignmentConfig: React.FC<Props> = ({ settings, onUpdateAssig
 
                     <div>
                         <Tooltip content="Workflow: End-to-end Audio. Faster response time, slightly higher cost than Sequential.">
-                            <div className="flex items-start gap-0.5 text-xs font-bold text-custom-primary uppercase tracking-[0.2em] w-fit cursor-help">
-                                <span>Native</span>
-                                <span className="material-symbols-outlined text-[10px] leading-none relative -top-0.5">
-                                    help
-                                </span>
-                            </div>
+                            <span className="text-xs font-bold text-custom-primary uppercase tracking-[0.2em] cursor-help">
+                                Native
+                            </span>
                         </Tooltip>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-2 mt-2">
                             {renderSelect('stw_audio', 'Audio Model', 'End-to-end audio responses (Mode 2)', availableModels.language)}
@@ -122,6 +116,16 @@ export const ModelAssignmentConfig: React.FC<Props> = ({ settings, onUpdateAssig
                 <h2 className="text-lg font-semibold mb-4">Notebook</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-2">
                     {renderSelect('notebook_tts', 'Phrase Pronunciation', 'Read saved phrases aloud', availableModels.tts)}
+                </div>
+            </div>
+
+            <hr className="border-gray-200" />
+
+            <div>
+                <h2 className="text-lg font-semibold mb-4">Training</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-2">
+                    {renderSelect('training_generator', 'Card Generator', 'Generate review cards for practice', availableModels.language)}
+                    {renderSelect('training_evaluator', 'Card Evaluator', 'Assess training responses', availableModels.language)}
                 </div>
             </div>
 

@@ -44,6 +44,10 @@ export interface AISettings {
 
         // Zen Mode
         zen_goal: string | null;
+
+        // Training
+        training_generator: string | null;
+        training_evaluator: string | null;
     };
     config: {
         copilot: {
@@ -57,6 +61,15 @@ export interface AISettings {
         pronunciation: {
             granularity: "phoneme" | "word" | "fulltext";
         };
+        training: {
+            readAloudThreshold: number;
+            newCardProbability: {
+                forgot: number;
+                hard: number;
+                good: number;
+                easy: number;
+            };
+        };
     };
 }
 
@@ -65,6 +78,7 @@ export type AIConfigUpdate = {
     copilot?: Partial<AISettings['config']['copilot']>;
     stw?: Partial<AISettings['config']['stw']>;
     pronunciation?: Partial<AISettings['config']['pronunciation']>;
+    training?: Partial<AISettings['config']['training']>;
 };
 
 const DEFAULT_SETTINGS: AISettings = {
@@ -90,6 +104,8 @@ const DEFAULT_SETTINGS: AISettings = {
         free_chat_draft: null,
         notebook_tts: null,
         zen_goal: null,
+        training_generator: null,
+        training_evaluator: null,
     },
     config: {
         copilot: {
@@ -102,6 +118,15 @@ const DEFAULT_SETTINGS: AISettings = {
         },
         pronunciation: {
             granularity: "phoneme",
+        },
+        training: {
+            readAloudThreshold: 6,
+            newCardProbability: {
+                forgot: 0.5,
+                hard: 0.3,
+                good: 0.3,
+                easy: 0.2,
+            },
         },
     },
 };
@@ -144,6 +169,10 @@ export class SettingsService {
                         ...DEFAULT_SETTINGS.config.pronunciation,
                         ...(parsedConfig as any)?.pronunciation,
                     },
+                    training: {
+                        ...DEFAULT_SETTINGS.config.training,
+                        ...(parsedConfig as any)?.training,
+                    },
                 };
 
                 const normalizedStartTurn = (() => {
@@ -164,6 +193,19 @@ export class SettingsService {
                     if (value === "native_audio") return value;
                     return DEFAULT_SETTINGS.config.stw.responseMode;
                 })();
+
+                const clampTrainingThreshold = (() => {
+                    const value = (mergedConfig as any)?.training?.readAloudThreshold;
+                    const num = typeof value === 'number' ? value : Number(value);
+                    if (!Number.isFinite(num)) return DEFAULT_SETTINGS.config.training.readAloudThreshold;
+                    return Math.min(12, Math.max(1, Math.round(num)));
+                })();
+
+                const normalizeProbability = (value: unknown, fallback: number) => {
+                    const num = typeof value === "number" ? value : Number(value);
+                    if (!Number.isFinite(num)) return fallback;
+                    return Math.min(1, Math.max(0, num));
+                };
 
                 return {
                     ...DEFAULT_SETTINGS,
@@ -189,6 +231,16 @@ export class SettingsService {
                         pronunciation: {
                             ...mergedConfig.pronunciation,
                             granularity: normalizedGranularity as AISettings['config']['pronunciation']['granularity'],
+                        },
+                        training: {
+                            ...mergedConfig.training,
+                            readAloudThreshold: clampTrainingThreshold,
+                            newCardProbability: {
+                                forgot: normalizeProbability((mergedConfig as any)?.training?.newCardProbability?.forgot, DEFAULT_SETTINGS.config.training.newCardProbability.forgot),
+                                hard: normalizeProbability((mergedConfig as any)?.training?.newCardProbability?.hard, DEFAULT_SETTINGS.config.training.newCardProbability.hard),
+                                good: normalizeProbability((mergedConfig as any)?.training?.newCardProbability?.good, DEFAULT_SETTINGS.config.training.newCardProbability.good),
+                                easy: normalizeProbability((mergedConfig as any)?.training?.newCardProbability?.easy, DEFAULT_SETTINGS.config.training.newCardProbability.easy),
+                            },
                         },
                     },
                 };
@@ -234,6 +286,17 @@ export class SettingsService {
             return "sequential";
         };
 
+        const normalizeProbability = (value: unknown, fallback: number) => {
+            const num = typeof value === "number" ? value : Number(value);
+            if (!Number.isFinite(num)) return fallback;
+            return Math.min(1, Math.max(0, num));
+        };
+
+        const clampReadAloud = (value?: number) => {
+            if (typeof value !== 'number' || Number.isNaN(value)) return this.settings.config.training.readAloudThreshold;
+            return Math.min(12, Math.max(1, Math.round(value)));
+        };
+
         this.settings.config = {
             copilot: {
                 ...this.settings.config.copilot,
@@ -253,6 +316,28 @@ export class SettingsService {
                 ...this.settings.config.pronunciation,
                 ...(config.pronunciation ?? {}),
                 granularity: normalizeGranularity(config.pronunciation?.granularity),
+            },
+            training: {
+                ...this.settings.config.training,
+                ...(config.training ?? {}),
+                readAloudThreshold: config.training?.readAloudThreshold !== undefined
+                    ? clampReadAloud(config.training.readAloudThreshold)
+                    : this.settings.config.training.readAloudThreshold,
+                newCardProbability: {
+                    ...this.settings.config.training.newCardProbability,
+                    ...(config.training?.newCardProbability ?? {}),
+                },
+            },
+        };
+        const normalizedTraining = this.settings.config.training;
+        this.settings.config.training = {
+            ...normalizedTraining,
+            readAloudThreshold: clampReadAloud(normalizedTraining.readAloudThreshold),
+            newCardProbability: {
+                forgot: normalizeProbability(normalizedTraining.newCardProbability.forgot, DEFAULT_SETTINGS.config.training.newCardProbability.forgot),
+                hard: normalizeProbability(normalizedTraining.newCardProbability.hard, DEFAULT_SETTINGS.config.training.newCardProbability.hard),
+                good: normalizeProbability(normalizedTraining.newCardProbability.good, DEFAULT_SETTINGS.config.training.newCardProbability.good),
+                easy: normalizeProbability(normalizedTraining.newCardProbability.easy, DEFAULT_SETTINGS.config.training.newCardProbability.easy),
             },
         };
         this.saveSettings();

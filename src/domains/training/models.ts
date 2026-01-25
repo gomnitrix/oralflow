@@ -1,7 +1,39 @@
-export {};
+export { };
 type ISODateString = string;
 export type ReviewStatus = "pending" | "completed";
 export type TrainingMode = "review" | "adHoc";
+
+export type CardType = "answer_generation" | "ask_question" | "translation" | "read_aloud";
+
+export interface ReviewCardContent {
+  front: {
+    title: string;
+    prompt: string;
+    cue?: string | null;
+    context?: string | null;
+  };
+  back: {
+    referenceAnswer: string;
+    notes?: string[];
+  };
+}
+
+export interface ReviewCardMetadata {
+  locale?: string;
+  source?: "generated" | "manual" | "import";
+  tags?: string[];
+}
+
+export interface ReviewCard {
+  id: string;
+  notebookItemId: string;
+  type: CardType;
+  content: ReviewCardContent;
+  metadata: ReviewCardMetadata | null;
+  createdAt: ISODateString;
+  lastUsedAt: ISODateString | null;
+  usageCount: number;
+}
 
 export interface ReviewTask {
   id: string;
@@ -25,6 +57,20 @@ export interface TrainingSession {
 const nowIso = (): ISODateString => new Date().toISOString();
 const generateId = (): string =>
   globalThis.crypto?.randomUUID?.() ?? `id_${Math.random().toString(36).slice(2, 10)}`;
+
+export const createReviewCard = (
+  input: Omit<ReviewCard, "id" | "createdAt" | "lastUsedAt" | "usageCount"> &
+    Partial<Pick<ReviewCard, "id" | "createdAt" | "lastUsedAt" | "usageCount">>
+): ReviewCard => ({
+  id: input.id ?? generateId(),
+  notebookItemId: input.notebookItemId,
+  type: input.type,
+  content: input.content,
+  metadata: input.metadata ?? null,
+  createdAt: input.createdAt ?? nowIso(),
+  lastUsedAt: input.lastUsedAt ?? null,
+  usageCount: input.usageCount ?? 0,
+});
 
 export const createReviewTask = (
   input: Omit<ReviewTask, "id" | "status"> & Partial<Pick<ReviewTask, "id" | "status">>

@@ -77,7 +77,26 @@ const initTables = () => {
       tags TEXT,
       locale TEXT,
       createdAt TEXT NOT NULL,
-      updatedAt TEXT NOT NULL
+      updatedAt TEXT NOT NULL,
+      srsLevel INTEGER DEFAULT 0,
+      nextReviewAt TEXT,
+      lastReviewedAt TEXT,
+      lastDifficulty TEXT,
+      easeFactor REAL DEFAULT 2.5,
+      intervalDays INTEGER DEFAULT 0
+    );
+    CREATE TABLE IF NOT EXISTS review_cards (
+      id TEXT PRIMARY KEY,
+      notebookItemId TEXT NOT NULL,
+      type TEXT NOT NULL,
+      content TEXT,
+      metadata TEXT,
+      frontContent TEXT,
+      backContent TEXT,
+      createdAt TEXT NOT NULL,
+      lastUsedAt TEXT,
+      usageCount INTEGER DEFAULT 0,
+      FOREIGN KEY (notebookItemId) REFERENCES notebook_items(id) ON DELETE CASCADE
     );
   `);
 };
@@ -123,8 +142,16 @@ const migrateScenarios = (records) => {
 const migrateNotebookItems = (records) => {
   if (!records.length) return 0;
   const stmt = db.prepare(
-    `INSERT INTO notebook_items (id, phrase, meaning, usageNotes, variants, exampleSentences, contextSentence, ipa, spokenNotes, source, sourceDetails, tags, locale, createdAt, updatedAt)
-     VALUES (@id, @phrase, @meaning, @usageNotes, @variants, @exampleSentences, @contextSentence, @ipa, @spokenNotes, @source, @sourceDetails, @tags, @locale, @createdAt, @updatedAt)
+    `INSERT INTO notebook_items (
+       id, phrase, meaning, usageNotes, variants, exampleSentences, contextSentence, 
+       ipa, spokenNotes, source, sourceDetails, tags, locale, createdAt, updatedAt,
+       srsLevel, nextReviewAt, lastReviewedAt, lastDifficulty, easeFactor, intervalDays
+     )
+     VALUES (
+       @id, @phrase, @meaning, @usageNotes, @variants, @exampleSentences, @contextSentence, 
+       @ipa, @spokenNotes, @source, @sourceDetails, @tags, @locale, @createdAt, @updatedAt,
+       @srsLevel, @nextReviewAt, @lastReviewedAt, @lastDifficulty, @easeFactor, @intervalDays
+     )
      ON CONFLICT(id) DO UPDATE SET
       phrase=excluded.phrase,
       meaning=excluded.meaning,
@@ -138,7 +165,13 @@ const migrateNotebookItems = (records) => {
       sourceDetails=excluded.sourceDetails,
       tags=excluded.tags,
       locale=excluded.locale,
-      updatedAt=excluded.updatedAt`
+      updatedAt=excluded.updatedAt,
+      srsLevel=excluded.srsLevel,
+      nextReviewAt=excluded.nextReviewAt,
+      lastReviewedAt=excluded.lastReviewedAt,
+      lastDifficulty=excluded.lastDifficulty,
+      easeFactor=excluded.easeFactor,
+      intervalDays=excluded.intervalDays`
   );
 
   const run = db.transaction((rows) => {
@@ -151,6 +184,12 @@ const migrateNotebookItems = (records) => {
         locale: ensureText(item.locale),
         createdAt: ensureDateText(item.createdAt),
         updatedAt: ensureDateText(item.updatedAt),
+        srsLevel: item.srsLevel ?? 0,
+        nextReviewAt: ensureDateText(item.nextReviewAt),
+        lastReviewedAt: item.lastReviewedAt ? ensureDateText(item.lastReviewedAt) : null,
+        lastDifficulty: item.lastDifficulty ?? null,
+        easeFactor: item.easeFactor ?? 2.5,
+        intervalDays: item.intervalDays ?? 0,
       });
     }
   });

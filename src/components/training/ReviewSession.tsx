@@ -1,10 +1,12 @@
+'use client';
+
 import React from "react";
 import type { ReviewTask } from "../../domains/training/models";
 import { RatingControls } from "./RatingControls";
 
 export interface ReviewSessionProps {
   tasks: ReviewTask[];
-  onRate?: (taskId: string, rating: "again" | "hard" | "good" | "easy") => void;
+  onRate?: (taskId: string, rating: "forgot" | "hard" | "good" | "easy") => void;
 }
 
 export const ReviewSession: React.FC<ReviewSessionProps> = ({ tasks, onRate }) => {

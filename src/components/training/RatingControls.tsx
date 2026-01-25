@@ -1,14 +1,16 @@
+'use client';
+
 import React from "react";
 import { Button } from "../shared/Button";
 
 export interface RatingControlsProps {
-  onSelect?: (rating: "again" | "hard" | "good" | "easy") => void;
+  onSelect?: (rating: "forgot" | "hard" | "good" | "easy") => void;
 }
 
 export const RatingControls: React.FC<RatingControlsProps> = ({ onSelect }) => (
   <div className="flex gap-2 flex-wrap">
-    <Button variant="secondary" onClick={() => onSelect?.("again")}>
-      Again
+    <Button variant="secondary" onClick={() => onSelect?.("forgot")}>
+      Forgot
     </Button>
     <Button variant="secondary" onClick={() => onSelect?.("hard")}>
       Hard

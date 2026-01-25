@@ -1,4 +1,4 @@
-export {};
+export { };
 type ISODateString = string;
 export type NotebookSource = "stw" | "zen" | "ask" | "training" | "manual";
 export type ExpressionTone = "formal" | "neutral" | "casual" | "other";
@@ -36,6 +36,14 @@ export interface NotebookItem {
   updatedAt: ISODateString;
   locale?: string;
   tags: string[];
+
+  // SRS State
+  srsLevel: number;
+  nextReviewAt: ISODateString;
+  lastReviewedAt: ISODateString | null;
+  lastDifficulty: "forgot" | "hard" | "good" | "easy" | null;
+  easeFactor: number;
+  intervalDays: number;
 }
 
 const nowIso = (): ISODateString => new Date().toISOString();
@@ -56,8 +64,8 @@ export const createExpressionSuggestion = (
 });
 
 export const createNotebookItem = (
-  input: Omit<NotebookItem, "id" | "createdAt" | "updatedAt"> &
-    Partial<Pick<NotebookItem, "id" | "createdAt" | "updatedAt">>
+  input: Omit<NotebookItem, "id" | "createdAt" | "updatedAt" | "srsLevel" | "nextReviewAt" | "lastReviewedAt" | "lastDifficulty" | "easeFactor" | "intervalDays"> &
+    Partial<Pick<NotebookItem, "id" | "createdAt" | "updatedAt" | "srsLevel" | "nextReviewAt" | "lastReviewedAt" | "lastDifficulty" | "easeFactor" | "intervalDays">>
 ): NotebookItem => ({
   id: input.id ?? generateId(),
   phrase: input.phrase,
@@ -74,4 +82,12 @@ export const createNotebookItem = (
   locale: input.locale ?? "en",
   createdAt: input.createdAt ?? nowIso(),
   updatedAt: input.updatedAt ?? nowIso(),
+
+  // SRS Defaults
+  srsLevel: input.srsLevel ?? 0,
+  nextReviewAt: input.nextReviewAt ?? nowIso(),
+  lastReviewedAt: input.lastReviewedAt ?? null,
+  lastDifficulty: input.lastDifficulty ?? null,
+  easeFactor: input.easeFactor ?? 2.5,
+  intervalDays: input.intervalDays ?? 0,
 });

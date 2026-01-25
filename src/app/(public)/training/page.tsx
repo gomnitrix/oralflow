@@ -1,29 +1,19 @@
 import React from "react";
-import { ReviewSession } from "../../../components/training/ReviewSession";
-import { createInMemoryRepositories } from "../../../services/persistence/repositories";
-import { applyRating } from "../../../domains/training/rating-service";
+import { TrainingSessionShell } from "../../../components/training/TrainingSessionShell";
 
-const repositories = createInMemoryRepositories();
+export const dynamic = "force-dynamic";
 
-export default async function TrainingPage() {
-  const existing = await repositories.reviewTasks.list();
-  const tasks = existing;
-
-  const handleRate = async (taskId: string, rating: "again" | "hard" | "good" | "easy") => {
-    const task = tasks.find((t) => t.id === taskId);
-    if (!task) return;
-    const next = applyRating(task, rating);
-    await repositories.reviewTasks.upsert(next);
-  };
-
+export default function TrainingPage() {
   return (
-    <main className="min-h-screen bg-custom-bg text-custom-text-dark p-6 space-y-4">
-      <header>
-        <h1 className="text-2xl font-semibold">Training</h1>
-        <p className="text-custom-text-dark/70">Review and practice your saved items.</p>
+    <main className="min-h-screen bg-custom-bg text-custom-text-dark p-6 lg:p-10">
+      <header className="max-w-3xl mx-auto space-y-2">
+        <h1 className="text-3xl font-black tracking-tight">Training</h1>
+        <p className="text-custom-text-dark/70">Review, speak, and refine your saved expressions.</p>
       </header>
 
-      <ReviewSession tasks={tasks} onRate={handleRate} />
+      <section className="max-w-3xl mx-auto mt-8 space-y-6">
+        <TrainingSessionShell />
+      </section>
     </main>
   );
 }
