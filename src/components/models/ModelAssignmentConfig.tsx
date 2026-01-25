@@ -64,13 +64,48 @@ export const ModelAssignmentConfig: React.FC<Props> = ({ settings, onUpdateAssig
 
             <div>
                 <h2 className="text-lg font-semibold mb-4">STW Mode</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-2">
-                    {renderSelect('stw_chat', 'Chat Model', 'Main conversation model', availableModels.language, true)}
-                    {renderSelect('stw_stt', 'Speech-to-Text', 'Transcribe user audio', availableModels.stt, true)}
-                    {renderSelect('stw_tts', 'Text-to-Speech', 'Generate AI voice', availableModels.tts, true)}
-                    {renderSelect('stw_audio', 'Audio Model', 'End-to-end audio responses (Mode 2)', availableModels.tts)}
-                    {renderSelect('stw_assessment_text', 'Assessment (Text Analysis)', 'Analyze user text for suggestions', availableModels.language)}
-                    {renderSelect('stw_goal', 'Goal Completion', 'Evaluate which goals are completed', availableModels.language)}
+                <div className="space-y-6">
+                    <div>
+                        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                            <span>Sequential</span>
+                            <span
+                                className="material-symbols-outlined text-sm text-gray-400"
+                                title="Workflow: Text Chat -> TTS. Balanced cost and performance."
+                                aria-label="Workflow: Text Chat -> TTS. Balanced cost and performance."
+                            >
+                                info
+                            </span>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-2 mt-2">
+                            {renderSelect('stw_chat', 'Chat Model', 'Main conversation model', availableModels.language, true)}
+                            {renderSelect('stw_tts', 'Text-to-Speech', 'Generate AI voice', availableModels.tts, true)}
+                        </div>
+                    </div>
+
+                    <div>
+                        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                            <span>Native</span>
+                            <span
+                                className="material-symbols-outlined text-sm text-gray-400"
+                                title="Workflow: End-to-end Audio. Faster response time, slightly higher cost than Sequential."
+                                aria-label="Workflow: End-to-end Audio. Faster response time, slightly higher cost than Sequential."
+                            >
+                                info
+                            </span>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-2 mt-2">
+                            {renderSelect('stw_audio', 'Audio Model', 'End-to-end audio responses (Mode 2)', availableModels.language)}
+                        </div>
+                    </div>
+
+                    <div>
+                        <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Other</div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-2 mt-2">
+                            {renderSelect('stw_stt', 'Speech-to-Text', 'Transcribe user audio', availableModels.stt, true)}
+                            {renderSelect('stw_assessment_text', 'Assessment (Text Analysis)', 'Analyze user text for suggestions', availableModels.language)}
+                            {renderSelect('stw_goal', 'Goal Completion', 'Evaluate which goals are completed', availableModels.language)}
+                        </div>
+                    </div>
                 </div>
             </div>
 

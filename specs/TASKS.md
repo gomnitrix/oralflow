@@ -28,10 +28,10 @@
 | Zen Mode | 3 | 3 | 0 | 4 |
 | Notebook | 4 | 0 | 2 | 7 |
 | Training & Review | 0 | 0 | 2 | 6 |
-| Ask & Dashboard | 10 | 1 | 2 | 5 |
+| Ask & Dashboard | 11 | 0 | 2 | 5 |
 | Free Chat | 5 | 1 | 1 | 5 |
 | Profile & Personalization | 4 | 0 | 1 | 2 |
-| AI & Infrastructure | 0 | 0 | 0 | 1 |
+| AI & Infrastructure | 1 | 0 | 0 | 1 |
 | Additional Features | 8 | 1 | 0 | 0 |
 
 ---
@@ -62,6 +62,16 @@
 - [x] **Fix Home Greeting flicker**: Flicker resolved by proper initial state handling.
 - [x] **Fix sidebar profile avatar**: Sidebar avatar now updates correctly.
 
+### AI & Infrastructure
+- [x] **Implement STW Response Mode selection**: Added setting for sequential vs native audio response modes.
+  - [x] Add "Audio Model" configuration in the `/models` settings page.
+  - [x] Ensure both modes receive identical conversation context.
+  - [x] Update STW orchestration logic to respect the selected mode.
+
+### Ask Page
+- [x] **Enhance Ask page result interaction**:
+  - [x] **Add toast notification for save**: Replaced static message with a floating toast notification.
+
 ---
 
 ## Partial / Needs Work [~]
@@ -79,8 +89,6 @@
 - [-] `/api/training/schedule` endpoint - basic implementation
 
 ### Ask Page
-- [x] **Enhance Ask page result interaction**:
-  - [x] **Add toast notification for save**: Currently, the save notification appears at the top of the page and is easily missed when scrolling. **Requirement**: Replace the static message with a floating toast notification that automatically disappears after a few seconds.
 
 ### Free Chat
 
@@ -93,13 +101,13 @@
 - [-] Integration tests for Zen session
 
 ### AI & Infrastructure
-- [-] **Implement STW Response Mode selection**: Add a setting to choose between two AI response strategies in Stop-the-World sessions.
-  - **Mode 1: Sequential (Chat + TTS)**: Standard two-step flow where a Chat model generates text first, followed by a TTS model generating audio. (which is the current implementation)
-  - **Mode 2: Native Audio (End-to-End)**: Single-step flow using an Audio model to generate both text and audio directly from text input.
-  - **Requirements**:
-    - Add "Audio Model" configuration in the `/models` settings page under STW Mode.
-    - Ensure both modes receive identical conversation context to maintain output quality consistency.
-    - Update STW orchestration logic to respect the selected mode.
+- [-] **Optimize Models Configuration UI**: Group STW models by mode/purpose using subheadings.
+  - [-] **Sequential**: Chat Model, Text-to-Speech.
+    - [-] Add info icon with tooltip: "Workflow: Text Chat -> TTS. Balanced cost and performance."
+  - [-] **Native**: Audio Model.
+    - [-] Add info icon with tooltip: "Workflow: End-to-end Audio. Faster response time, slightly higher cost than Sequential."
+  - [-] **Other**: Speech-to-Text, Assessment (Text Analysis), Goal Completion.
+  - [-] Ensure subheading style is distinct from main section titles.
 
 
 ---
