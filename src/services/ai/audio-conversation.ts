@@ -50,21 +50,44 @@ const collectAudioFromStream = async (
   const transcriptParts: string[] = [];
 
   for await (const chunk of stream) {
-    const delta = chunk?.choices?.[0]?.delta as any;
-    if (!delta) continue;
+    const choice = chunk?.choices?.[0] as any;
+    const delta = choice?.delta as any;
+    const message = choice?.message as any;
 
-    const audio = delta.audio || delta.output_audio;
-    if (audio?.data) {
-      audioBuffers.push(Buffer.from(audio.data, "base64"));
-      if (audio.format) audioFormat = audio.format;
-      if (typeof audio.transcript === "string") {
-        transcriptParts.push(audio.transcript);
+    if (delta) {
+      const audio = delta.audio || delta.output_audio;
+      if (audio?.data) {
+        audioBuffers.push(Buffer.from(audio.data, "base64"));
+        if (audio.format) audioFormat = audio.format;
+        if (typeof audio.transcript === "string") {
+          transcriptParts.push(audio.transcript);
+        }
+      }
+
+      const contentText = normalizeContentText(delta.content, transcriptParts);
+      if (contentText) {
+        replyParts.push(contentText);
       }
     }
 
-    const contentText = normalizeContentText(delta.content, transcriptParts);
-    if (contentText) {
-      replyParts.push(contentText);
+    if (message) {
+      const hasAudio = audioBuffers.length > 0;
+      const hasText = replyParts.length > 0;
+      const hasTranscript = transcriptParts.length > 0;
+      const audio = message.audio || message.output_audio;
+
+      if (audio?.data && !hasAudio) {
+        audioBuffers.push(Buffer.from(audio.data, "base64"));
+        if (audio.format) audioFormat = audio.format;
+      }
+      if (typeof audio?.transcript === "string" && !hasTranscript) {
+        transcriptParts.push(audio.transcript);
+      }
+
+      const messageText = normalizeContentText(message.content, transcriptParts);
+      if (messageText && !hasText) {
+        replyParts.push(messageText);
+      }
     }
   }
 
