@@ -118,7 +118,6 @@ const ensureSchema = (db: any) => {
         intervalDays INTEGER DEFAULT 0
       );
       CREATE INDEX IF NOT EXISTS idx_notebook_created_at ON notebook_items (createdAt);
-      CREATE INDEX IF NOT EXISTS idx_notebook_next_review ON notebook_items (nextReviewAt);
 
       CREATE TABLE IF NOT EXISTS review_cards (
         id TEXT PRIMARY KEY,
@@ -178,6 +177,12 @@ const ensureSchema = (db: any) => {
   ensureColumn("review_tasks", "easeFactor", "REAL DEFAULT 2.5");
   ensureColumn("review_tasks", "repetitionCount", "INTEGER DEFAULT 0");
   ensureColumn("review_tasks", "status", "TEXT DEFAULT 'pending'");
+
+  try {
+    db.exec("CREATE INDEX IF NOT EXISTS idx_notebook_next_review ON notebook_items (nextReviewAt);");
+  } catch (e) {
+    console.warn("[sqlite] failed to create idx_notebook_next_review", e);
+  }
 };
 
 const resolveSqlite = (): any | null => {
