@@ -66,14 +66,13 @@ export const ModelAssignmentConfig: React.FC<Props> = ({ settings, onUpdateAssig
                 <h2 className="text-lg font-semibold mb-4">STW Mode</h2>
                 <div className="space-y-6">
                     <div>
-                        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                        <div
+                            className="flex items-center gap-2 text-xs font-bold text-custom-primary uppercase tracking-[0.2em] cursor-help w-fit"
+                            title="Workflow: Text Chat -> TTS. Balanced cost and performance."
+                        >
                             <span>Sequential</span>
-                            <span
-                                className="material-symbols-outlined text-sm text-gray-400"
-                                title="Workflow: Text Chat -> TTS. Balanced cost and performance."
-                                aria-label="Workflow: Text Chat -> TTS. Balanced cost and performance."
-                            >
-                                info
+                            <span className="material-symbols-outlined text-sm">
+                                help
                             </span>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-2 mt-2">
@@ -83,14 +82,13 @@ export const ModelAssignmentConfig: React.FC<Props> = ({ settings, onUpdateAssig
                     </div>
 
                     <div>
-                        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                        <div
+                            className="flex items-center gap-2 text-xs font-bold text-custom-primary uppercase tracking-[0.2em] cursor-help w-fit"
+                            title="Workflow: End-to-end Audio. Faster response time, slightly higher cost than Sequential."
+                        >
                             <span>Native</span>
-                            <span
-                                className="material-symbols-outlined text-sm text-gray-400"
-                                title="Workflow: End-to-end Audio. Faster response time, slightly higher cost than Sequential."
-                                aria-label="Workflow: End-to-end Audio. Faster response time, slightly higher cost than Sequential."
-                            >
-                                info
+                            <span className="material-symbols-outlined text-sm">
+                                help
                             </span>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-2 mt-2">
@@ -99,7 +97,7 @@ export const ModelAssignmentConfig: React.FC<Props> = ({ settings, onUpdateAssig
                     </div>
 
                     <div>
-                        <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">Other</div>
+                        <div className="text-xs font-bold text-custom-primary uppercase tracking-[0.2em]">Other</div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-2 mt-2">
                             {renderSelect('stw_stt', 'Speech-to-Text', 'Transcribe user audio', availableModels.stt, true)}
                             {renderSelect('stw_assessment_text', 'Assessment (Text Analysis)', 'Analyze user text for suggestions', availableModels.language)}
