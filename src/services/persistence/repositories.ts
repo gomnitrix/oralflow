@@ -75,19 +75,8 @@ const stringifyArray = (value?: string[]): string => JSON.stringify(value ?? [])
 const isBrowser = typeof window !== "undefined";
 let sharedDb: any | null = null;
 
-const resolveSqlite = (): any | null => {
-  if (isBrowser) return null;
-  if (sharedDb) return sharedDb;
-  try {
-    // Defer requires to server runtime to avoid bundling in the client
-    const fs = require("fs") as typeof import("fs");
-    // Lazy require to avoid bundling into client
-    const Database = require("better-sqlite3");
-    const storageRoot = resolveStorageRoot();
-    fs.mkdirSync(storageRoot, { recursive: true });
-    const dbPath = path.join(storageRoot, "oralflow.db");
-    sharedDb = new Database(dbPath);
-    sharedDb.exec(`
+const ensureSchema = (db: any) => {
+  db.exec(`
       CREATE TABLE IF NOT EXISTS scenarios (
         id TEXT PRIMARY KEY,
         title TEXT NOT NULL,
@@ -161,33 +150,52 @@ const resolveSqlite = (): any | null => {
       CREATE INDEX IF NOT EXISTS idx_review_tasks_item_id ON review_tasks (notebookItemId);
     `);
 
-    // Schema Migration: Add missing columns if they don't exist
-    const ensureColumn = (table: string, column: string, definition: string) => {
-      const tableInfo = sharedDb.prepare(`PRAGMA table_info(${table})`).all();
-      const hasColumn = tableInfo.some((col: any) => col.name === column);
-      if (!hasColumn) {
-        try {
-          sharedDb.prepare(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`).run();
-        } catch (e) {
-          console.warn(`[sqlite] failed to add column ${column} to ${table}`, e);
-        }
+  // Schema Migration: Add missing columns if they don't exist
+  const ensureColumn = (table: string, column: string, definition: string) => {
+    const tableInfo = db.prepare(`PRAGMA table_info(${table})`).all();
+    const hasColumn = tableInfo.some((col: any) => col.name === column);
+    if (!hasColumn) {
+      try {
+        db.prepare(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`).run();
+      } catch (e) {
+        console.warn(`[sqlite] failed to add column ${column} to ${table}`, e);
       }
-    };
+    }
+  };
 
-    ensureColumn("notebook_items", "srsLevel", "INTEGER DEFAULT 0");
-    ensureColumn("notebook_items", "nextReviewAt", "TEXT");
-    ensureColumn("notebook_items", "lastReviewedAt", "TEXT");
-    ensureColumn("notebook_items", "lastDifficulty", "TEXT");
-    ensureColumn("notebook_items", "easeFactor", "REAL DEFAULT 2.5");
-    ensureColumn("notebook_items", "intervalDays", "INTEGER DEFAULT 0");
-    ensureColumn("review_cards", "content", "TEXT");
-    ensureColumn("review_cards", "metadata", "TEXT");
-    ensureColumn("review_tasks", "lastReviewedAt", "TEXT");
-    ensureColumn("review_tasks", "intervalDays", "INTEGER DEFAULT 1");
-    ensureColumn("review_tasks", "easeFactor", "REAL DEFAULT 2.5");
-    ensureColumn("review_tasks", "repetitionCount", "INTEGER DEFAULT 0");
-    ensureColumn("review_tasks", "status", "TEXT DEFAULT 'pending'");
+  ensureColumn("notebook_items", "srsLevel", "INTEGER DEFAULT 0");
+  ensureColumn("notebook_items", "nextReviewAt", "TEXT");
+  ensureColumn("notebook_items", "lastReviewedAt", "TEXT");
+  ensureColumn("notebook_items", "lastDifficulty", "TEXT");
+  ensureColumn("notebook_items", "easeFactor", "REAL DEFAULT 2.5");
+  ensureColumn("notebook_items", "intervalDays", "INTEGER DEFAULT 0");
+  ensureColumn("review_cards", "content", "TEXT");
+  ensureColumn("review_cards", "metadata", "TEXT");
+  ensureColumn("review_cards", "frontContent", "TEXT");
+  ensureColumn("review_cards", "backContent", "TEXT");
+  ensureColumn("review_tasks", "lastReviewedAt", "TEXT");
+  ensureColumn("review_tasks", "intervalDays", "INTEGER DEFAULT 1");
+  ensureColumn("review_tasks", "easeFactor", "REAL DEFAULT 2.5");
+  ensureColumn("review_tasks", "repetitionCount", "INTEGER DEFAULT 0");
+  ensureColumn("review_tasks", "status", "TEXT DEFAULT 'pending'");
+};
 
+const resolveSqlite = (): any | null => {
+  if (isBrowser) return null;
+  try {
+    if (sharedDb) {
+      ensureSchema(sharedDb);
+      return sharedDb;
+    }
+    // Defer requires to server runtime to avoid bundling in the client
+    const fs = require("fs") as typeof import("fs");
+    // Lazy require to avoid bundling into client
+    const Database = require("better-sqlite3");
+    const storageRoot = resolveStorageRoot();
+    fs.mkdirSync(storageRoot, { recursive: true });
+    const dbPath = path.join(storageRoot, "oralflow.db");
+    sharedDb = new Database(dbPath);
+    ensureSchema(sharedDb);
     return sharedDb;
   } catch (err) {
     console.warn("[sqlite] failed to initialize; JSON fallback disabled", err);

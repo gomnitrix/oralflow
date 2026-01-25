@@ -1,48 +1,30 @@
 #!/usr/bin/env node
 
-const fs = require("fs/promises");
-const fsSync = require("fs");
+const fs = require("fs");
 const path = require("path");
 const Database = require("better-sqlite3");
 
-const storageRoot = process.env.LOCAL_STORAGE_PATH || path.join(process.cwd(), "data", "storage");
-const scenarioFile = path.join(storageRoot, "scenarios.json");
-const notebookFile = path.join(storageRoot, "notebookItems.json");
-const dbPath = path.join(storageRoot, "oralflow.db");
-fsSync.mkdirSync(storageRoot, { recursive: true });
-const db = new Database(dbPath);
+const DEFAULT_STORAGE_ROOT = path.join(process.cwd(), "data", "storage");
 
-const loadJson = async (filePath) => {
-  try {
-    const raw = await fs.readFile(filePath, "utf-8");
-    return JSON.parse(raw);
-  } catch (error) {
-    if (error?.code === "ENOENT") {
-      console.warn(`[migrate] File not found, skipping: ${filePath}`);
-      return [];
+const resolveStorageRoot = () => {
+  const envPath = process.env.LOCAL_STORAGE_PATH;
+  if (envPath) {
+    const normalized = path.resolve(envPath);
+    if (path.basename(normalized) === "local_storage") {
+      console.warn(
+        `[schema] LOCAL_STORAGE_PATH points to local_storage; using ${DEFAULT_STORAGE_ROOT} instead.`
+      );
+      return DEFAULT_STORAGE_ROOT;
     }
-    throw error;
+    return envPath;
   }
+  return DEFAULT_STORAGE_ROOT;
 };
 
-const ensureStringArray = (value, fallback = []) => {
-  if (Array.isArray(value)) {
-    return value.map((v) => (typeof v === "string" ? v : String(v))).filter(Boolean);
-  }
-  return fallback;
-};
-
-const ensureText = (value) => {
-  if (value === null || value === undefined) return null;
-  if (typeof value === "string") return value;
-  return String(value);
-};
-
-const ensureDateText = (value) => {
-  if (typeof value === "string") return value;
-  if (value instanceof Date) return value.toISOString();
-  return new Date().toISOString();
-};
+const storageRoot = resolveStorageRoot();
+fs.mkdirSync(storageRoot, { recursive: true });
+const dbPath = path.join(storageRoot, "oralflow.db");
+const db = new Database(dbPath);
 
 const initTables = () => {
   db.exec(`
@@ -62,6 +44,8 @@ const initTables = () => {
       createdAt TEXT NOT NULL,
       updatedAt TEXT NOT NULL
     );
+    CREATE INDEX IF NOT EXISTS idx_scenarios_created_at ON scenarios (createdAt);
+
     CREATE TABLE IF NOT EXISTS notebook_items (
       id TEXT PRIMARY KEY,
       phrase TEXT NOT NULL,
@@ -85,6 +69,9 @@ const initTables = () => {
       easeFactor REAL DEFAULT 2.5,
       intervalDays INTEGER DEFAULT 0
     );
+    CREATE INDEX IF NOT EXISTS idx_notebook_created_at ON notebook_items (createdAt);
+    CREATE INDEX IF NOT EXISTS idx_notebook_next_review ON notebook_items (nextReviewAt);
+
     CREATE TABLE IF NOT EXISTS review_cards (
       id TEXT PRIMARY KEY,
       notebookItemId TEXT NOT NULL,
@@ -98,121 +85,69 @@ const initTables = () => {
       usageCount INTEGER DEFAULT 0,
       FOREIGN KEY (notebookItemId) REFERENCES notebook_items(id) ON DELETE CASCADE
     );
+    CREATE INDEX IF NOT EXISTS idx_review_cards_item_id ON review_cards (notebookItemId);
+
+    CREATE TABLE IF NOT EXISTS review_tasks (
+      id TEXT PRIMARY KEY,
+      notebookItemId TEXT NOT NULL,
+      dueAt TEXT NOT NULL,
+      lastReviewedAt TEXT,
+      intervalDays INTEGER NOT NULL,
+      easeFactor REAL NOT NULL,
+      repetitionCount INTEGER NOT NULL,
+      status TEXT NOT NULL,
+      FOREIGN KEY (notebookItemId) REFERENCES notebook_items(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_review_tasks_due_at ON review_tasks (dueAt);
+    CREATE INDEX IF NOT EXISTS idx_review_tasks_item_id ON review_tasks (notebookItemId);
   `);
 };
 
-const migrateScenarios = (records) => {
-  if (!records.length) return 0;
-  const stmt = db.prepare(
-    `INSERT INTO scenarios (id, title, emoji, description, learnerRole, aiRole, mainGoal, subGoals, sourceType, sourceText, lastPracticedAt, tags, createdAt, updatedAt)
-     VALUES (@id, @title, @emoji, @description, @learnerRole, @aiRole, @mainGoal, @subGoals, @sourceType, @sourceText, @lastPracticedAt, @tags, @createdAt, @updatedAt)
-     ON CONFLICT(id) DO UPDATE SET
-      title=excluded.title,
-      emoji=excluded.emoji,
-      description=excluded.description,
-      learnerRole=excluded.learnerRole,
-      aiRole=excluded.aiRole,
-      mainGoal=excluded.mainGoal,
-      subGoals=excluded.subGoals,
-      sourceType=excluded.sourceType,
-      sourceText=excluded.sourceText,
-      lastPracticedAt=excluded.lastPracticedAt,
-      tags=excluded.tags,
-      updatedAt=excluded.updatedAt`
-  );
-
-  const run = db.transaction((rows) => {
-    for (const scenario of rows) {
-      stmt.run({
-        ...scenario,
-        subGoals: JSON.stringify(ensureStringArray(scenario.subGoals)),
-        sourceText: ensureText(scenario.sourceText),
-        lastPracticedAt: ensureText(scenario.lastPracticedAt),
-        tags: JSON.stringify(ensureStringArray(scenario.tags ?? [])),
-        createdAt: ensureDateText(scenario.createdAt),
-        updatedAt: ensureDateText(scenario.updatedAt),
-      });
+const ensureColumn = (table, column, definition) => {
+  const info = db.prepare(`PRAGMA table_info(${table})`).all();
+  if (!info.length) return;
+  const hasColumn = info.some((col) => col.name === column);
+  if (!hasColumn) {
+    try {
+      db.prepare(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`).run();
+    } catch (error) {
+      console.warn(`[schema] failed to add column ${column} to ${table}`, error);
     }
-  });
-
-  run(records);
-  return records.length;
+  }
 };
 
-const migrateNotebookItems = (records) => {
-  if (!records.length) return 0;
-  const stmt = db.prepare(
-    `INSERT INTO notebook_items (
-       id, phrase, meaning, usageNotes, variants, exampleSentences, contextSentence, 
-       ipa, spokenNotes, source, sourceDetails, tags, locale, createdAt, updatedAt,
-       srsLevel, nextReviewAt, lastReviewedAt, lastDifficulty, easeFactor, intervalDays
-     )
-     VALUES (
-       @id, @phrase, @meaning, @usageNotes, @variants, @exampleSentences, @contextSentence, 
-       @ipa, @spokenNotes, @source, @sourceDetails, @tags, @locale, @createdAt, @updatedAt,
-       @srsLevel, @nextReviewAt, @lastReviewedAt, @lastDifficulty, @easeFactor, @intervalDays
-     )
-     ON CONFLICT(id) DO UPDATE SET
-      phrase=excluded.phrase,
-      meaning=excluded.meaning,
-      usageNotes=excluded.usageNotes,
-      variants=excluded.variants,
-      exampleSentences=excluded.exampleSentences,
-      contextSentence=excluded.contextSentence,
-      ipa=excluded.ipa,
-      spokenNotes=excluded.spokenNotes,
-      source=excluded.source,
-      sourceDetails=excluded.sourceDetails,
-      tags=excluded.tags,
-      locale=excluded.locale,
-      updatedAt=excluded.updatedAt,
-      srsLevel=excluded.srsLevel,
-      nextReviewAt=excluded.nextReviewAt,
-      lastReviewedAt=excluded.lastReviewedAt,
-      lastDifficulty=excluded.lastDifficulty,
-      easeFactor=excluded.easeFactor,
-      intervalDays=excluded.intervalDays`
-  );
-
-  const run = db.transaction((rows) => {
-    for (const item of rows) {
-      stmt.run({
-        ...item,
-        variants: JSON.stringify(ensureStringArray(item.variants)),
-        exampleSentences: JSON.stringify(ensureStringArray(item.exampleSentences)),
-        tags: JSON.stringify(ensureStringArray(item.tags ?? [])),
-        locale: ensureText(item.locale),
-        createdAt: ensureDateText(item.createdAt),
-        updatedAt: ensureDateText(item.updatedAt),
-        srsLevel: item.srsLevel ?? 0,
-        nextReviewAt: ensureDateText(item.nextReviewAt),
-        lastReviewedAt: item.lastReviewedAt ? ensureDateText(item.lastReviewedAt) : null,
-        lastDifficulty: item.lastDifficulty ?? null,
-        easeFactor: item.easeFactor ?? 2.5,
-        intervalDays: item.intervalDays ?? 0,
-      });
+const warnDeprecatedJson = () => {
+  const deprecated = ["scenarios.json", "notebookItems.json", "evaluationRecords.json"];
+  for (const filename of deprecated) {
+    const filePath = path.join(storageRoot, filename);
+    if (fs.existsSync(filePath)) {
+      console.warn(`[schema] Deprecated JSON detected (ignored): ${filePath}`);
     }
-  });
-
-  run(records);
-  return records.length;
+  }
 };
 
-async function main() {
-  console.log(`[migrate] Using storage root: ${storageRoot}`);
+function main() {
+  console.log(`[schema] Using storage root: ${storageRoot}`);
   initTables();
 
-  const scenarios = await loadJson(scenarioFile);
-  const notebookItems = await loadJson(notebookFile);
+  ensureColumn("notebook_items", "srsLevel", "INTEGER DEFAULT 0");
+  ensureColumn("notebook_items", "nextReviewAt", "TEXT");
+  ensureColumn("notebook_items", "lastReviewedAt", "TEXT");
+  ensureColumn("notebook_items", "lastDifficulty", "TEXT");
+  ensureColumn("notebook_items", "easeFactor", "REAL DEFAULT 2.5");
+  ensureColumn("notebook_items", "intervalDays", "INTEGER DEFAULT 0");
+  ensureColumn("review_cards", "content", "TEXT");
+  ensureColumn("review_cards", "metadata", "TEXT");
+  ensureColumn("review_cards", "frontContent", "TEXT");
+  ensureColumn("review_cards", "backContent", "TEXT");
+  ensureColumn("review_tasks", "lastReviewedAt", "TEXT");
+  ensureColumn("review_tasks", "intervalDays", "INTEGER DEFAULT 1");
+  ensureColumn("review_tasks", "easeFactor", "REAL DEFAULT 2.5");
+  ensureColumn("review_tasks", "repetitionCount", "INTEGER DEFAULT 0");
+  ensureColumn("review_tasks", "status", "TEXT DEFAULT 'pending'");
 
-  const migratedScenarios = migrateScenarios(scenarios);
-  const migratedNotebook = migrateNotebookItems(notebookItems);
-
-  console.log(`[migrate] Scenarios migrated: ${migratedScenarios}`);
-  console.log(`[migrate] Notebook items migrated: ${migratedNotebook}`);
+  warnDeprecatedJson();
+  console.log("[schema] SQLite schema check complete. JSON sources are ignored.");
 }
 
-main().catch((err) => {
-  console.error("[migrate] failed", err);
-  process.exitCode = 1;
-});
+main();
