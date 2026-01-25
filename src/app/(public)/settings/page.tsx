@@ -9,6 +9,10 @@ const granularityOptions = [
   { label: "Word", value: "word" },
   { label: "FullText", value: "fulltext" },
 ];
+const stwResponseOptions = [
+  { label: "Sequential (Chat + TTS)", value: "sequential" },
+  { label: "Native Audio (End-to-End)", value: "native_audio" },
+];
 
 const clampTurn = (value: number) => Math.min(10, Math.max(1, Math.round(value || 1)));
 
@@ -125,6 +129,22 @@ export default function SettingsPage() {
             }}
             className="w-full rounded-xl border border-custom-border px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-custom-primary/40"
           />
+        </div>
+
+        <div className="bg-white border border-custom-border rounded-2xl p-6 shadow-sm space-y-4">
+          <div>
+            <p className="text-sm font-bold text-custom-text-dark">STW Response Mode</p>
+            <p className="text-xs text-custom-text-dark/60">Choose how AI replies are generated in Stop-the-World mode.</p>
+          </div>
+          <select
+            className="w-full rounded-xl border border-custom-border px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-custom-primary/40"
+            value={settings.config.stw.responseMode}
+            onChange={(e) => updateConfig({ stw: { responseMode: e.target.value as AISettings['config']['stw']['responseMode'] } })}
+          >
+            {stwResponseOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
         </div>
 
         <div className="bg-white border border-custom-border rounded-2xl p-6 shadow-sm space-y-4">

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { toFile } from "openai/uploads";
 
 import { runConversationTurn } from "../../../../services/ai/conversation-model";
+import { runAudioConversationTurn } from "../../../../services/ai/audio-conversation";
 import { AIClient, type ChatMessage } from "../../../../services/ai/client";
 import { stwStartRequestSchema, stwReplyRequestSchema, stwCopilotRequestSchema, stwTranscribeRequestSchema } from "../../../../lib/validation/conversation";
 import { runDistill } from "../../../../domains/copilot/distill-service";
@@ -45,6 +46,10 @@ const buildSystemPrompt = (input: {
   ].filter(Boolean);
 
   return parts.join("\n");
+};
+
+const getResponseMode = (): "sequential" | "native_audio" => {
+  return settings.getSettings().config.stw.responseMode ?? "sequential";
 };
 
 const mapHistoryToMessages = (history: { speaker: "user" | "ai"; text: string }[]): ChatMessage[] =>
@@ -125,22 +130,43 @@ async function handleStart(payload: unknown) {
   const parsed = stwStartRequestSchema.parse(payload);
   const client = new AIClient();
   const systemPrompt = buildSystemPrompt(parsed.scenario);
+  const responseMode = getResponseMode();
 
-  const turn = await runConversationTurn(
-    client,
-    {
-      systemPrompt,
-      userText: `Start this conversation with a concise greeting and invite the learner to speak. Scenario: ${parsed.scenario.title}.`,
-    },
-    "stw_chat"
-  );
+  if (responseMode === "native_audio") {
+    const audioTurn = await runAudioConversationTurn(
+      {
+        systemPrompt,
+        userText: `Start this conversation with a concise greeting and invite the learner to speak. Scenario: ${parsed.scenario.title}.`,
+      },
+      "stw_audio"
+    );
+    return {
+      reply: audioTurn.reply,
+      provider: audioTurn.provider,
+      modelId: getAssignment("stw_audio"),
+      audioUrl: audioTurn.audioUrl,
+      goalStatus: null,
+    };
+  }
 
   return {
-    reply: turn.reply,
-    provider: turn.provider,
-    modelId: getAssignment("stw_chat"),
-    audioUrl: await ttsForText(turn.reply),
-    goalStatus: null,
+    ...(await (async () => {
+      const turn = await runConversationTurn(
+        client,
+        {
+          systemPrompt,
+          userText: `Start this conversation with a concise greeting and invite the learner to speak. Scenario: ${parsed.scenario.title}.`,
+        },
+        "stw_chat"
+      );
+      return {
+        reply: turn.reply,
+        provider: turn.provider,
+        modelId: getAssignment("stw_chat"),
+        audioUrl: await ttsForText(turn.reply),
+        goalStatus: null,
+      };
+    })()),
   };
 }
 
@@ -148,16 +174,44 @@ async function handleReply(payload: unknown) {
   const parsed = stwReplyRequestSchema.parse(payload);
   const client = new AIClient();
   const systemPrompt = buildSystemPrompt(parsed.scenario);
+  const responseMode = getResponseMode();
 
-  const turn = await runConversationTurn(
-    client,
-    {
-      systemPrompt,
-      history: mapHistoryToMessages(parsed.history),
-      userText: parsed.userText,
-    },
-    "stw_chat"
-  );
+  const runTurn = async () => {
+    if (responseMode === "native_audio") {
+      const audioTurn = await runAudioConversationTurn(
+        {
+          systemPrompt,
+          history: mapHistoryToMessages(parsed.history),
+          userText: parsed.userText,
+        },
+        "stw_audio"
+      );
+      return {
+        reply: audioTurn.reply,
+        provider: audioTurn.provider,
+        modelId: getAssignment("stw_audio"),
+        audioUrl: audioTurn.audioUrl,
+      };
+    }
+
+    const turn = await runConversationTurn(
+      client,
+      {
+        systemPrompt,
+        history: mapHistoryToMessages(parsed.history),
+        userText: parsed.userText,
+      },
+      "stw_chat"
+    );
+    return {
+      reply: turn.reply,
+      provider: turn.provider,
+      modelId: getAssignment("stw_chat"),
+      audioUrl: await ttsForText(turn.reply),
+    };
+  };
+
+  const turn = await runTurn();
 
   const aiBubbleCount = parsed.history.filter((h) => h.speaker === "ai").length + 1; // include new reply
   const startTurn = (() => {
@@ -173,8 +227,8 @@ async function handleReply(payload: unknown) {
   return {
     reply: turn.reply,
     provider: turn.provider,
-    modelId: getAssignment("stw_chat"),
-    audioUrl: await ttsForText(turn.reply),
+    modelId: turn.modelId,
+    audioUrl: turn.audioUrl,
     goalStatus: shouldEvaluateGoals
       ? await (async () => {
         try {

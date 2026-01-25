@@ -9,6 +9,7 @@ const capabilityCategoryMap: Partial<Record<AssignmentCapability, ModelCategory>
   stw_tts: "tts",
   notebook_tts: "tts",
   stw_stt: "stt",
+  stw_audio: "language",
   zen_realtime: "realtime_speech",
   stw_goal: "language",
   zen_goal: "language",

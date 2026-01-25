@@ -68,6 +68,7 @@ export const ModelAssignmentConfig: React.FC<Props> = ({ settings, onUpdateAssig
                     {renderSelect('stw_chat', 'Chat Model', 'Main conversation model', availableModels.language, true)}
                     {renderSelect('stw_stt', 'Speech-to-Text', 'Transcribe user audio', availableModels.stt, true)}
                     {renderSelect('stw_tts', 'Text-to-Speech', 'Generate AI voice', availableModels.tts, true)}
+                    {renderSelect('stw_audio', 'Audio Model', 'End-to-end audio responses (Mode 2)', availableModels.language)}
                     {renderSelect('stw_assessment_text', 'Assessment (Text Analysis)', 'Analyze user text for suggestions', availableModels.language)}
                     {renderSelect('stw_goal', 'Goal Completion', 'Evaluate which goals are completed', availableModels.language)}
                 </div>

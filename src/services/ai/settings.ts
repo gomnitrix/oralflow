@@ -27,6 +27,7 @@ export interface AISettings {
         stw_chat: string | null;
         stw_stt: string | null;
         stw_tts: string | null;
+        stw_audio: string | null;
         stw_assessment_text: string | null;
         stw_goal: string | null;
 
@@ -51,6 +52,7 @@ export interface AISettings {
         };
         stw: {
             goalEvaluationStartTurn: number;
+            responseMode: "sequential" | "native_audio";
         };
         pronunciation: {
             granularity: "phoneme" | "word" | "fulltext";
@@ -77,6 +79,7 @@ const DEFAULT_SETTINGS: AISettings = {
         stw_chat: null,
         stw_stt: null,
         stw_tts: null,
+        stw_audio: null,
         stw_assessment_text: null,
         stw_goal: null,
         copilot_distill: null,
@@ -95,6 +98,7 @@ const DEFAULT_SETTINGS: AISettings = {
         },
         stw: {
             goalEvaluationStartTurn: 5,
+            responseMode: "sequential",
         },
         pronunciation: {
             granularity: "phoneme",
@@ -155,6 +159,12 @@ export class SettingsService {
                     return DEFAULT_SETTINGS.config.pronunciation.granularity;
                 })();
 
+                const normalizedResponseMode = (() => {
+                    const value = (mergedConfig as any)?.stw?.responseMode;
+                    if (value === "native_audio") return value;
+                    return DEFAULT_SETTINGS.config.stw.responseMode;
+                })();
+
                 return {
                     ...DEFAULT_SETTINGS,
                     ...parsed,
@@ -174,6 +184,7 @@ export class SettingsService {
                         stw: {
                             ...mergedConfig.stw,
                             goalEvaluationStartTurn: normalizedStartTurn,
+                            responseMode: normalizedResponseMode,
                         },
                         pronunciation: {
                             ...mergedConfig.pronunciation,
@@ -218,6 +229,11 @@ export class SettingsService {
             return "phoneme";
         };
 
+        const normalizeResponseMode = (value?: string): AISettings['config']['stw']['responseMode'] => {
+            if (value === "native_audio") return "native_audio";
+            return "sequential";
+        };
+
         this.settings.config = {
             copilot: {
                 ...this.settings.config.copilot,
@@ -229,6 +245,9 @@ export class SettingsService {
                 goalEvaluationStartTurn: config.stw?.goalEvaluationStartTurn !== undefined
                     ? clampTurn(config.stw.goalEvaluationStartTurn)
                     : this.settings.config.stw.goalEvaluationStartTurn,
+                responseMode: config.stw?.responseMode !== undefined
+                    ? normalizeResponseMode(config.stw.responseMode)
+                    : this.settings.config.stw.responseMode,
             },
             pronunciation: {
                 ...this.settings.config.pronunciation,

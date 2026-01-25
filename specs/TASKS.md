@@ -13,7 +13,8 @@
 - [ ] Not started
 
 > **Important**: Only the maintainer can mark tasks as `[x]` completed after verification.  
-> AI/developers should mark completed work as `[-]` (implemented, pending verification).
+> AI/developers should mark completed work as `[-]` (implemented, pending verification).  
+> **Auto-commit & Push**: After verifying changes, automatically commit and push using conventional commit format.
 
 ---
 
@@ -92,49 +93,14 @@
 - [-] Integration tests for Zen session
 
 ### AI & Infrastructure
-- [-] **Fix OpenRouter GPT-Audio-Mini compatibility**: The `openai/gpt-audio-mini` model on OpenRouter is currently non-functional, while existing `gpt-4o-mini-tts` (via AIHubMix) works correctly. 
-  - **Requirement**: Implement a broad and elegant compatibility layer for different provider input/output formats. Avoid hardcoding logic based on specific model names.
-  - **Debugging**: Add detailed logging to the AI client to capture the exact request payload and response from OpenRouter. This should allow for definitive identification of the issue without multiple deployment cycles.
-  - **Implementation**: Added streaming chat fallback with SSE parsing plus normalized audio/text extraction and error detail logging.
-  - **Reference**: See OpenRouter's audio model example below. Ensure the fix does not break existing provider integrations.
-  - **Reference Code**:
-    ```javascript
-      import { OpenRouter } from "@openrouter/sdk";
+- [-] **Implement STW Response Mode selection**: Add a setting to choose between two AI response strategies in Stop-the-World sessions.
+  - **Mode 1: Sequential (Chat + TTS)**: Standard two-step flow where a Chat model generates text first, followed by a TTS model generating audio. (which is the current implementation)
+  - **Mode 2: Native Audio (End-to-End)**: Single-step flow using an Audio model to generate both text and audio directly from text input.
+  - **Requirements**:
+    - Add "Audio Model" configuration in the `/models` settings page under STW Mode.
+    - Ensure both modes receive identical conversation context to maintain output quality consistency.
+    - Update STW orchestration logic to respect the selected mode.
 
-      const openrouter = new OpenRouter({
-        apiKey: "<OPENROUTER_API_KEY>"
-      });
-
-      const stream = await openrouter.chat.send({
-        model: "openai/gpt-audio-mini",
-        messages: [
-          {
-            "role": "user",
-            "content": [
-              {
-                "type": "text",
-                "text": "What is in this audio?"
-              },
-              {
-                "type": "input_audio",
-                "input_audio": {
-                  "data": "UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB",
-                  "format": "wav"
-                }
-              }
-            ]
-          }
-        ],
-        stream: true
-      });
-
-      for await (const chunk of stream) {
-        const content = chunk.choices[0]?.delta?.content;
-        if (content) {
-          process.stdout.write(content);
-        }
-      }
-    ```
 
 ---
 
