@@ -22,6 +22,7 @@
 1. **AI/Developers**: When you complete a task:
    - **First**, ensure `npm run build && npm test && npm run lint` all pass
    - **Then**, mark it as `[-]` (implemented, pending verification), NOT `[x]`
+   - **Finally**, automatically **commit and push** the changes. Use conventional commit format (e.g., `feat: add profile page`) and keep messages concise.
 
 2. **Maintainer**: After manual testing and verification, the maintainer will update `[-]` to `[x]`.
 
@@ -338,8 +339,9 @@ The feature works without Azure but won't show pronunciation scores.
 1. Create feature branch from `001-speaking-practice`
 2. Implement with tests
 3. **Run quality checks**: `npm run build && npm test && npm run lint`
-4. Ensure all three pass before committing
-5. Submit PR with description
+4. **Auto-commit and Push**: Once checks pass, automatically commit and push using conventional commits.
+5. Ensure all checks pass before committing
+6. Submit PR with description
 
 ### Commit Messages
 

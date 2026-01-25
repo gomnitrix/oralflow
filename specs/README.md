@@ -30,6 +30,7 @@ Tasks use a **two-stage completion** process:
 | `[ ]` | Not started |
 
 **AI/Developers must mark completed work as `[-]`, not `[x]`.**  
+**Auto-commit & Push**: After verifying changes, automatically commit and push using conventional commit format.  
 Only the maintainer can mark tasks as `[x]` after verification.
 
 See [DEVELOPMENT.md](./DEVELOPMENT.md#task-verification-workflow) for details.
