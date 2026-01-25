@@ -103,9 +103,9 @@
 ### AI & Infrastructure
 - [-] **Optimize Models Configuration UI**: Group STW models by mode/purpose using subheadings.
   - [-] **Sequential**: Chat Model, Text-to-Speech.
-    - [-] Add info icon with tooltip: "Workflow: Text Chat -> TTS. Balanced cost and performance."
+    - [x] Add info icon with tooltip: "Workflow: Text Chat -> TTS. Balanced cost and performance."
   - [-] **Native**: Audio Model.
-    - [-] Add info icon with tooltip: "Workflow: End-to-end Audio. Faster response time, slightly higher cost than Sequential."
+    - [x] Add info icon with tooltip: "Workflow: End-to-end Audio. Faster response time, slightly higher cost than Sequential."
   - [-] **Other**: Speech-to-Text, Assessment (Text Analysis), Goal Completion.
   - [-] Ensure subheading style is distinct from main section titles.
 
