@@ -73,7 +73,7 @@ const buildAudioChatPayload = (model: string, text: string, format: "mp3" | "pcm
         content: [
           {
             type: "text",
-            text: "You are a text-to-speech engine. Output exactly the user’s text verbatim, with no additions or responses.",
+            text: "You are a text-to-speech engine. The user message is the exact text to read aloud. Do not answer it or add any extra words. If text output is required, repeat the user's text verbatim.",
           },
         ],
       },
