@@ -88,12 +88,14 @@ const buildSystemPrompt = (type: CardType, phrase: string): string => {
         ...base,
         "Type: Answer Generation.",
         "Goal: Create a scenario where the user must use the phrase to respond naturally.",
+        "Context must include all situational details and any quoted line the learner is responding to.",
+        "Task must be a short operational instruction only; do not repeat context or dialogue.",
         "Output JSON structure:",
         `{
   "type": "answer_generation",
   "frontContent": {
-    "context": "Brief situation description (1-2 sentences).",
-    "task": "Instruction for the user. MUST hint at the phrase's meaning/metaphor but NOT contain the phrase itself.",
+    "context": "Complete situation + any quoted line you are replying to.",
+    "task": "Short instruction for how to respond; hint at the meaning but do not repeat context or include the phrase.",
     "cue": "${phrase}"
   },
   "backContent": {
@@ -106,12 +108,14 @@ const buildSystemPrompt = (type: CardType, phrase: string): string => {
         ...base,
         "Type: Ask a Question.",
         "Goal: Create a scenario where the user must use the phrase to ask a question or make a request.",
+        "Context must include the full situation and any prompt that leads to asking a question.",
+        "Task must be a short instruction only; do not repeat context or include dialogue.",
         "Output JSON structure:",
         `{
   "type": "ask_question",
   "frontContent": {
-    "context": "Brief situation description.",
-    "task": "Instruction to ask a question. MUST hint at the phrase's meaning but NOT contain the phrase itself.",
+    "context": "Complete situation + any quoted line you are responding to.",
+    "task": "Short instruction to ask a question/request; hint at the meaning but do not repeat context or include the phrase.",
     "cue": "${phrase}"
   },
   "backContent": {

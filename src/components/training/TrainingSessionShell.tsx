@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import type { NotebookItem } from "../../domains/notes/models";
 import type { ReviewCard, ReviewTask, TrainingSession } from "../../domains/training/models";
 import { DifficultySelector } from "./DifficultySelector";
@@ -24,10 +24,11 @@ interface TrainingSessionShellProps {
 }
 
 const preferredMimeTypes = [
+  "audio/wav",
+  "audio/mp3",
+  "audio/webm;codecs=pcm",
   "audio/webm;codecs=opus",
   "audio/ogg;codecs=opus",
-  "audio/webm",
-  "audio/wav",
 ];
 
 const pickMimeType = () => {
@@ -47,31 +48,42 @@ export const TrainingSessionShell: React.FC<TrainingSessionShellProps> = ({ payl
   const [session, setSession] = useState<TrainingSession | null>(payload.session);
   const [tasks, setTasks] = useState<ReviewTask[]>(payload.tasks);
   const [cards, setCards] = useState<ReviewCard[]>(payload.cards);
-  const [items, setItems] = useState<NotebookItem[]>(payload.items);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [answer, setAnswer] = useState("");
   const [revealed, setRevealed] = useState(false);
+  const [flipped, setFlipped] = useState(false);
   const [evaluation, setEvaluation] = useState<CardEvaluationSummary | null>(null);
-  const [loadingAnswer, setLoadingAnswer] = useState(false);
+  const [loadingEvaluation, setLoadingEvaluation] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showRating, setShowRating] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
+  const [recordingStatus, setRecordingStatus] = useState<"idle" | "recording" | "review">("idle");
   const [recordedAudio, setRecordedAudio] = useState<{ base64: string; mimeType: string } | null>(null);
   const [recordedAudioUrl, setRecordedAudioUrl] = useState<string | null>(null);
+  const [readyToAdvance, setReadyToAdvance] = useState(false);
   const [debugMode, setDebugMode] = useState(false);
   const audioCacheRef = useRef<Record<string, string>>({});
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<BlobPart[]>([]);
   const completedRef = useRef(false);
 
-  const itemMap = useMemo(() => new Map(items.map((item) => [item.id, item])), [items]);
-
   const currentCard = cards[currentIndex] ?? null;
   const nextCard = cards[currentIndex + 1] ?? null;
   const currentTask = currentCard
     ? tasks.find((task) => task.notebookItemId === currentCard.notebookItemId) ?? null
     : null;
-  const currentItem = currentCard ? itemMap.get(currentCard.notebookItemId) ?? null : null;
+
+  const isLastCardForItem = useCallback(
+    (index: number) => {
+      const itemId = cards[index]?.notebookItemId;
+      if (!itemId) return false;
+      for (let i = index + 1; i < cards.length; i += 1) {
+        if (cards[i].notebookItemId === itemId) {
+          return false;
+        }
+      }
+      return true;
+    },
+    [cards]
+  );
 
   const resetCardState = useCallback(() => {
     if (mediaRecorderRef.current) {
@@ -79,23 +91,28 @@ export const TrainingSessionShell: React.FC<TrainingSessionShellProps> = ({ payl
       mediaRecorderRef.current.stream.getTracks().forEach((track) => track.stop());
       mediaRecorderRef.current = null;
     }
-    setAnswer("");
     setRevealed(false);
+    setFlipped(false);
     setEvaluation(null);
     setShowRating(false);
-    setIsRecording(false);
+    setRecordingStatus("idle");
     setRecordedAudio(null);
+    setReadyToAdvance(false);
     if (recordedAudioUrl) {
       URL.revokeObjectURL(recordedAudioUrl);
     }
     setRecordedAudioUrl(null);
   }, [recordedAudioUrl]);
 
+  const advanceToNextCard = useCallback(() => {
+    setCurrentIndex((prev) => prev + 1);
+    resetCardState();
+  }, [resetCardState]);
+
   useEffect(() => {
     setSession(payload.session);
     setTasks(payload.tasks);
     setCards(payload.cards);
-    setItems(payload.items);
     setCurrentIndex(0);
     resetCardState();
     completedRef.current = false;
@@ -137,7 +154,6 @@ export const TrainingSessionShell: React.FC<TrainingSessionShellProps> = ({ payl
     recorder.stop();
     recorder.stream.getTracks().forEach((track) => track.stop());
     mediaRecorderRef.current = null;
-    setIsRecording(false);
   }, []);
 
   const startRecording = useCallback(async () => {
@@ -145,6 +161,12 @@ export const TrainingSessionShell: React.FC<TrainingSessionShellProps> = ({ payl
       if (!navigator?.mediaDevices?.getUserMedia) {
         throw new Error("Audio recording is not supported in this browser.");
       }
+      if (recordedAudioUrl) {
+        URL.revokeObjectURL(recordedAudioUrl);
+      }
+      setRecordedAudio(null);
+      setRecordedAudioUrl(null);
+      setReadyToAdvance(false);
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mimeType = pickMimeType();
       const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
@@ -154,7 +176,10 @@ export const TrainingSessionShell: React.FC<TrainingSessionShellProps> = ({ payl
         if (event.data.size > 0) audioChunksRef.current.push(event.data);
       };
       recorder.onstop = async () => {
-        if (!audioChunksRef.current.length) return;
+        if (!audioChunksRef.current.length) {
+          setRecordingStatus("idle");
+          return;
+        }
         const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || "audio/webm" });
         audioChunksRef.current = [];
         try {
@@ -162,50 +187,66 @@ export const TrainingSessionShell: React.FC<TrainingSessionShellProps> = ({ payl
           const url = URL.createObjectURL(blob);
           setRecordedAudio({ base64, mimeType: blob.type || "audio/webm" });
           setRecordedAudioUrl(url);
+          setRecordingStatus("review");
         } catch (err) {
           setError(err instanceof Error ? err.message : "Failed to process recording.");
+          setRecordingStatus("idle");
         }
       };
       recorder.start();
-      setIsRecording(true);
+      setRecordingStatus("recording");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to start recording.");
     }
-  }, []);
+  }, [recordedAudioUrl]);
 
   const handleRecord = () => {
-    if (!currentCard || currentCard.type !== "read_aloud") {
-      setError("Recording is available for read-aloud cards only.");
-      return;
-    }
-    if (isRecording) {
-      stopRecording();
-    } else {
-      setError(null);
-      startRecording();
-    }
+    if (recordingStatus !== "idle") return;
+    setError(null);
+    startRecording();
   };
 
-  const handleReveal = async () => {
-    if (!currentCard) return;
-    if (isRecording) {
-      stopRecording();
+  const handleStop = () => {
+    if (recordingStatus !== "recording") return;
+    stopRecording();
+  };
+
+  const handleCardToggle = () => {
+    if (!revealed) {
+      setRevealed(true);
+      return;
     }
-    setRevealed(true);
+    setFlipped((prev) => !prev);
+  };
+
+  const handleSend = async () => {
+    if (!currentCard) return;
+    const lastForItem = isLastCardForItem(currentIndex);
+
+    if (evaluation && readyToAdvance && !lastForItem) {
+      advanceToNextCard();
+      return;
+    }
+
+    if (evaluation && lastForItem) {
+      return;
+    }
+
+    if (!recordedAudio) {
+      setError("Please record your response before sending.");
+      return;
+    }
+
     setShowRating(false);
-    setLoadingAnswer(true);
+    setLoadingEvaluation(true);
     setError(null);
     try {
-      const payload: Record<string, unknown> = { cardId: currentCard.id, debug: debugMode };
-      if (currentCard.type === "read_aloud") {
-        if (!recordedAudio) {
-          throw new Error("Please record your read-aloud before revealing the answer.");
-        }
-        payload.audioBase64 = recordedAudio.base64;
-        payload.audioMimeType = recordedAudio.mimeType;
-      } else {
-        payload.answerText = answer;
-      }
+      const payload: Record<string, unknown> = {
+        cardId: currentCard.id,
+        debug: debugMode,
+        audioBase64: recordedAudio.base64,
+        audioMimeType: recordedAudio.mimeType,
+      };
 
       const response = await fetch("/api/training/card/evaluate", {
         method: "POST",
@@ -217,12 +258,20 @@ export const TrainingSessionShell: React.FC<TrainingSessionShellProps> = ({ payl
         throw new Error(data?.error || "Failed to evaluate answer.");
       }
       setEvaluation(data.evaluation as CardEvaluationSummary);
-      setShowRating(true);
+      if (lastForItem) {
+        setShowRating(true);
+        setReadyToAdvance(false);
+      } else {
+        setReadyToAdvance(true);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to evaluate answer.");
-      setShowRating(true);
+      if (lastForItem) {
+        setShowRating(true);
+      }
+      setReadyToAdvance(false);
     } finally {
-      setLoadingAnswer(false);
+      setLoadingEvaluation(false);
     }
   };
 
@@ -242,24 +291,36 @@ export const TrainingSessionShell: React.FC<TrainingSessionShellProps> = ({ payl
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save rating.");
     } finally {
-      const nextIndex = currentIndex + 1;
-      setCurrentIndex(nextIndex);
-      resetCardState();
+      advanceToNextCard();
     }
   };
 
   const handleSkip = () => {
     if (!currentCard) return;
-    const nextIndex = currentIndex + 1;
-    setCurrentIndex(nextIndex);
-    resetCardState();
+    if (recordingStatus === "recording") {
+      stopRecording();
+    }
+    if (isLastCardForItem(currentIndex)) {
+      setShowRating(true);
+      setReadyToAdvance(false);
+      return;
+    }
+    advanceToNextCard();
   };
 
   const handleRetry = () => {
-    setAnswer("");
+    setError(null);
     setEvaluation(null);
-    setRevealed(false);
     setShowRating(false);
+    setReadyToAdvance(false);
+    setRevealed(false);
+    setFlipped(false);
+    setRecordingStatus("idle");
+    setRecordedAudio(null);
+    if (recordedAudioUrl) {
+      URL.revokeObjectURL(recordedAudioUrl);
+      setRecordedAudioUrl(null);
+    }
   };
 
   const handlePlayAudio = async (text: string) => {
@@ -372,29 +433,49 @@ export const TrainingSessionShell: React.FC<TrainingSessionShellProps> = ({ payl
       <CardStack next={nextCard}>
         <ReviewCardView
           card={currentCard}
-          item={currentItem}
-          answer={answer}
           revealed={revealed}
-          evaluation={evaluation}
-          onAnswerChange={setAnswer}
-          onReveal={handleReveal}
+          flipped={flipped}
+          onToggle={handleCardToggle}
           onPlayAudio={handlePlayAudio}
-          loading={loadingAnswer}
         />
       </CardStack>
+
+      {evaluation && (
+        <div className="rounded-2xl border border-custom-border bg-white p-4 space-y-2">
+          <p className="text-sm font-semibold text-custom-text-dark">Coach Feedback</p>
+          <p className="text-sm text-custom-text-dark/70">{evaluation.feedback}</p>
+          {evaluation.corrections.length > 0 && (
+            <div className="text-xs text-custom-text-dark/60">
+              Corrections: {evaluation.corrections.join(" · ")}
+            </div>
+          )}
+          {evaluation.pronunciationScore !== undefined && (
+            <div className="text-xs text-custom-text-dark/60">
+              Pronunciation Score: {evaluation.pronunciationScore}{" "}
+              {evaluation.pronunciationPassed === undefined
+                ? ""
+                : evaluation.pronunciationPassed
+                  ? "(Pass)"
+                  : "(Retry)"}
+            </div>
+          )}
+        </div>
+      )}
 
       <DifficultySelector task={currentTask} open={showRating} onSelect={handleRate} />
 
       <TrainingControlBar
-        isRecording={isRecording}
-        recordEnabled={currentCard.type === "read_aloud"}
+        status={recordingStatus}
         onRecord={handleRecord}
+        onStop={handleStop}
         onRetry={handleRetry}
+        onSend={handleSend}
         onSkip={handleSkip}
-        disabled={loadingAnswer}
+        disabled={loadingEvaluation || showRating}
+        sendLabel={readyToAdvance ? "Next Card" : "Send"}
       />
 
-      {recordedAudioUrl && currentCard.type === "read_aloud" ? (
+      {recordedAudioUrl ? (
         <div className="text-xs text-custom-text-dark/60">
           Recording ready.{" "}
           <button

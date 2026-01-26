@@ -235,22 +235,23 @@ interface ReviewCard {
   
   // Content
   content: {
-    front: {
-      title: string;
-      prompt: string;         // Instruction. MUST NOT contain the target phrase directly,
-                              // BUT must strongly hint at the meaning/metaphor of the cue.
-      cue?: string | null;    // The target phrase (NotebookItem.phrase).
-      context?: string | null;// Background / Chinese text / English text to read
+    frontContent: {
+      context: string;        // Complete situational input (what's happening + background)
+      task: string;           // Minimal operational instructions (what to do + how to answer)
+      cue: string;            // The target phrase (NotebookItem.phrase)
     };
-    back: {
+    backContent: {
       referenceAnswer: string;
-      notes?: string[];
     };
   };
   metadata: {
     locale?: string;
     source?: "generated" | "manual" | "import";
     tags?: string[];
+    debug?: {
+      systemPrompt: string;
+      userPrompt: string;
+    };
   } | null;
   
   // Metadata
@@ -260,7 +261,7 @@ interface ReviewCard {
 }
 ```
 
-### 3.6 ReviewTask
+### 3.7 ReviewTask
 
 SRS scheduling entity.
 
@@ -277,7 +278,7 @@ interface ReviewTask {
 }
 ```
 
-### 3.7 StructuredNote (Copilot Output)
+### 3.8 StructuredNote (Copilot Output)
 
 Format for Copilot Distill/Inspiration responses.
 
@@ -402,6 +403,8 @@ interface StructuredNote {
 - List view with edit/delete actions
 - Normalized card format with all fields
 - Source tracking (StW, Zen, Ask, Training, Manual)
+- **Detailed View**: Clicking a notebook item navigates to `/notebook/[id]` to view its associated training cards.
+- **Card Management**: Supplemental generation (add more cards) and individual card deletion.
 - Celebratory empty state with shortcuts to Ask/Scenarios
 
 **API Endpoints**:
@@ -428,23 +431,31 @@ interface StructuredNote {
 #### 4.7.2 Card Types & Structures
 
 **1. Answer Generation (回答生成)**
-*Goal*: Use the target expression to respond naturally.
-*   **Front**: Context + Task (Hinting at phrase) + Hidden Cue.
+*Goal*: Use the target expression to respond naturally in a given scenario.
+*   **Context**: Complete situational input (e.g., "You're at a dinner... A friend says '...'").
+*   **Task**: Minimal instruction (e.g., "Respond naturally using the cue").
+*   **Cue**: The target phrase.
 *   **Back**: Reference Answer.
 
 **2. Ask a Question (提问练习)**
-*Goal*: Use the target expression to initiate.
-*   **Front**: Context + Task (Hinting at phrase) + Hidden Cue.
+*Goal*: Use the target expression to initiate a question or request.
+*   **Context**: Situation requiring a question.
+*   **Task**: Instruction to ask a question.
+*   **Cue**: The target phrase.
 *   **Back**: Reference Answer.
 
 **3. Translation (中译英)**
 *Goal*: Map L1 to L2.
-*   **Front**: Chinese Sentence + Task + Hidden Cue.
+*   **Context**: Chinese sentence to translate.
+*   **Task**: "Translate the sentence."
+*   **Cue**: The target phrase.
 *   **Back**: English Translation.
 
 **4. Read Aloud (朗读/跟读)**
-*Goal*: Pronunciation.
-*   **Front**: English Sentence + Task + Hidden Cue.
+*Goal*: Pronunciation practice.
+*   **Context**: A natural English sentence containing the phrase.
+*   **Task**: "Read the sentence aloud."
+*   **Cue**: The target phrase.
 *   **Back**: Reference Answer (Same as context).
 
 #### 4.7.3 Logic & Algorithms
@@ -453,39 +464,42 @@ interface StructuredNote {
 The number of cards and the probability of generating *new* cards depend on the user's last difficulty rating.
 
 *   **Card Count**: `N = 5 - D`, where `D` = 1 (Forgot), 2 (Hard), 3 (Good), 4 (Easy).
-*   **New Card Probability**: Configurable in Settings. Defaults:
-    * Forgot: 50% new
-    * Hard: 30% new
-    * Good: 30% new
-    * Easy: 20% new
+*   **Lazy Generation**: Sessions start immediately with existing cards; new cards are generated in the background.
+*   **Auto-generation**: One card of each type (4 total) is automatically generated for every new note saved.
 
 **2. Audio Strategy**
-*   **On-Demand**: Card Back has a "Play Audio" button.
-*   **Caching**: Client requests TTS -> Server generates/fetches -> Client plays.
+*   **On-Demand**: Card Back has a pronunciation icon next to the answer.
+*   **Read-Aloud**: Uses Azure Speech SDK for real-time assessment. Passing requires meeting a configurable threshold.
 
-**3. SRS Scheduling (Simplified SM-2)**
-*   **Forgot**: Interval = 1 day. Ease = Ease - 0.2.
+**3. SRS Scheduling (Modified SM-2)**
+*   **Forgot**: Interval = 1 day. Ease = Ease - 0.2. Repetition reset to 0.
 *   **Hard**: Interval = Current * Ease * 1.2. Ease = Ease - 0.15.
 *   **Good**: Interval = Current * Ease. Ease = Same.
 *   **Easy**: Interval = Current * Ease * 1.3. Ease = Ease + 0.15.
+*   **Fix**: Different difficulty levels result in different next-review intervals to ensure progressive learning.
 
 #### 4.7.4 Prompt Engineering
 
 Each card type uses a specific System Prompt to ensure stable generation quality.
-*   **Common Constraints**: Strictly Valid JSON, Context/Task in English, Cue Hiding (Task must not contain the exact target phrase).
+*   **Context vs. Task Separation**:
+    *   **Context**: Complete situational input (what’s happening + background).
+    *   **Task**: Minimal operational instructions (what to do + how to answer).
+*   **Common Constraints**: Strictly Valid JSON, Task must not contain the exact target phrase, Reference answer must contain the target phrase.
 
 #### 4.7.5 User Interface & Flow
 
-- **Top**: Modern Progress Bar (Visualizes remaining cards).
-- **Center**: Stacked Cards (Top active, bottom peeking).
-- **Bottom**: Control Bar (Idle -> Recording -> Evaluating -> Result).
-- **Right**: Copilot Panel (Distill only).
+- **Transition Page**: Displays session summary (note count, card count, new/old distribution) and a toggle to disable new card generation.
+- **Top**: Modern Progress Bar.
+- **Center**: Stacked Cards.
+- **Bottom**: Control Bar (Record/Retry/Send).
 - **Interaction**:
-  1.  **Present**: Card Front shows.
-  2.  **Action**: User holds Space / Clicks Mic to record.
-  3.  **Eval**: AI evaluates audio. (Pass -> Flip / Fail -> Retry/Skip).
-  4.  **Review**: Card Back shows reference.
-  5.  **Completion**: If last card for item -> Difficulty Overlay [Forgot/Hard/Good/Easy] -> Next Item.
+  1.  **Present**: Card Front shows `context`, `task`, and blurred `answer`.
+  2.  **Reveal**: Click card to unblur the answer.
+  3.  **Flip**: Click again to flip to back (shows *only* the answer).
+  4.  **Audio**: Pronunciation icon next to the answer on the back.
+  5.  **Evaluation**: Triggered by "Send" button after recording. Read-Aloud cards use Azure scores.
+  6.  **Difficulty Rating**: Shown only after the last card of a notebook item is completed.
+- **Copilot Integration**: Default collapsed panel. Auto-expands to show Azure scores or when "Distill" is triggered.
 
 **API Endpoints**:
 - `POST /api/training/session/start` - Generate review queue
@@ -542,6 +556,10 @@ Each card type uses a specific System Prompt to ensure stable generation quality
 - Copilot levels (Distill/Inspiration)
 - StW goal evaluation start turn (1-10)
 - Pronunciation assessment granularity (phoneme/word/fulltext)
+- **Training Settings**:
+  - Read-Aloud Passing Threshold (Azure score).
+  - New Card Generation Probabilities.
+  - **Clear All Training Cards**: Delete all cards while preserving notebook items.
 
 ---
 
@@ -656,7 +674,9 @@ Translation keys cover:
 
 | Method | Endpoint | Purpose |
 |--------|----------|---------|
-| POST | `/api/training/schedule` | Generate review queue |
+| POST | `/api/training/session/start` | Generate review queue |
+| POST | `/api/training/cards/regenerate` | Supplemental card generation |
+| GET/DELETE | `/api/training/cards` | List/Delete cards |
 
 ### 8.5 AI Configuration
 

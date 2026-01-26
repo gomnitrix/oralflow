@@ -63,173 +63,28 @@
   - [-] Update `NotebookItem` schema with SRS fields (srsLevel, nextReviewAt, lastDifficulty, etc.).
   - [-] Create `ReviewCard` schema (id, notebookItemId, type, content, metadata).
   - [-] Update SQLite tables/columns to match current Training & Review schema (no JSON migration).
-- [-] **Backend Services**:
-  - [-] Implement SRS Scheduling Algorithm (Service) with 'Forgot' logic (1-day interval).
-  - [-] **Fix Card Generator Service**: Strictly follow the design document for card types and prompts.
-    - DESIGN DOC 
-      ```markdown
-      4. Card Types & Structures
-        4.1 Answer Generation (回答生成)
-        Goal: Use the target expression to respond naturally.
-
-        JSON Structure:
-
-        {
-          "type": "answer_generation",
-          "frontContent": {
-            "context": "Your friend invites you to dinner tonight, but you are busy.",
-            "task": "Decline politely, implying you would like to accept the invitation at a later time.", 
-            "cue": "take a rain check"
-          },
-          "backContent": {
-            "referenceAnswer": "I'd love to, but can I take a rain check?"
-          }
-        }
-        UI: cue is shown as [*****]. User must recall "take a rain check" based on context + task hint.
-
-        4.2 Ask a Question (提问练习)
-        Goal: Use the target expression to initiate.
-
-        JSON Structure:
-
-        {
-          "type": "ask_question",
-          "frontContent": {
-            "context": "You are at a restaurant and finished eating.",
-            "task": "Ask the waiter for the bill (use the standard American term).",
-            "cue": "check"
-          },
-          "backContent": {
-            "referenceAnswer": "Could we get the check, please?"
-          }
-        }
-        4.3 Translation (中译英)
-        Goal: Map L1 to L2.
-
-        JSON Structure:
-
-        {
-          "type": "translation",
-          "frontContent": {
-            "context": "我们可以改天吗？",
-            "task": "Translate the sentence.",
-            "cue": "rain check"
-          },
-          "backContent": {
-            "referenceAnswer": "Can we take a rain check?"
-          }
-        }
-        4.4 Read Aloud (朗读/跟读)
-        Goal: Pronunciation.
-
-        JSON Structure:
-
-        {
-          "type": "read_aloud",
-          "frontContent": {
-            "context": "I'd love to join, but I'll have to take a rain check.",
-            "task": "Read the sentence aloud.",
-            "cue": "take a rain check" // Highlighted in the sentence
-          },
-          "backContent": {
-            "referenceAnswer": "I'd love to join, but I'll have to take a rain check."
-          }
-        }
-        5. Prompt Engineering
-        To ensure stable generation quality, each card type uses a specific System Prompt.
-
-        5.1 Common Constraints
-        Output Format: Strictly Valid JSON.
-        Language: Context/Task in English (unless specified), Reference in English.
-        Cue Hiding: The task MUST NOT contain the exact target phrase (cue). It should hint at the meaning or metaphor.
-        5.2 Prompts by Type
-        Type: Answer Generation
-        System Prompt:
-
-        You are an English teaching assistant. Generate a practice card for the target phrase: "{phrase}".
-        Type: Answer Generation.
-        Goal: Create a scenario where the user must use the phrase to respond naturally.
-        Output JSON structure:
-        {
-          "type": "answer_generation",
-          "frontContent": {
-            "context": "Brief situation description (1-2 sentences).",
-            "task": "Instruction for the user. MUST hint at the phrase's meaning/metaphor but NOT contain the phrase itself.",
-            "cue": "{phrase}"
-          },
-          "backContent": {
-            "referenceAnswer": "A natural response sentence containing the phrase."
-          }
-        }
-        Example for 'rain check':
-        Context: "Your friend invites you to dinner, but you are busy."
-        Task: "Decline politely, implying you want to reschedule."
-        Reference: "I'd love to, but can I take a rain check?"
-        Type: Ask a Question
-        System Prompt:
-
-        You are an English teaching assistant. Generate a practice card for the target phrase: "{phrase}".
-        Type: Ask a Question.
-        Goal: Create a scenario where the user must use the phrase to ask a question or make a request.
-        Output JSON structure:
-        {
-          "type": "ask_question",
-          "frontContent": {
-            "context": "Brief situation description.",
-            "task": "Instruction to ask a question. MUST hint at the phrase's meaning but NOT contain the phrase itself.",
-            "cue": "{phrase}"
-          },
-          "backContent": {
-            "referenceAnswer": "A natural question containing the phrase."
-          }
-        }
-        Example for 'check':
-        Context: "You finished eating at a restaurant."
-        Task: "Ask the waiter for the bill using the standard American term."
-        Reference: "Could we get the check, please?"
-        Type: Translation
-        System Prompt:
-
-        You are an English teaching assistant. Generate a practice card for the target phrase: "{phrase}".
-        Type: Translation.
-        Goal: Translate a Chinese sentence that perfectly maps to the target phrase.
-        Output JSON structure:
-        {
-          "type": "translation",
-          "frontContent": {
-            "context": "Chinese sentence to translate.",
-            "task": "Translate the sentence.",
-            "cue": "{phrase}"
-          },
-          "backContent": {
-            "referenceAnswer": "The English translation containing the phrase."
-          }
-        }
-        Example for 'rain check':
-        Context: "我们可以改天吗？"
-        Reference: "Can we take a rain check?"
-        Type: Read Aloud
-        System Prompt:
-
-        You are an English teaching assistant. Generate a practice card for the target phrase: "{phrase}".
-        Type: Read Aloud.
-        Goal: Provide a natural sentence containing the phrase for pronunciation practice.
-        Output JSON structure:
-        {
-          "type": "read_aloud",
-          "frontContent": {
-            "context": "A natural sentence containing the phrase.",
-            "task": "Read the sentence aloud.",
-            "cue": "{phrase}"
-          },
-          "backContent": {
-            "referenceAnswer": "Same as context."
-          }
-        }
-      ```
-    - [-] Ensure "Supplemental Generation" logic (don't delete existing cards).
+- [ ] **Backend Services**:
+  - [ ] Implement SRS Scheduling Algorithm (Service) with 'Forgot' logic (1-day interval).
+    - [ ] **Fix**: Ensure different difficulty levels result in different next-review intervals (not all 1d).
+  - [ ] **Auto-generate Initial Cards**: Automatically generate one card of each type (4 total) for every new note saved to the notebook.
+  - [-] **Optimize Card Generation Prompts (Context vs. Task Separation)**:
+    - **Requirement**: The current card generation prompts need further optimization. In the `answer_generation` and `ask_question` card types, the boundaries between the `context` and `task` fields are not clear enough. For example, a card front generated during testing:
+      - **Context**: You're at a small family dinner. After dessert the children start running around and shouting, making it hard to keep things calm.
+      - **Task**: Reply to a friend's comment "They're bouncing off the walls!" Agree and describe the kids using the casual phrase provided in the cue field (which means 'overly energetic' or 'hard to calm down'). Keep your reply to one natural sentence.
+      - **Cue**: a bit hyper
+      - *Issue*: The `task` contains information that should belong to the `context`, such as the friend's comment.
+    - **Ideal Division of Responsibilities**:
+      - **Context**: Responsible for providing a complete, natural, and vivid (but not excessively long) situation, containing all background information necessary for understanding and responding.
+        - *Example*: "You’re at a small family dinner. After dessert the children start running around and shouting, making it hard to keep things calm. A friend says, 'They’re bouncing off the walls!' You agree and reply: ___"
+      - **Task**: Responsible only for providing very brief task instructions and slight guidance on the direction of the answer, without repeating or supplementing situational details.
+        - *Example*: "Describe the children using a casual phrase which means 'overly energetic' or 'hard to calm down'."
+    - **Prompt Engineering Goals**:
+      - **Context** = Complete situational input (what’s happening + what has been said + you are about to respond).
+      - **Task** = Minimal operational instructions (what to do + how to answer)
+      - Adjust `answer_generation` and `ask_question` prompts to clarify and strengthen this division without significantly increasing redundancy.
+  - [x] Ensure "Supplemental Generation" logic (don't delete existing cards).
   - [-] **Fix Card Evaluator Service**:
-    - [-] Remove `score` field from evaluation prompts and logic.
+    - [x] Remove `score` field from evaluation prompts and logic.
     - [-] Ensure Read-Aloud cards bypass AI evaluation and use cached pronunciation results.
   - [-] **Implement TrainingSessionService**:
     - [-] Orchestrate queue and card selection.
@@ -241,13 +96,26 @@
   - [-] `POST /api/training/card/evaluate`: Submit audio/text for evaluation.
   - [-] `POST /api/training/item/rate`: Submit SRS rating (Forgot/Hard/Good/Easy).
   - [-] `GET /api/training/audio`: Generate TTS on-demand.
-- [-] **Frontend - Components**:
-  - [-] Create `CardStack` layout component with "peeking" effect.
-  - [-] Create `ReviewCard` component with 3D flip animation.
-  - [-] Create `TrainingControlBar` (Record/Skip/Retry).
-  - [-] Create `DifficultySelector` overlay with time intervals.
-  - [-] Create `TrainingProgressBar` component.
-  - [-] Update `Copilot` for Training mode (Distill only).
+- [ ] **Frontend - Components**:
+  - [ ] Create `CardStack` layout component with "peeking" effect.
+  - [-] **ReviewCard Component Enhancements**:
+    - [-] **Front Content**: Display `context`, `task`, and `answer` (blurred/masked). Remove `cue` and "Type your response" input.
+    - [-] **Back Content**: Display *only* the full `answer`. Remove "your answer", "notes", etc.
+    - [-] **Interaction**: Remove "Show Answer" button. Click card to reveal answer (unblur); click again to flip to back; click back to flip to front (answer remains revealed).
+    - [-] **Audio**: Remove "Play Context". Add a pronunciation icon next to the answer on the back (similar to notebook page).
+  - [-] **TrainingControlBar Alignment**:
+    - [-] Align Record/Retry/Send logic with STW page.
+    - [-] Retry and Send buttons only visible after recording is complete.
+    - [-] **Evaluation Trigger**: Card evaluation only starts when the user clicks the "Send" button (not automatically after recording).
+    - [-] Generic Record button (remove "Read Aloud" text).
+  - [-] **DifficultySelector Logic**:
+    - [-] Show only after the *last* card of a notebook item in the current session is completed or skipped.
+  - [ ] Create `TrainingProgressBar` component.
+  - [ ] **Copilot Integration for Training**:
+    - [ ] Add Copilot area (similar to STW), default collapsed.
+    - [ ] Auto-expand with animation to show Azure pronunciation scores after recording.
+    - [ ] Add "Distill" icon on card to trigger distill and expand Copilot.
+    - [ ] Support manual collapse/expand.
 - [-] **Frontend - Pages**:
   - [-] **Implement Training Transition Page**:
     - [-] Display summary: Note count, total card count, new vs. old card distribution.
