@@ -23,6 +23,8 @@ interface ReviewCardProps {
   flipped: boolean;
   onToggle: () => void;
   onPlayAudio?: (text: string) => void;
+  onDistill?: () => void;
+  distillDisabled?: boolean;
 }
 
 export const ReviewCard: React.FC<ReviewCardProps> = ({
@@ -31,6 +33,8 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
   flipped,
   onToggle,
   onPlayAudio,
+  onDistill,
+  distillDisabled = false,
 }) => {
   const front = card.content.frontContent;
   const back = card.content.backContent;
@@ -77,7 +81,23 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
           <div className="space-y-6 h-full flex flex-col">
             <div>
               <p className="text-xs uppercase tracking-[0.2em] text-custom-text-dark/50">Training Card</p>
-              <h2 className="text-3xl font-bold text-custom-text-dark">{typeLabel}</h2>
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="text-3xl font-bold text-custom-text-dark">{typeLabel}</h2>
+                {onDistill && (
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onDistill();
+                    }}
+                    disabled={distillDisabled}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-custom-border bg-white text-custom-text-dark/60 transition hover:text-custom-primary hover:bg-custom-primary/10 disabled:opacity-50"
+                    aria-label="Distill"
+                  >
+                    <span className="material-symbols-outlined text-lg">auto_awesome</span>
+                  </button>
+                )}
+              </div>
             </div>
             <div className="space-y-3">
               {renderContext()}

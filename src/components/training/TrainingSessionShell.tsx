@@ -8,7 +8,9 @@ import { TrainingControlBar } from "./TrainingControlBar";
 import { TrainingProgressBar } from "./TrainingProgressBar";
 import { CardStack } from "./CardStack";
 import { ReviewCard as ReviewCardView, type CardEvaluationSummary } from "./ReviewCard";
+import { TrainingCopilotPanel } from "./TrainingCopilotPanel";
 import { Button } from "../shared/Button";
+import type { StructuredNote } from "../../domains/copilot/models";
 
 interface SessionPayload {
   session: TrainingSession;
@@ -60,6 +62,10 @@ export const TrainingSessionShell: React.FC<TrainingSessionShellProps> = ({ payl
   const [recordedAudioUrl, setRecordedAudioUrl] = useState<string | null>(null);
   const [readyToAdvance, setReadyToAdvance] = useState(false);
   const [debugMode, setDebugMode] = useState(false);
+  const [copilotOpen, setCopilotOpen] = useState(false);
+  const [distillNotes, setDistillNotes] = useState<StructuredNote[]>([]);
+  const [distillLoading, setDistillLoading] = useState(false);
+  const [distillError, setDistillError] = useState<string | null>(null);
   const audioCacheRef = useRef<Record<string, string>>({});
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<BlobPart[]>([]);
@@ -70,6 +76,9 @@ export const TrainingSessionShell: React.FC<TrainingSessionShellProps> = ({ payl
   const currentTask = currentCard
     ? tasks.find((task) => task.notebookItemId === currentCard.notebookItemId) ?? null
     : null;
+  const distillSourceText = currentCard
+    ? currentCard.content.backContent.referenceAnswer || currentCard.content.frontContent.context
+    : "";
 
   const isLastCardForItem = useCallback(
     (index: number) => {
@@ -98,6 +107,10 @@ export const TrainingSessionShell: React.FC<TrainingSessionShellProps> = ({ payl
     setRecordingStatus("idle");
     setRecordedAudio(null);
     setReadyToAdvance(false);
+    setDistillNotes([]);
+    setDistillError(null);
+    setDistillLoading(false);
+    setCopilotOpen(false);
     if (recordedAudioUrl) {
       URL.revokeObjectURL(recordedAudioUrl);
     }
@@ -147,6 +160,12 @@ export const TrainingSessionShell: React.FC<TrainingSessionShellProps> = ({ payl
       });
     }
   }, [cards, currentIndex, onComplete, session]);
+
+  useEffect(() => {
+    if (evaluation?.pronunciationScore !== undefined) {
+      setCopilotOpen(true);
+    }
+  }, [evaluation?.pronunciationScore]);
 
   const stopRecording = useCallback(() => {
     const recorder = mediaRecorderRef.current;
@@ -275,6 +294,34 @@ export const TrainingSessionShell: React.FC<TrainingSessionShellProps> = ({ payl
     }
   };
 
+  const handleDistill = async () => {
+    if (!currentCard) return;
+    const sourceText = currentCard.content.backContent.referenceAnswer || currentCard.content.frontContent.context;
+    if (!sourceText.trim()) {
+      setDistillError("No text available to distill.");
+      return;
+    }
+    setDistillLoading(true);
+    setDistillError(null);
+    try {
+      const response = await fetch("/api/training/copilot/distill", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: sourceText, cardId: currentCard.id }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data?.error || "Failed to distill notes.");
+      }
+      setDistillNotes((data?.insight?.structuredNotes ?? []) as StructuredNote[]);
+      setCopilotOpen(true);
+    } catch (err) {
+      setDistillError(err instanceof Error ? err.message : "Failed to distill notes.");
+    } finally {
+      setDistillLoading(false);
+    }
+  };
+
   const handleRate = async (rating: "forgot" | "hard" | "good" | "easy") => {
     if (!currentCard) return;
     setError(null);
@@ -317,6 +364,10 @@ export const TrainingSessionShell: React.FC<TrainingSessionShellProps> = ({ payl
     setFlipped(false);
     setRecordingStatus("idle");
     setRecordedAudio(null);
+    setCopilotOpen(false);
+    setDistillNotes([]);
+    setDistillError(null);
+    setDistillLoading(false);
     if (recordedAudioUrl) {
       URL.revokeObjectURL(recordedAudioUrl);
       setRecordedAudioUrl(null);
@@ -382,116 +433,136 @@ export const TrainingSessionShell: React.FC<TrainingSessionShellProps> = ({ payl
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <TrainingProgressBar current={currentIndex + 1} total={cards.length} />
-        <button
-          onClick={toggleDebug}
-          className={`text-xs font-mono px-2 py-1 rounded border ${debugMode
-            ? "bg-custom-primary/10 border-custom-primary text-custom-primary"
-            : "bg-transparent border-transparent text-custom-text-dark/30 hover:text-custom-text-dark/60"
-            }`}
-        >
-          DEBUG
-        </button>
-      </div>
-
-      {error && (
-        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-          {error}
-        </div>
-      )}
-
-      {debugMode && currentTask && currentCard && (
-        <div className="rounded-xl bg-gray-50 border border-gray-200 p-3 text-xs font-mono text-gray-600 space-y-2">
-          <div>
-            <p><strong>Task ID:</strong> {currentTask.id}</p>
-            <p><strong>Card ID:</strong> {currentCard.id}</p>
-            <p><strong>SRS State:</strong> Interval={currentTask.intervalDays}d | Ease={currentTask.easeFactor.toFixed(2)} | Reps={currentTask.repetitionCount}</p>
-            <p><strong>Due:</strong> {new Date(currentTask.dueAt).toLocaleString()}</p>
-            <p><strong>Status:</strong> {currentTask.status}</p>
-          </div>
-          {currentCard.metadata?.debug && (
-            <div className="space-y-1">
-              <p><strong>Generator System Prompt:</strong></p>
-              <pre className="whitespace-pre-wrap">{currentCard.metadata.debug.systemPrompt}</pre>
-              <p><strong>Generator User Prompt:</strong></p>
-              <pre className="whitespace-pre-wrap">{currentCard.metadata.debug.userPrompt}</pre>
-            </div>
-          )}
-          {evaluation?.debug && (
-            <div className="space-y-1">
-              <p><strong>Evaluator System Prompt:</strong></p>
-              <pre className="whitespace-pre-wrap">{evaluation.debug.systemPrompt}</pre>
-              <p><strong>Evaluator User Prompt:</strong></p>
-              <pre className="whitespace-pre-wrap">{evaluation.debug.userPrompt}</pre>
-            </div>
-          )}
-        </div>
-      )}
-
-      <CardStack next={nextCard}>
-        <ReviewCardView
-          card={currentCard}
-          revealed={revealed}
-          flipped={flipped}
-          onToggle={handleCardToggle}
-          onPlayAudio={handlePlayAudio}
-        />
-      </CardStack>
-
-      {evaluation && (
-        <div className="rounded-2xl border border-custom-border bg-white p-4 space-y-2">
-          <p className="text-sm font-semibold text-custom-text-dark">Coach Feedback</p>
-          <p className="text-sm text-custom-text-dark/70">{evaluation.feedback}</p>
-          {evaluation.corrections.length > 0 && (
-            <div className="text-xs text-custom-text-dark/60">
-              Corrections: {evaluation.corrections.join(" · ")}
-            </div>
-          )}
-          {evaluation.pronunciationScore !== undefined && (
-            <div className="text-xs text-custom-text-dark/60">
-              Pronunciation Score: {evaluation.pronunciationScore}{" "}
-              {evaluation.pronunciationPassed === undefined
-                ? ""
-                : evaluation.pronunciationPassed
-                  ? "(Pass)"
-                  : "(Retry)"}
-            </div>
-          )}
-        </div>
-      )}
-
-      <DifficultySelector task={currentTask} open={showRating} onSelect={handleRate} />
-
-      <TrainingControlBar
-        status={recordingStatus}
-        onRecord={handleRecord}
-        onStop={handleStop}
-        onRetry={handleRetry}
-        onSend={handleSend}
-        onSkip={handleSkip}
-        disabled={loadingEvaluation || showRating}
-        sendLabel={readyToAdvance ? "Next Card" : "Send"}
-      />
-
-      {recordedAudioUrl ? (
-        <div className="text-xs text-custom-text-dark/60">
-          Recording ready.{" "}
+    <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_320px] gap-6">
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <TrainingProgressBar current={currentIndex + 1} total={cards.length} />
           <button
-            className="text-custom-primary hover:underline"
-            onClick={() => new Audio(recordedAudioUrl).play()}
+            onClick={toggleDebug}
+            className={`text-xs font-mono px-2 py-1 rounded border ${debugMode
+              ? "bg-custom-primary/10 border-custom-primary text-custom-primary"
+              : "bg-transparent border-transparent text-custom-text-dark/30 hover:text-custom-text-dark/60"
+              }`}
           >
-            Play recording
+            DEBUG
           </button>
         </div>
-      ) : null}
 
-      {session && (
-        <p className="text-xs text-custom-text-dark/50">
-          Session ID: {session.id}
-        </p>
-      )}
+        {error && (
+          <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+            {error}
+          </div>
+        )}
+
+        {debugMode && currentTask && currentCard && (
+          <div className="rounded-xl bg-gray-50 border border-gray-200 p-3 text-xs font-mono text-gray-600 space-y-2">
+            <div>
+              <p><strong>Task ID:</strong> {currentTask.id}</p>
+              <p><strong>Card ID:</strong> {currentCard.id}</p>
+              <p><strong>SRS State:</strong> Interval={currentTask.intervalDays}d | Ease={currentTask.easeFactor.toFixed(2)} | Reps={currentTask.repetitionCount}</p>
+              <p><strong>Due:</strong> {new Date(currentTask.dueAt).toLocaleString()}</p>
+              <p><strong>Status:</strong> {currentTask.status}</p>
+            </div>
+            {currentCard.metadata?.debug && (
+              <div className="space-y-1">
+                <p><strong>Generator System Prompt:</strong></p>
+                <pre className="whitespace-pre-wrap">{currentCard.metadata.debug.systemPrompt}</pre>
+                <p><strong>Generator User Prompt:</strong></p>
+                <pre className="whitespace-pre-wrap">{currentCard.metadata.debug.userPrompt}</pre>
+              </div>
+            )}
+            {evaluation?.debug && (
+              <div className="space-y-1">
+                <p><strong>Evaluator System Prompt:</strong></p>
+                <pre className="whitespace-pre-wrap">{evaluation.debug.systemPrompt}</pre>
+                <p><strong>Evaluator User Prompt:</strong></p>
+                <pre className="whitespace-pre-wrap">{evaluation.debug.userPrompt}</pre>
+              </div>
+            )}
+          </div>
+        )}
+
+        <CardStack next={nextCard}>
+          <ReviewCardView
+            card={currentCard}
+            revealed={revealed}
+            flipped={flipped}
+            onToggle={handleCardToggle}
+            onPlayAudio={handlePlayAudio}
+            onDistill={handleDistill}
+            distillDisabled={distillLoading}
+          />
+        </CardStack>
+
+        {evaluation && (
+          <div className="rounded-2xl border border-custom-border bg-white p-4 space-y-2">
+            <p className="text-sm font-semibold text-custom-text-dark">Coach Feedback</p>
+            <p className="text-sm text-custom-text-dark/70">{evaluation.feedback}</p>
+            {evaluation.corrections.length > 0 && (
+              <div className="text-xs text-custom-text-dark/60">
+                Corrections: {evaluation.corrections.join(" · ")}
+              </div>
+            )}
+            {evaluation.pronunciationScore !== undefined && (
+              <div className="text-xs text-custom-text-dark/60">
+                Pronunciation Score: {evaluation.pronunciationScore}{" "}
+                {evaluation.pronunciationPassed === undefined
+                  ? ""
+                  : evaluation.pronunciationPassed
+                    ? "(Pass)"
+                    : "(Retry)"}
+              </div>
+            )}
+          </div>
+        )}
+
+        <DifficultySelector task={currentTask} open={showRating} onSelect={handleRate} />
+
+        <TrainingControlBar
+          status={recordingStatus}
+          onRecord={handleRecord}
+          onStop={handleStop}
+          onRetry={handleRetry}
+          onSend={handleSend}
+          onSkip={handleSkip}
+          disabled={loadingEvaluation || showRating}
+          sendLabel={readyToAdvance ? "Next Card" : "Send"}
+        />
+
+        {recordedAudioUrl ? (
+          <div className="text-xs text-custom-text-dark/60">
+            Recording ready.{" "}
+            <button
+              className="text-custom-primary hover:underline"
+              onClick={() => new Audio(recordedAudioUrl).play()}
+            >
+              Play recording
+            </button>
+          </div>
+        ) : null}
+
+        {session && (
+          <p className="text-xs text-custom-text-dark/50">
+            Session ID: {session.id}
+          </p>
+        )}
+      </div>
+
+      <div className="lg:sticky lg:top-6 h-fit">
+        <TrainingCopilotPanel
+          open={copilotOpen}
+          onToggle={() => setCopilotOpen((prev) => !prev)}
+          loading={distillLoading}
+          error={distillError}
+          notes={distillNotes}
+          sourceText={distillSourceText}
+          cardId={currentCard?.id ?? null}
+          pronunciationScore={evaluation?.pronunciationScore}
+          pronunciationPassed={evaluation?.pronunciationPassed}
+          pronunciationFeedback={evaluation?.feedback}
+          onDistill={handleDistill}
+        />
+      </div>
     </div>
   );
 };

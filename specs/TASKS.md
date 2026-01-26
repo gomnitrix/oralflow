@@ -59,15 +59,15 @@
   - [-] Support "Delete" action for individual training card.
 
 ### Training & Review
-- [-] **Database & Schema**:
-  - [-] Update `NotebookItem` schema with SRS fields (srsLevel, nextReviewAt, lastDifficulty, etc.).
-  - [-] Create `ReviewCard` schema (id, notebookItemId, type, content, metadata).
-  - [-] Update SQLite tables/columns to match current Training & Review schema (no JSON migration).
+- [x] **Database & Schema**:
+  - [x] Update `NotebookItem` schema with SRS fields (srsLevel, nextReviewAt, lastDifficulty, etc.).
+  - [x] Create `ReviewCard` schema (id, notebookItemId, type, content, metadata).
+  - [x] Update SQLite tables/columns to match current Training & Review schema (no JSON migration).
 - [ ] **Backend Services**:
-  - [ ] Implement SRS Scheduling Algorithm (Service) with 'Forgot' logic (1-day interval).
-    - [ ] **Fix**: Ensure different difficulty levels result in different next-review intervals (not all 1d).
+  - [-] Implement SRS Scheduling Algorithm (Service) with 'Forgot' logic (1-day interval).
+    - [-] **Fix**: Ensure different difficulty levels result in different next-review intervals (not all 1d).
   - [-] **Auto-generate Initial Cards**: Automatically generate one card of each type (4 total) for every new note saved to the notebook.
-  - [-] **Optimize Card Generation Prompts (Context vs. Task Separation)**:
+  - [x] **Optimize Card Generation Prompts (Context vs. Task Separation)**:
     - **Requirement**: The current card generation prompts need further optimization. In the `answer_generation` and `ask_question` card types, the boundaries between the `context` and `task` fields are not clear enough. For example, a card front generated during testing:
       - **Context**: You're at a small family dinner. After dessert the children start running around and shouting, making it hard to keep things calm.
       - **Task**: Reply to a friend's comment "They're bouncing off the walls!" Agree and describe the kids using the casual phrase provided in the cue field (which means 'overly energetic' or 'hard to calm down'). Keep your reply to one natural sentence.
@@ -97,7 +97,7 @@
   - [-] `POST /api/training/item/rate`: Submit SRS rating (Forgot/Hard/Good/Easy).
   - [-] `GET /api/training/audio`: Generate TTS on-demand.
 - [ ] **Frontend - Components**:
-  - [ ] Create `CardStack` layout component with "peeking" effect.
+  - [-] Create `CardStack` layout component with "peeking" effect.
   - [-] **ReviewCard Component Enhancements**:
     - [-] **Front Content**: Display `context`, `task`, and `answer` (blurred/masked). `cue` content is hollowed out from the `answer` text on the front. Remove `cue` and "Type your response" input.
     - [-] **Back Content**: Display *only* the full `answer`. Remove "your answer", "notes", etc.
@@ -110,30 +110,30 @@
     - [-] Generic Record button (remove "Read Aloud" text).
   - [-] **DifficultySelector Logic**:
     - [-] Show only after the *last* card of a notebook item in the current session is completed or skipped.
-  - [ ] Create `TrainingProgressBar` component.
-  - [ ] **Copilot Integration for Training**:
-    - [ ] Add Copilot area (similar to STW), default collapsed.
-    - [ ] Auto-expand with animation to show Azure pronunciation scores after recording. and auto-collapse after retry or send.
-    - [ ] Add "Distill" icon on card to trigger distill and expand Copilot.
-    - [ ] Support manual collapse/expand.
+  - [-] Create `TrainingProgressBar` component.
+  - [-] **Copilot Integration for Training**:
+    - [-] Add Copilot area (similar to STW), default collapsed.
+    - [-] Auto-expand with animation to show Azure pronunciation scores after recording. and auto-collapse after retry or send.
+    - [-] Add "Distill" icon on card to trigger distill and expand Copilot.
+    - [-] Support manual collapse/expand.
 - [-] **Frontend - Pages**:
-  - [-] **Implement Training Transition Page**:
-    - [-] Display summary: Note count, total card count, new vs. old card distribution.
-    - [-] Add toggle: "Disable New Card Generation" (default OFF).
-    - [-] "Start Training" button to enter the session.
-  - [-] **Implement `/training` page logic**:
-    - [-] Remove "Preparing your session..." blocker.
-    - [-] Session state machine (Transition -> Active -> Summary).
-  - [-] Implement `/models` configuration for Training models (Generator/Evaluator).
+  - [x] **Implement Training Transition Page**:
+    - [x] Display summary: Note count, total card count, new vs. old card distribution.
+    - [x] Add toggle: "Disable New Card Generation" (default OFF).
+    - [x] "Start Training" button to enter the session.
+  - [x] **Implement `/training` page logic**:
+    - [x] Remove "Preparing your session..." blocker.
+    - [x] Session state machine (Transition -> Active -> Summary).
+  - [x] Implement `/models` configuration for Training models (Generator/Evaluator).
   - [-] **Implement `/settings` configuration**:
-    - [-] **Read-Aloud Passing Threshold**: Configure the minimum Azure pronunciation score required to pass.
+    - [x] **Read-Aloud Passing Threshold**: Configure the minimum Azure pronunciation score required to pass.
     - [-] New Card Generation Probabilities (Forgot/Hard/Good/Easy).
-    - [-] **Clear All Training Cards**: Button with confirmation dialog to delete all cards (keep notes).
-- [-] **Debugging & Observability**:
-  - [-] Add detailed logging for SRS interval calculations.
-  - [-] Implement a "Debug Mode" toggle in Training session to show AI reasoning/prompts.
-  - [-] Create a script/tool to verify SQLite data integrity for SRS fields.
-  - [-] Add error boundaries and descriptive error states for card generation failures.
+    - [x] **Clear All Training Cards**: Button with confirmation dialog to delete all cards (keep notes).
+- [x] **Debugging & Observability**:
+  - [x] Add detailed logging for SRS interval calculations.
+  - [x] Implement a "Debug Mode" toggle in Training session to show AI reasoning/prompts.
+  - [x] Create a script/tool to verify SQLite data integrity for SRS fields.
+  - [x] Add error boundaries and descriptive error states for card generation failures.
 
 ### Ask Page
 

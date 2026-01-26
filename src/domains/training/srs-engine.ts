@@ -9,12 +9,6 @@ const ratingAdjustments: Record<Rating, { intervalMultiplier: number; easeDelta:
   easy: { intervalMultiplier: 1.3, easeDelta: 0.15 },
 };
 
-const initialIntervalForRepetition = (repetition: number): number => {
-  if (repetition <= 1) return 1;
-  if (repetition === 2) return 6;
-  return 0;
-};
-
 export const scheduleNext = (task: ReviewTask, rating: Rating): ReviewTask => {
   const adjustment = ratingAdjustments[rating];
   const nextEase = Math.max(1.3, task.easeFactor + adjustment.easeDelta);
@@ -39,15 +33,16 @@ export const scheduleNext = (task: ReviewTask, rating: Rating): ReviewTask => {
   }
 
   const nextRepetition = task.repetitionCount + 1;
-  const baseInterval = initialIntervalForRepetition(nextRepetition);
-  const nextInterval = baseInterval
-    ? Math.round(baseInterval * adjustment.intervalMultiplier)
-    : Math.max(1, Math.round(task.intervalDays * nextEase * adjustment.intervalMultiplier));
+  const currentInterval = Math.max(1, task.intervalDays || 1);
+  const rawInterval = currentInterval * nextEase * adjustment.intervalMultiplier;
+  const nextInterval = Math.max(1, Math.ceil(rawInterval));
 
   const dueAt = new Date(reviewedAt);
   dueAt.setDate(dueAt.getDate() + nextInterval);
 
-  console.log(`[SRS] Next Interval: ${nextInterval} days. New Ease: ${nextEase}. Reps: ${nextRepetition}`);
+  console.log(
+    `[SRS] Next Interval: ${nextInterval} days (raw ${rawInterval.toFixed(2)}). New Ease: ${nextEase}. Reps: ${nextRepetition}`
+  );
 
   return createReviewTask({
     ...task,
