@@ -66,7 +66,7 @@
 - [ ] **Backend Services**:
   - [ ] Implement SRS Scheduling Algorithm (Service) with 'Forgot' logic (1-day interval).
     - [ ] **Fix**: Ensure different difficulty levels result in different next-review intervals (not all 1d).
-  - [ ] **Auto-generate Initial Cards**: Automatically generate one card of each type (4 total) for every new note saved to the notebook.
+  - [-] **Auto-generate Initial Cards**: Automatically generate one card of each type (4 total) for every new note saved to the notebook.
   - [-] **Optimize Card Generation Prompts (Context vs. Task Separation)**:
     - **Requirement**: The current card generation prompts need further optimization. In the `answer_generation` and `ask_question` card types, the boundaries between the `context` and `task` fields are not clear enough. For example, a card front generated during testing:
       - **Context**: You're at a small family dinner. After dessert the children start running around and shouting, making it hard to keep things calm.
@@ -99,7 +99,7 @@
 - [ ] **Frontend - Components**:
   - [ ] Create `CardStack` layout component with "peeking" effect.
   - [-] **ReviewCard Component Enhancements**:
-    - [-] **Front Content**: Display `context`, `task`, and `answer` (blurred/masked). Remove `cue` and "Type your response" input.
+    - [-] **Front Content**: Display `context`, `task`, and `answer` (blurred/masked). `cue` content is hollowed out from the `answer` text on the front. Remove `cue` and "Type your response" input.
     - [-] **Back Content**: Display *only* the full `answer`. Remove "your answer", "notes", etc.
     - [-] **Interaction**: Remove "Show Answer" button. Click card to reveal answer (unblur); click again to flip to back; click back to flip to front (answer remains revealed).
     - [-] **Audio**: Remove "Play Context". Add a pronunciation icon next to the answer on the back (similar to notebook page).
@@ -113,7 +113,7 @@
   - [ ] Create `TrainingProgressBar` component.
   - [ ] **Copilot Integration for Training**:
     - [ ] Add Copilot area (similar to STW), default collapsed.
-    - [ ] Auto-expand with animation to show Azure pronunciation scores after recording.
+    - [ ] Auto-expand with animation to show Azure pronunciation scores after recording. and auto-collapse after retry or send.
     - [ ] Add "Distill" icon on card to trigger distill and expand Copilot.
     - [ ] Support manual collapse/expand.
 - [-] **Frontend - Pages**:

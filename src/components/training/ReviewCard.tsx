@@ -41,6 +41,15 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
     read_aloud: "Read Aloud",
   }[card.type];
 
+  const maskCueInAnswer = (answer: string, cue: string) => {
+    if (!answer || !cue) return answer;
+    const escaped = cue.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regex = new RegExp(escaped, "gi");
+    return answer.replace(regex, (match) => "_".repeat(Math.max(4, match.length)));
+  };
+
+  const maskedAnswer = maskCueInAnswer(back.referenceAnswer, front.cue);
+
   const renderContext = () => {
     if (!front.context) return null;
     return <p className="text-sm text-custom-text-dark/60">{front.context}</p>;
@@ -81,7 +90,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
                     : "text-custom-text-dark/30 blur-sm select-none"
                     }`}
                 >
-                  {back.referenceAnswer}
+                  {maskedAnswer}
                 </p>
               </div>
             </div>
