@@ -77,7 +77,16 @@ export const TrainingSessionShell: React.FC<TrainingSessionShellProps> = ({ payl
     ? tasks.find((task) => task.notebookItemId === currentCard.notebookItemId) ?? null
     : null;
   const distillSourceText = currentCard
-    ? currentCard.content.backContent.referenceAnswer || currentCard.content.frontContent.context
+    ? currentCard.type === "translation"
+      ? currentCard.content.backContent.referenceAnswer
+      : currentCard.type === "read_aloud"
+        ? currentCard.content.frontContent.context
+        : [
+          currentCard.content.frontContent.context,
+          currentCard.content.backContent.referenceAnswer,
+        ]
+          .filter(Boolean)
+          .join("\n")
     : "";
 
   const isLastCardForItem = useCallback(
@@ -296,7 +305,7 @@ export const TrainingSessionShell: React.FC<TrainingSessionShellProps> = ({ payl
 
   const handleDistill = async () => {
     if (!currentCard) return;
-    const sourceText = currentCard.content.backContent.referenceAnswer || currentCard.content.frontContent.context;
+    const sourceText = distillSourceText;
     if (!sourceText.trim()) {
       setDistillError("No text available to distill.");
       return;
@@ -313,7 +322,12 @@ export const TrainingSessionShell: React.FC<TrainingSessionShellProps> = ({ payl
       if (!response.ok) {
         throw new Error(data?.error || "Failed to distill notes.");
       }
-      setDistillNotes((data?.insight?.structuredNotes ?? []) as StructuredNote[]);
+      const cue = currentCard.content.frontContent.cue?.trim().toLowerCase();
+      const rawNotes = (data?.insight?.structuredNotes ?? []) as StructuredNote[];
+      const filtered = cue
+        ? rawNotes.filter((note) => note.content.trim().toLowerCase() !== cue)
+        : rawNotes;
+      setDistillNotes(filtered);
       setCopilotOpen(true);
     } catch (err) {
       setDistillError(err instanceof Error ? err.message : "Failed to distill notes.");
@@ -433,7 +447,7 @@ export const TrainingSessionShell: React.FC<TrainingSessionShellProps> = ({ payl
   }
 
   return (
-    <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_320px] gap-6">
+    <div className="relative">
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <TrainingProgressBar current={currentIndex + 1} total={cards.length} />
@@ -548,10 +562,25 @@ export const TrainingSessionShell: React.FC<TrainingSessionShellProps> = ({ payl
         )}
       </div>
 
-      <div className="lg:sticky lg:top-6 h-fit">
+      <div
+        className={`fixed right-0 top-0 z-40 flex h-screen w-[320px] max-w-[90vw] flex-col bg-white shadow-xl transition-transform duration-300 ${copilotOpen ? "translate-x-0" : "translate-x-full"
+          }`}
+      >
+        <div className="flex items-center justify-between border-b border-custom-border px-4 py-3">
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-custom-text-dark/50">Copilot Coach</p>
+            <p className="text-sm font-semibold text-custom-text-dark">Training Insights</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setCopilotOpen(false)}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-custom-border text-custom-text-dark/60 hover:text-custom-text-dark"
+            aria-label="Close Copilot"
+          >
+            <span className="material-symbols-outlined text-base">close</span>
+          </button>
+        </div>
         <TrainingCopilotPanel
-          open={copilotOpen}
-          onToggle={() => setCopilotOpen((prev) => !prev)}
           loading={distillLoading}
           error={distillError}
           notes={distillNotes}
@@ -563,6 +592,16 @@ export const TrainingSessionShell: React.FC<TrainingSessionShellProps> = ({ payl
           onDistill={handleDistill}
         />
       </div>
+
+      {!copilotOpen && (
+        <button
+          type="button"
+          onClick={() => setCopilotOpen(true)}
+          className="fixed right-0 top-1/2 z-30 -translate-y-1/2 rounded-l-2xl border border-custom-border bg-white px-3 py-4 text-xs font-semibold text-custom-text-dark shadow-md hover:bg-custom-bg"
+        >
+          Copilot
+        </button>
+      )}
     </div>
   );
 };

@@ -14,7 +14,7 @@
 
 > **Important**: Only the maintainer can mark tasks as `[x]` completed after verification.  
 > AI/developers should mark completed work as `[-]` (implemented, pending verification).  
-> **Auto-commit & Push**: After verifying changes, automatically commit and push using conventional commit format.
+> **Auto-commit & Push**: After verifying changes, (remove data/ folder) automatically commit and push using conventional commit format.
 
 ---
 
@@ -49,39 +49,12 @@
 - [~] Integration tests for scenario flows - basic coverage
 
 ### Notebook
-- [~] Notebook card details need polish and field completion
-- [-] **Notebook Debugging & UI Enhancement**:
-  - [-] Navigate to a new page for card viewing when clicking a notebook item (instead of expanding in-place).
-  - [-] Implement a "Training Card Directory" page for each note.
-  - [-] Display a list of all associated `ReviewCard` items for the selected note.
-  - [-] Show full card information (Type, Cue, Answer, Metadata) in the list for debugging.
-  - [-] Support "Supplemental Generation" action for individual notebook items (add cards without deleting existing ones).
-  - [-] Support "Delete" action for individual training card.
 
 ### Training & Review
-- [x] **Database & Schema**:
-  - [x] Update `NotebookItem` schema with SRS fields (srsLevel, nextReviewAt, lastDifficulty, etc.).
-  - [x] Create `ReviewCard` schema (id, notebookItemId, type, content, metadata).
-  - [x] Update SQLite tables/columns to match current Training & Review schema (no JSON migration).
 - [ ] **Backend Services**:
-  - [-] Implement SRS Scheduling Algorithm (Service) with 'Forgot' logic (1-day interval).
-    - [-] **Fix**: Ensure different difficulty levels result in different next-review intervals (not all 1d).
+  - [ ] Implement SRS Scheduling Algorithm (Service) with 'Forgot' logic (1-day interval).
+    - [ ] **Fix**: Ensure different difficulty levels result in different next-review intervals (not all 1d).
   - [-] **Auto-generate Initial Cards**: Automatically generate one card of each type (4 total) for every new note saved to the notebook.
-  - [x] **Optimize Card Generation Prompts (Context vs. Task Separation)**:
-    - **Requirement**: The current card generation prompts need further optimization. In the `answer_generation` and `ask_question` card types, the boundaries between the `context` and `task` fields are not clear enough. For example, a card front generated during testing:
-      - **Context**: You're at a small family dinner. After dessert the children start running around and shouting, making it hard to keep things calm.
-      - **Task**: Reply to a friend's comment "They're bouncing off the walls!" Agree and describe the kids using the casual phrase provided in the cue field (which means 'overly energetic' or 'hard to calm down'). Keep your reply to one natural sentence.
-      - **Cue**: a bit hyper
-      - *Issue*: The `task` contains information that should belong to the `context`, such as the friend's comment.
-    - **Ideal Division of Responsibilities**:
-      - **Context**: Responsible for providing a complete, natural, and vivid (but not excessively long) situation, containing all background information necessary for understanding and responding.
-        - *Example*: "You’re at a small family dinner. After dessert the children start running around and shouting, making it hard to keep things calm. A friend says, 'They’re bouncing off the walls!' You agree and reply: ___"
-      - **Task**: Responsible only for providing very brief task instructions and slight guidance on the direction of the answer, without repeating or supplementing situational details.
-        - *Example*: "Describe the children using a casual phrase which means 'overly energetic' or 'hard to calm down'."
-    - **Prompt Engineering Goals**:
-      - **Context** = Complete situational input (what’s happening + what has been said + you are about to respond).
-      - **Task** = Minimal operational instructions (what to do + how to answer)
-      - Adjust `answer_generation` and `ask_question` prompts to clarify and strengthen this division without significantly increasing redundancy.
   - [x] Ensure "Supplemental Generation" logic (don't delete existing cards).
   - [-] **Fix Card Evaluator Service**:
     - [x] Remove `score` field from evaluation prompts and logic.
@@ -97,7 +70,7 @@
   - [-] `POST /api/training/item/rate`: Submit SRS rating (Forgot/Hard/Good/Easy).
   - [-] `GET /api/training/audio`: Generate TTS on-demand.
 - [ ] **Frontend - Components**:
-  - [-] Create `CardStack` layout component with "peeking" effect.
+  - [ ] Create `CardStack` layout component with "peeking" effect.
   - [-] **ReviewCard Component Enhancements**:
     - [-] **Front Content**: Display `context`, `task`, and `answer` (blurred/masked). `cue` content is hollowed out from the `answer` text on the front. Remove `cue` and "Type your response" input.
     - [-] **Back Content**: Display *only* the full `answer`. Remove "your answer", "notes", etc.
@@ -108,22 +81,15 @@
     - [-] Retry and Send buttons only visible after recording is complete.
     - [-] **Evaluation Trigger**: Card evaluation only starts when the user clicks the "Send" button (not automatically after recording).
     - [-] Generic Record button (remove "Read Aloud" text).
-  - [-] **DifficultySelector Logic**:
-    - [-] Show only after the *last* card of a notebook item in the current session is completed or skipped.
-  - [-] Create `TrainingProgressBar` component.
-  - [-] **Copilot Integration for Training**:
-    - [-] Add Copilot area (similar to STW), default collapsed.
-    - [-] Auto-expand with animation to show Azure pronunciation scores after recording. and auto-collapse after retry or send.
-    - [-] Add "Distill" icon on card to trigger distill and expand Copilot.
-    - [-] Support manual collapse/expand.
+  - [x] **DifficultySelector Logic**:
+    - [x] Show only after the *last* card of a notebook item in the current session is completed or skipped.
+  - [x] Create `TrainingProgressBar` component.
+  - [ ] **Copilot Integration for Training**:
+    - [ ] Add Copilot area (similar to STW), default collapsed.
+    - [ ] Auto-expand with animation to show Azure pronunciation scores after recording. and auto-collapse after retry or send.
+    - [ ] Add "Distill" icon on card to trigger distill and expand Copilot.
+    - [ ] Support manual collapse/expand.
 - [-] **Frontend - Pages**:
-  - [x] **Implement Training Transition Page**:
-    - [x] Display summary: Note count, total card count, new vs. old card distribution.
-    - [x] Add toggle: "Disable New Card Generation" (default OFF).
-    - [x] "Start Training" button to enter the session.
-  - [x] **Implement `/training` page logic**:
-    - [x] Remove "Preparing your session..." blocker.
-    - [x] Session state machine (Transition -> Active -> Summary).
   - [x] Implement `/models` configuration for Training models (Generator/Evaluator).
   - [-] **Implement `/settings` configuration**:
     - [x] **Read-Aloud Passing Threshold**: Configure the minimum Azure pronunciation score required to pass.

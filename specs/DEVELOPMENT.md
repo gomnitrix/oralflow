@@ -338,7 +338,7 @@ The feature works without Azure but won't show pronunciation scores.
 1. Create feature branch from `001-speaking-practice`
 2. Implement with tests
 3. **Run quality checks**: `npm run build && npm test && npm run lint`
-4. **Auto-commit and Push**: Once checks pass, automatically commit and push using conventional commits.
+4. **Auto-commit and Push**: Once checks pass, automatically commit and push using conventional commits (remove data/ folder).
 5. Ensure all checks pass before committing
 6. Submit PR with description
 
