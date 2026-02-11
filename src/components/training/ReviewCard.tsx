@@ -24,7 +24,7 @@ interface ReviewCardProps {
   onToggle: () => void;
   onPlayAudio?: (text: string) => void;
   onDistill?: () => void;
-  distillDisabled?: boolean;
+  distillLoading?: boolean;
 }
 
 export const ReviewCard: React.FC<ReviewCardProps> = ({
@@ -34,7 +34,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
   onToggle,
   onPlayAudio,
   onDistill,
-  distillDisabled = false,
+  distillLoading = false,
 }) => {
   const front = card.content.frontContent;
   const back = card.content.backContent;
@@ -90,11 +90,15 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
                       event.stopPropagation();
                       onDistill();
                     }}
-                    disabled={distillDisabled}
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-custom-border bg-white text-custom-text-dark/60 transition hover:text-custom-primary hover:bg-custom-primary/10 disabled:opacity-50"
+                    disabled={distillLoading}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-custom-border bg-white text-custom-text-dark/60 transition hover:text-custom-primary hover:bg-custom-primary/10 disabled:opacity-100"
                     aria-label="Distill"
                   >
-                    <span className="material-symbols-outlined text-lg">auto_awesome</span>
+                    <span
+                      className={`material-symbols-outlined text-lg ${distillLoading ? "animate-spin" : ""}`}
+                    >
+                      {distillLoading ? "autorenew" : "auto_awesome"}
+                    </span>
                   </button>
                 )}
               </div>

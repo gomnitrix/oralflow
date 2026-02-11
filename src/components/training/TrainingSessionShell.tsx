@@ -88,6 +88,13 @@ export const TrainingSessionShell: React.FC<TrainingSessionShellProps> = ({ payl
           .filter(Boolean)
           .join("\n")
     : "";
+  const distillDisplayText = currentCard
+    ? currentCard.type === "translation"
+      ? currentCard.content.frontContent.context
+      : currentCard.type === "read_aloud"
+        ? "Read-aloud sentence hidden."
+        : currentCard.content.frontContent.context
+    : "";
 
   const isLastCardForItem = useCallback(
     (index: number) => {
@@ -448,7 +455,10 @@ export const TrainingSessionShell: React.FC<TrainingSessionShellProps> = ({ payl
 
   return (
     <div className="relative">
-      <div className="space-y-6">
+      <div
+        className={`space-y-6 transition-[margin,transform] duration-300 ${copilotOpen ? "lg:mr-[320px] lg:-translate-x-4" : ""
+          }`}
+      >
         <div className="flex items-center justify-between">
           <TrainingProgressBar current={currentIndex + 1} total={cards.length} />
           <button
@@ -504,7 +514,7 @@ export const TrainingSessionShell: React.FC<TrainingSessionShellProps> = ({ payl
             onToggle={handleCardToggle}
             onPlayAudio={handlePlayAudio}
             onDistill={handleDistill}
-            distillDisabled={distillLoading}
+            distillLoading={distillLoading}
           />
         </CardStack>
 
@@ -584,7 +594,7 @@ export const TrainingSessionShell: React.FC<TrainingSessionShellProps> = ({ payl
           loading={distillLoading}
           error={distillError}
           notes={distillNotes}
-          sourceText={distillSourceText}
+          sourceText={distillDisplayText}
           cardId={currentCard?.id ?? null}
           pronunciationScore={evaluation?.pronunciationScore}
           pronunciationPassed={evaluation?.pronunciationPassed}

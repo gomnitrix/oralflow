@@ -9,6 +9,13 @@ const ratingAdjustments: Record<Rating, { intervalMultiplier: number; easeDelta:
   easy: { intervalMultiplier: 1.3, easeDelta: 0.15 },
 };
 
+const roundInterval = (rating: Rating, value: number) => {
+  if (!Number.isFinite(value) || value <= 0) return 1;
+  if (rating === "hard") return Math.max(1, Math.floor(value));
+  if (rating === "easy") return Math.max(1, Math.ceil(value));
+  return Math.max(1, Math.round(value));
+};
+
 export const scheduleNext = (task: ReviewTask, rating: Rating): ReviewTask => {
   const adjustment = ratingAdjustments[rating];
   const nextEase = Math.max(1.3, task.easeFactor + adjustment.easeDelta);
@@ -35,7 +42,7 @@ export const scheduleNext = (task: ReviewTask, rating: Rating): ReviewTask => {
   const nextRepetition = task.repetitionCount + 1;
   const currentInterval = Math.max(1, task.intervalDays || 1);
   const rawInterval = currentInterval * nextEase * adjustment.intervalMultiplier;
-  const nextInterval = Math.max(1, Math.ceil(rawInterval));
+  const nextInterval = roundInterval(rating, rawInterval);
 
   const dueAt = new Date(reviewedAt);
   dueAt.setDate(dueAt.getDate() + nextInterval);
